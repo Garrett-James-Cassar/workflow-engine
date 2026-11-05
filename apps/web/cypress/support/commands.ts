@@ -19,7 +19,9 @@ Cypress.Commands.add('a11y', () => {
   if ((Cypress as unknown as { isDemo?: boolean }).isDemo) return;
   cy.injectAxe();
   cy.checkA11y(undefined, { includedImpacts: ['serious', 'critical'] }, (violations) => {
+    const detail = violations.map((v) => `${v.id}: ${v.help} (${v.nodes.map((n) => n.target.join(' ')).join('; ')})`).join('\n');
     violations.forEach((v) => Cypress.log({ name: 'a11y', message: `${v.id}: ${v.help} (${v.nodes.length})` }));
+    throw new Error(`Accessibility violations (serious or critical):\n${detail}`);
   });
 });
 

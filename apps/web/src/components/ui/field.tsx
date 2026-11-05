@@ -39,7 +39,7 @@ export function Choices<T extends string>({ legend, name, value, choices, onChan
       <legend className="mb-1.5 text-sm font-medium">{legend}</legend>
       <div className="flex flex-wrap gap-2">
         {choices.map((c) => (
-          <label key={c.value} className={cn('tap-target inline-flex h-9 cursor-pointer items-center gap-2 rounded-md border px-3', value === c.value ? 'border-primary bg-primary-soft' : 'border-border-strong text-muted-foreground')}>
+          <label key={c.value} className={cn('tap-target inline-flex h-9 cursor-pointer items-center gap-2 rounded-md border px-3', value === c.value ? 'border-primary bg-primary-soft text-foreground' : 'border-border-strong text-muted-foreground')}>
             <input type="radio" name={name} value={c.value} checked={value === c.value} onChange={() => onChange(c.value)} data-cy={`${cy}-${c.value}`} className="accent-primary" />
             {c.label}
           </label>
