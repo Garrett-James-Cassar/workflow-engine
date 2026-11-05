@@ -12,7 +12,7 @@
     "preview": "vite preview --port 5183 --strictPort",
     "gen:api": "openapi-typescript contract/openapi.yaml -o src/api/generated/schema.d.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p cypress/tsconfig.json --noEmit",
-    "cy:run": "node scripts/cypress.mjs",
+    "cy:run": "node scripts/cypress.mjs --coverage",
     "cy:smoke": "node scripts/cypress.mjs --smoke",
     "cy:coverage": "node scripts/cypress.mjs --coverage",
     "cy:demo": "node scripts/cypress.mjs --demo",

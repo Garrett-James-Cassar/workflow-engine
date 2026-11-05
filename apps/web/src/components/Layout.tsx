@@ -42,10 +42,10 @@ const Brand = () => <span className="font-display text-[20px] leading-7">Workflo
 
 function TopBar({ onMenu }: { onMenu: () => void }) {
   return (
-    <div className="flex items-center gap-3 border-b border-border px-4 py-3 sm:px-6 lg:border-none">
+    <div className="flex flex-wrap items-center gap-3 border-b border-border px-4 py-3 sm:px-6 lg:border-none">
       <button type="button" data-cy="menu-toggle" aria-label="Open menu" title="Menu" onClick={onMenu} className="tap-target -ml-2 rounded-md p-2 text-muted-foreground hover:text-foreground lg:hidden"><Menu size={20} strokeWidth={1.75} aria-hidden /></button>
       <span className="lg:hidden"><Brand /></span>
-      <div className="ml-auto flex flex-wrap items-center justify-end gap-3"><PersonaSwitch /><ModeBanner />{MODE === 'demo' && <DemoControls />}</div>
+      <div className="flex w-full min-w-0 flex-wrap items-center gap-3 lg:ml-auto lg:w-auto lg:justify-end"><PersonaSwitch /><ModeBanner />{MODE === 'demo' && <DemoControls />}</div>
     </div>
   );
 }

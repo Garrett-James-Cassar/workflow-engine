@@ -1,0 +1,10 @@
+{
+  "all": true,
+  "include": ["src/**/*.{ts,tsx}"],
+  "exclude": ["src/mocks/**", "src/demo/vendor/**", "src/api/generated/**", "src/**/*.test.ts", "src/**/*.d.ts"],
+  "extension": [".ts", ".tsx"],
+  "reporter": ["text-summary", "lcov"],
+  "report-dir": "coverage",
+  "temp-dir": ".nyc_output",
+  "check-coverage": false
+}

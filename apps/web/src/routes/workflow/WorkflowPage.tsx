@@ -56,10 +56,10 @@ function DiagramCard({ name, version }: { name: string; version?: number }) {
   );
 }
 
-function NotFound({ error, name }: { error: unknown; name: string }) {
+function NotFound({ error, name, onRetry }: { error: unknown; name: string; onRetry: () => void }) {
   const missing = error instanceof ApiProblem && error.status === 404;
   const shown = missing ? new ApiProblem({ type: 'about:blank', status: 404, title: 'Not found', detail: `No workflow is registered as ${name}.`, traceId: error.traceId }) : error;
-  return <ErrorState heading={missing ? 'Workflow not found' : 'Could not load this workflow'} error={shown} />;
+  return <ErrorState heading={missing ? 'Workflow not found' : 'Could not load this workflow'} error={shown} onRetry={missing ? undefined : onRetry} />;
 }
 
 export function WorkflowPage() {
@@ -71,7 +71,7 @@ export function WorkflowPage() {
   const res = useResource(() => api.getWorkflow(name, version), `${name}@${version ?? ''}`);
   const crumbs = <Breadcrumbs items={[{ label: 'Workflows', to: '/workflows' }, { label: name }]} />;
   if (res.state === 'error') {
-    return <><PageHeader title={name} crumbs={crumbs} /><NotFound error={res.error} name={name} /><p className="mt-4"><Link to="/workflows" className="text-primary underline" data-cy="workflow-back">Back to workflows</Link></p></>;
+    return <><PageHeader title={name} crumbs={crumbs} /><NotFound error={res.error} name={name} onRetry={res.reload} /><p className="mt-4"><Link to="/workflows" className="text-primary underline" data-cy="workflow-back">Back to workflows</Link></p></>;
   }
   const w = res.data;
   return (
