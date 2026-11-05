@@ -207,7 +207,7 @@ Run histories are append-only, so they are export-only (no import).
 | Button | Variant | Permission | Result |
 |---|---|---|---|
 | Send event | default | `events.send` | `POST /api/v1/events/{name}`; toast "Event sent: 1 run woke". A 404 shows an inline coral alert "No run is waiting for `signed` with that correlation", form values kept. |
-| Export CSV, Export JSON | outline (grid toolbar) | `instances.export` | as on view 2 |
+| Export CSV | outline (grid toolbar) | `instances.export` | AG Grid CSV of the loaded rows; toast "Export started". Waits are live state, not a history, so there is no portable JSON for them |
 
 **Grid:** the waits list is FleetGrid. The form is grid-exempt.
 
