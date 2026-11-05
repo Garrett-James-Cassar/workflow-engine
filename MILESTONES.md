@@ -1,6 +1,6 @@
 # workflow-engine — Milestones
 ## In progress
-- (none) v1 (E1–E6) built 2026-11-04; awaiting review and iteration
+- (none) v1 (E1–E6) and the workflow studio UI1–UI7 built; awaiting review and iteration
 ## Done
 - E1: Gradle (Kotlin 2.4, Spring Boot 4.1, Java 25) scaffold, Postgres + Flyway, /health, dev.json, make ci (2026-11-04)
 - E2: DSL: outcome-typed steps, exhaustive `on { when }`, next/goto/end/path with rejoin, startup validation; compile-fail tests (2026-11-04)
@@ -8,6 +8,7 @@
 - E4: pure engine; service tasks (handler beans + built-in http with host allowlist), retries → incident → retry; decisions (2026-11-04)
 - E5: user tasks with outcomes and forms; role/user/userFrom assignment; RBAC stub from config (2026-11-04)
 - E6: event waits with correlation; timeouts as the TIMED_OUT outcome via an in-process poller + /timeouts callback (2026-11-04)
+- UI1–UI7: React workflow studio in apps/web: contract-first, MSW mock over the exported graphs, Workflows/Runs/My tasks/Events/Incidents, seven Demo chapters, Cypress with 80% coverage gate, make share (2026-11-05)
 ## Next
 - v2: sub-workflows: `subWorkflow("id", Other)` step whose outcome is the child's end status
 - E7: real rbac service client, JWT in live, export/import (PORTABLE)

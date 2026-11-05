@@ -1,4 +1,6 @@
-# Fleet CI (standards v1) for Gradle/JVM apps. Copy to .github/workflows/ci.yml.
+# Fleet CI (standards v1) for Gradle/JVM apps with a web studio: the whole gate is `make ci`
+# = ./gradlew check (core + Testcontainers app tests) + the web gate (contract, typecheck,
+# style grep, vitest, build, headless mocked Cypress with the 80% coverage gate, Demo chapters).
 name: ci
 on:
   push: { branches: [main, master] }
@@ -14,5 +16,20 @@ jobs:
           distribution: temurin
           java-version: 25
       - uses: gradle/actions/setup-gradle@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 9 }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: apps/web/pnpm-lock.yaml
+      - run: make web-install
       - name: ci gate
-        run: ./gradlew --no-daemon check
+        run: make ci
+      - name: screenshots on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-screenshots
+          path: test-evidence/web/screenshots
+          if-no-files-found: ignore

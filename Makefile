@@ -1,4 +1,4 @@
-.PHONY: up down stop dev restart test ci diagrams web web-demo web-install web-gen-check web-typecheck web-lint web-test web-build web-demo-build web-cy web-smoke web-demo-check web-ci share share-local cy-live
+.PHONY: up down stop dev restart test ci diagrams web web-demo web-install web-gen-check web-typecheck web-lint web-test web-build web-demo-build web-cy web-smoke web-demo-check web-live-check web-ci share share-local cy-live
 
 PORT ?= 47831
 export PORT
@@ -86,7 +86,10 @@ web-smoke: ## Cypress smoke specs only (the lefthook pre-push hook)
 web-demo-check: ## plays every Demo chapter unpaced in the demo build (demo.7)
 	$(WEB) cy:demo
 
-web-ci: web-gen-check web-typecheck web-lint web-test web-build web-cy web-demo-check
+web-live-check: ## the live profile with nothing serving the contract shows the error state, no mode banner
+	$(WEB) cy:unreachable
+
+web-ci: web-gen-check web-typecheck web-lint web-test web-build web-cy web-demo-check web-live-check
 
 cy-live: ## Cypress against the real engine on :47831 and Postgres on 55434 (opt-in; nightly in e2e-live.yml)
 	$(WEB) cy:live

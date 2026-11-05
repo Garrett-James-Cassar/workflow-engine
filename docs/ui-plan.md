@@ -1,6 +1,6 @@
 # Workflow studio: web UI plan
 
-Status: **planned** (2026-11-05). Scope: a new React studio in `apps/web`, a pnpm package beside the Gradle build. The engine (`engine/*`) and the static console in `engine/app/src/main/resources/static` are not changed. The UI is built against its own OpenAPI contract and an in-browser mock. The engine's own Preview mode (E8) is out of scope.
+Status: **built** (2026-11-05), slices 1–7 on `main`. Scope: a new React studio in `apps/web`, a pnpm package beside the Gradle build. The engine (`engine/*`) and the static console in `engine/app/src/main/resources/static` are not changed. The UI is built against its own OpenAPI contract and an in-browser mock. The engine's own Preview mode (E8) is out of scope.
 
 The views are specified in [`../UI-SPEC.md`](../UI-SPEC.md). The binding style is `/Users/garrett.cassar/Projects/fleet/standards/ui/STYLE.md` v1.4 and its `specimen.html`. The capability rows it targets are in `/Users/garrett.cassar/Projects/fleet/standards/matrices/matrices.json`. References: `notifications-hub/apps/web` and `scheduler/apps/web`.
 
@@ -231,7 +231,17 @@ Fresh seed per chapter (`resetData`), ring and captions, reduced motion, and CI 
 
 **Other rows:** rp.1 demo profile with a seeded in-memory store and a Demo button; rp.2 the engine's local profile is already Postgres in Docker (`make dev`); pt.4 export from every grid (import is not offered, see slice 5); api.1 Swagger at `/docs`; api.2 problem+json in the contract and the error states (the engine itself is a gap); arch.6 the demo build needs no backend and the live profile fails closed to the error state with the engine and UI still healthy.
 
-## 8. Risks and open questions
+## 8. As built: deviations from the plan
+
+- **Tasks:** the "Everyone's tasks" switch is the URL parameter `all=1`; `instance=<id>` narrows to one run (the run view's "Open in My tasks" link).
+- **Events:** a run's wait card links to `/events?instance=<id>`, which fills the form from that run's first wait. The waits grid has CSV export only (no portable JSON: waits are live state, not a history).
+- **Incidents:** a row opens a dialog with the full message and Retry step; the run's own page also has Retry step.
+- **Stats:** `completedToday` is the last 24 hours, so the figure never reads zero just after midnight.
+- **Unit runner:** vitest (the repo has no other JS runner). The contract test is part of `make ci`.
+- **Live check:** `make web-live-check` (`cy:unreachable`) proves the live profile fails closed to the STYLE.md error state with no mode banner when nothing serves the contract.
+- **`cy:live`:** the engine does not serve `/api/v1`, so every spec is skipped and counted as a `GAP:` (exit 0), as designed.
+
+## 9. Risks and open questions
 
 | # | Risk or question | Recommendation |
 |---|---|---|
@@ -244,3 +254,5 @@ Fresh seed per chapter (`resetData`), ring and captions, reduced motion, and CI 
 | Q1 | Where does `/api/v1` live: engine facade or a gateway? | Engine facade controller, behind a flag, in a separate task. |
 | Q2 | The coordinator named "two sample workflows"; there are four. | Seed all four; chapters use `confirmation-approval` and `trade-booking`. |
 | Q3 | Import? | Not offered: workflows are Kotlin code (E7 brings export/import), histories are export-only. |
+| R7 | The AG Grid sort-indicator glyph renders as a grey square in headless Electron (Cypress); it comes from `fleetGridTheme` copied unchanged from the reference apps. Not verified in Chrome. | Check in a real browser; if it persists, fix once in the shared theme, not here. |
+| R8 | The static demo bundle includes the Cypress specs the Demo replays (about 150 kB). | Accepted: it is what makes the chapters the real specs. Live builds never load them. |

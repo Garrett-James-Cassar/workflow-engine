@@ -1,0 +1,60 @@
+name: e2e-live
+# TESTING.md: the Cypress smoke + feature specs against the REAL engine and its own Postgres
+# (this app's own, per INDEPENDENCE.md). Not part of the default gate. Specs the engine cannot
+# satisfy yet (it does not serve the /api/v1 contract) are skipped with a GAP: reason and counted.
+on:
+  schedule: [{ cron: '17 3 * * *' }]
+  workflow_dispatch: {}
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: workflow
+          POSTGRES_PASSWORD: workflow
+          POSTGRES_DB: workflow
+        ports: ['55434:5432']
+        options: >-
+          --health-cmd "pg_isready -U workflow"
+          --health-interval 2s --health-timeout 3s --health-retries 30
+    env:
+      DATABASE_URL: jdbc:postgresql://127.0.0.1:55434/workflow
+      LIVE_API_URL: http://127.0.0.1:47831
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 25
+      - uses: gradle/actions/setup-gradle@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 9 }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: apps/web/pnpm-lock.yaml
+      - run: make web-install
+      - name: start the engine (Flyway migrates, then the engine on :47831)
+        run: |
+          ./gradlew --no-daemon :engine:app:bootRun > engine.log 2>&1 &
+          for i in $(seq 1 90); do curl -sf "$LIVE_API_URL/health" && break; sleep 1; done
+      - name: cy:live (UI built in live mode, headless)
+        run: make cy-live
+      - name: screenshots on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-live-screenshots
+          path: test-evidence/web/screenshots
+          if-no-files-found: ignore
+      - name: engine log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: engine-log
+          path: engine.log
+          if-no-files-found: ignore

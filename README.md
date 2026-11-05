@@ -276,6 +276,10 @@ flowchart LR
 | `POST /timeouts/{instance}/{step}` | timeout callback; an in-process poller also fires these |
 | `GET /rbac/grants`, `GET`/`POST /demo/...` | dev users, and the fake third parties the samples call |
 
+## Workflow studio (apps/web)
+
+A React studio for the engine, written against its own contract (`apps/web/contract/openapi.yaml`, under `/api/v1`), so it runs without the engine: `make web` (mock data, :5183), `make web-demo` (adds the Demo player with seven chapters), `make web-demo-build` (static `apps/web/dist/` for the fleet stack, served on 15183), `make share` (demo build through ngrok, `NGROK_AUTHTOKEN` from env). `make ci` runs the Gradle checks and the web gate. The views are in [UI-SPEC.md](UI-SPEC.md), the plan and the contract gaps against the engine's current API in [docs/ui-plan.md](docs/ui-plan.md). The static console at `/` is unchanged.
+
 ## Layout
 
 - `engine/core`: the DSL, validation, `WorkflowGraph`, `MermaidExporter` and the pure `Engine`. No I/O, no Spring.
