@@ -1,0 +1,9 @@
+# Git hooks (fleet standard: lefthook). Install with `lefthook install`.
+#
+# pre-push: the web smoke specs (Cypress over the mock profile), t.e2e.c.
+# The full suites run in `make ci` / CI.
+pre-push:
+  jobs:
+    - name: web smoke
+      root: apps/web/
+      run: node scripts/cypress.mjs --smoke

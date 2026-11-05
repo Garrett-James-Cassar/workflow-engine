@@ -1,0 +1,511 @@
+openapi: 3.1.0
+info:
+  title: Workflow engine API (studio contract)
+  version: 1.0.0
+  description: |
+    The API the workflow studio (`apps/web`) WANTS. It is not the engine's current API: the engine
+    serves unversioned paths (`/definitions`, `/instances`, ...), has no paging, sort or filters,
+    answers errors as `{error, reason}` and has no stats, waits, incidents or export endpoints.
+    The gaps are listed per operation in `docs/ui-plan.md` section 4; each is a "GAP:" below.
+
+    Conventions: everything is under `/api/v1`; times are ISO 8601 UTC; lists page with `offset`
+    and `limit` and return `{items,total}` (AG Grid infinite row model); every error is
+    `application/problem+json` carrying a `traceId`. The caller is identified by the `X-User` header
+    (the engine trusts it until the central RBAC service lands).
+servers:
+  - url: /api/v1
+security:
+  - xUser: []
+paths:
+  /workflows:
+    get:
+      operationId: listWorkflows
+      summary: List workflows (GAP - engine has GET /definitions, unpaged)
+      parameters:
+        - { $ref: '#/components/parameters/Offset' }
+        - { $ref: '#/components/parameters/Limit' }
+        - { name: sort, in: query, schema: { type: string, enum: [name, latestVersion, steps] } }
+        - { $ref: '#/components/parameters/Order' }
+        - { name: name, in: query, description: Name contains., schema: { type: string } }
+      responses:
+        '200': { description: A page of workflows, content: { application/json: { schema: { $ref: '#/components/schemas/WorkflowPage' } } } }
+        default: { $ref: '#/components/responses/Problem' }
+  /workflows/export:
+    get:
+      operationId: exportWorkflows
+      summary: Export workflows as a portable document (GAP - new endpoint)
+      parameters:
+        - { name: name, in: query, schema: { type: string } }
+      responses:
+        '200': { description: Portable document, content: { application/json: { schema: { $ref: '#/components/schemas/PortableDocument' } } } }
+        default: { $ref: '#/components/responses/Problem' }
+  /workflows/{name}:
+    get:
+      operationId: getWorkflow
+      summary: One workflow with its graph and sample vars (GAP - engine has GET /definitions/{name})
+      parameters:
+        - { $ref: '#/components/parameters/Name' }
+        - { $ref: '#/components/parameters/Version' }
+      responses:
+        '200': { description: The workflow, content: { application/json: { schema: { $ref: '#/components/schemas/Workflow' } } } }
+        default: { $ref: '#/components/responses/Problem' }
+  /workflows/{name}/diagram:
+    get:
+      operationId: getWorkflowDiagram
+      summary: The Mermaid source for a workflow (GAP - engine has GET /definitions/{name}/export?format=mermaid as text/plain)
+      parameters:
+        - { $ref: '#/components/parameters/Name' }
+        - { $ref: '#/components/parameters/Version' }
+      responses:
+        '200': { description: Mermaid source, content: { application/json: { schema: { $ref: '#/components/schemas/Diagram' } } } }
+        default: { $ref: '#/components/responses/Problem' }
+  /workflows/{name}/instances:
+    post:
+      operationId: startInstance
+      summary: Start a run (GAP - engine has POST /definitions/{name}/instances)
+      parameters:
+        - { $ref: '#/components/parameters/Name' }
+      requestBody:
+        content: { application/json: { schema: { $ref: '#/components/schemas/StartRequest' } } }
+      responses:
+        '201': { description: The new run, content: { application/json: { schema: { $ref: '#/components/schemas/Instance' } } } }
+        default: { $ref: '#/components/responses/Problem' }
+  /instances:
+    get:
+      operationId: listInstances
+      summary: List runs (GAP - engine has GET /instances?limit= with no total, sort or filters)
+      parameters:
+        - { $ref: '#/components/parameters/Offset' }
+        - { $ref: '#/components/parameters/Limit' }
+        - { name: sort, in: query, schema: { type: string, enum: [startedAt, updatedAt, definition, status, currentStep] } }
+        - { $ref: '#/components/parameters/Order' }
+        - { name: status, in: query, description: One or more statuses, comma separated., style: form, explode: false, schema: { type: array, items: { $ref: '#/components/schemas/InstanceStatus' } } }
+        - { name: workflow, in: query, schema: { type: string } }
+        - { name: step, in: query, description: Current step contains., schema: { type: string } }
+      responses:
+        '200': { description: A page of runs, content: { application/json: { schema: { $ref: '#/components/schemas/InstancePage' } } } }
+        default: { $ref: '#/components/responses/Problem' }
+  /instances/stats:
+    get:
+      operationId: instanceStats
+      summary: Counts for the key figures (GAP - new endpoint)
+      responses:
+        '200': { description: Counts, content: { application/json: { schema: { $ref: '#/components/schemas/InstanceStats' } } } }
+        default: { $ref: '#/components/responses/Problem' }
+  /instances/export:
+    get:
+      operationId: exportInstances
+      summary: Export runs as a portable document, export-only (GAP - new endpoint)
+      parameters:
+        - { name: status, in: query, style: form, explode: false, schema: { type: array, items: { $ref: '#/components/schemas/InstanceStatus' } } }
+        - { name: workflow, in: query, schema: { type: string } }
+        - { name: step, in: query, schema: { type: string } }
+      responses:
+        '200': { description: Portable document, content: { application/json: { schema: { $ref: '#/components/schemas/PortableDocument' } } } }
+        default: { $ref: '#/components/responses/Problem' }
+  /instances/{id}:
+    get:
+      operationId: getInstance
+      summary: One run (GAP - prefix; add startedAt and updatedAt)
+      parameters:
+        - { $ref: '#/components/parameters/Id' }
+      responses:
+        '200': { description: The run, content: { application/json: { schema: { $ref: '#/components/schemas/Instance' } } } }
+        default: { $ref: '#/components/responses/Problem' }
+  /instances/{id}/events:
+    get:
+      operationId: listInstanceEvents
+      summary: The run's history, oldest first (GAP - prefix)
+      parameters:
+        - { $ref: '#/components/parameters/Id' }
+      responses:
+        '200': { description: Events, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/InstanceEvent' } } } } }
+        default: { $ref: '#/components/responses/Problem' }
+  /instances/{id}/retry:
+    post:
+      operationId: retryInstance
+      summary: Re-run the step an incident stopped at (GAP - prefix)
+      parameters:
+        - { $ref: '#/components/parameters/Id' }
+      responses:
+        '200': { description: The run, content: { application/json: { schema: { $ref: '#/components/schemas/Instance' } } } }
+        default: { $ref: '#/components/responses/Problem' }
+  /instances/{id}/restart:
+    post:
+      operationId: restartInstance
+      summary: Support restart at a user task, needs workflow-support (GAP - prefix)
+      parameters:
+        - { $ref: '#/components/parameters/Id' }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/RestartRequest' } } }
+      responses:
+        '200': { description: The run, content: { application/json: { schema: { $ref: '#/components/schemas/Instance' } } } }
+        default: { $ref: '#/components/responses/Problem' }
+  /instances/{id}/timeouts/{step}:
+    post:
+      operationId: fireTimeout
+      summary: Fire an event wait's timeout now (GAP - engine has POST /timeouts/{instanceId}/{step})
+      parameters:
+        - { $ref: '#/components/parameters/Id' }
+        - { name: step, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: The run, content: { application/json: { schema: { $ref: '#/components/schemas/Instance' } } } }
+        default: { $ref: '#/components/responses/Problem' }
+  /tasks:
+    get:
+      operationId: listTasks
+      summary: Open tasks (GAP - prefix and paging)
+      parameters:
+        - { $ref: '#/components/parameters/Offset' }
+        - { $ref: '#/components/parameters/Limit' }
+        - { name: mine, in: query, description: Only tasks the X-User may complete., schema: { type: boolean, default: false } }
+        - { name: instance, in: query, schema: { type: string } }
+      responses:
+        '200': { description: A page of tasks, content: { application/json: { schema: { $ref: '#/components/schemas/TaskPage' } } } }
+        default: { $ref: '#/components/responses/Problem' }
+  /tasks/{id}/complete:
+    post:
+      operationId: completeTask
+      summary: Complete a task with one of its outcomes (GAP - prefix; 403 becomes problem+json with reason)
+      parameters:
+        - { $ref: '#/components/parameters/Id' }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/CompleteTaskRequest' } } }
+      responses:
+        '200': { description: The run after the task, content: { application/json: { schema: { $ref: '#/components/schemas/Instance' } } } }
+        default: { $ref: '#/components/responses/Problem' }
+  /tasks/{id}/reassign:
+    post:
+      operationId: reassignTask
+      summary: Move an open task to a user or a team (GAP - prefix)
+      parameters:
+        - { $ref: '#/components/parameters/Id' }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/ReassignRequest' } } }
+      responses:
+        '200': { description: The run, content: { application/json: { schema: { $ref: '#/components/schemas/Instance' } } } }
+        default: { $ref: '#/components/responses/Problem' }
+  /waits:
+    get:
+      operationId: listWaits
+      summary: Runs waiting for an event (GAP - new endpoint)
+      parameters:
+        - { $ref: '#/components/parameters/Offset' }
+        - { $ref: '#/components/parameters/Limit' }
+        - { name: sort, in: query, schema: { type: string, enum: [event, expiresAt, definition, step] } }
+        - { $ref: '#/components/parameters/Order' }
+        - { name: event, in: query, schema: { type: string } }
+      responses:
+        '200': { description: A page of waits, content: { application/json: { schema: { $ref: '#/components/schemas/WaitPage' } } } }
+        default: { $ref: '#/components/responses/Problem' }
+  /events/{name}:
+    post:
+      operationId: sendEvent
+      summary: Wake runs waiting for an event (GAP - prefix; 404 becomes problem+json)
+      parameters:
+        - { name: name, in: path, required: true, schema: { type: string } }
+      requestBody:
+        content: { application/json: { schema: { $ref: '#/components/schemas/EventRequest' } } }
+      responses:
+        '202': { description: Runs woken, content: { application/json: { schema: { $ref: '#/components/schemas/EventAccepted' } } } }
+        default: { $ref: '#/components/responses/Problem' }
+  /incidents:
+    get:
+      operationId: listIncidents
+      summary: Runs stopped by a failing step (GAP - new endpoint, derived from failed runs and their incident events)
+      parameters:
+        - { $ref: '#/components/parameters/Offset' }
+        - { $ref: '#/components/parameters/Limit' }
+        - { name: sort, in: query, schema: { type: string, enum: [at, definition, step] } }
+        - { $ref: '#/components/parameters/Order' }
+        - { name: workflow, in: query, schema: { type: string } }
+        - { name: step, in: query, schema: { type: string } }
+      responses:
+        '200': { description: A page of incidents, content: { application/json: { schema: { $ref: '#/components/schemas/IncidentPage' } } } }
+        default: { $ref: '#/components/responses/Problem' }
+  /incidents/export:
+    get:
+      operationId: exportIncidents
+      summary: Export incidents as a portable document, export-only (GAP - new endpoint)
+      parameters:
+        - { name: workflow, in: query, schema: { type: string } }
+        - { name: step, in: query, schema: { type: string } }
+      responses:
+        '200': { description: Portable document, content: { application/json: { schema: { $ref: '#/components/schemas/PortableDocument' } } } }
+        default: { $ref: '#/components/responses/Problem' }
+  /people:
+    get:
+      operationId: listPeople
+      summary: The people the studio can act as (GAP - engine has GET /rbac/people, a dev aid until central RBAC)
+      responses:
+        '200': { description: People, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Person' } } } } }
+        default: { $ref: '#/components/responses/Problem' }
+components:
+  securitySchemes:
+    xUser: { type: apiKey, in: header, name: X-User, description: The login the call acts as. }
+  parameters:
+    Offset: { name: offset, in: query, schema: { type: integer, minimum: 0, default: 0 } }
+    Limit: { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 500, default: 100 } }
+    Order: { name: order, in: query, schema: { type: string, enum: [asc, desc] } }
+    Name: { name: name, in: path, required: true, schema: { type: string } }
+    Version: { name: version, in: query, schema: { type: integer, minimum: 1 } }
+    Id: { name: id, in: path, required: true, schema: { type: string } }
+  responses:
+    Problem:
+      description: An error (RFC 7807). 403 carries the engine's reason; 409 means another caller got there first.
+      headers:
+        X-Trace-Id: { schema: { type: string } }
+      content:
+        application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } }
+  schemas:
+    Problem:
+      type: object
+      required: [type, title, status, traceId]
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        reason: { type: string, description: The permission reason on a 403. }
+        traceId: { type: string }
+        errors: { type: array, items: { $ref: '#/components/schemas/FieldError' } }
+    FieldError:
+      type: object
+      required: [path, message]
+      properties: { path: { type: string }, message: { type: string } }
+    InstanceStatus: { type: string, enum: [running, waiting, completed, failed] }
+    Page:
+      type: object
+      required: [total]
+      properties: { total: { type: integer, minimum: 0 } }
+    WorkflowSummary:
+      type: object
+      required: [name, latestVersion, versions, steps]
+      properties:
+        name: { type: string }
+        latestVersion: { type: integer }
+        versions: { type: array, items: { type: integer } }
+        steps: { type: integer }
+    WorkflowPage:
+      type: object
+      required: [items, total]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/WorkflowSummary' } }
+        total: { type: integer, minimum: 0 }
+    Workflow:
+      type: object
+      required: [name, version, versions, sample, graph]
+      properties:
+        name: { type: string }
+        version: { type: integer }
+        versions: { type: array, items: { type: integer } }
+        sample: { type: object, additionalProperties: true }
+        graph: { $ref: '#/components/schemas/Graph' }
+    Graph:
+      type: object
+      required: [name, version, nodes, edges, paths]
+      properties:
+        name: { type: string }
+        version: { type: integer }
+        nodes: { type: array, items: { $ref: '#/components/schemas/GraphNode' } }
+        edges: { type: array, items: { $ref: '#/components/schemas/GraphEdge' } }
+        paths: { type: array, items: { $ref: '#/components/schemas/GraphPath' } }
+    GraphNode:
+      type: object
+      required: [id, kind, label, meta]
+      properties:
+        id: { type: string }
+        kind: { type: string, enum: [start, user-task, service-task, event-wait, decision, end] }
+        label: { type: string }
+        path: { type: [string, 'null'] }
+        meta: { type: object, additionalProperties: true }
+    GraphEdge:
+      type: object
+      required: [from, to]
+      properties:
+        from: { type: string }
+        to: { type: string }
+        outcome: { type: [string, 'null'] }
+        label: { type: [string, 'null'] }
+    GraphPath:
+      type: object
+      required: [name, branchedFrom, nodes]
+      properties:
+        name: { type: string }
+        parent: { type: [string, 'null'] }
+        branchedFrom: { type: string }
+        nodes: { type: array, items: { type: string } }
+    Diagram:
+      type: object
+      required: [name, version, mermaid]
+      properties: { name: { type: string }, version: { type: integer }, mermaid: { type: string } }
+    StartRequest:
+      type: object
+      properties: { vars: { type: object, additionalProperties: true } }
+    Instance:
+      type: object
+      required: [id, definition, version, status, vars, startedAt, updatedAt, openTasks, openWaits]
+      properties:
+        id: { type: string }
+        definition: { type: string }
+        version: { type: integer }
+        status: { $ref: '#/components/schemas/InstanceStatus' }
+        currentStep: { type: [string, 'null'] }
+        endStatus: { type: [string, 'null'] }
+        vars: { type: object, additionalProperties: true }
+        startedAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        openTasks: { type: array, items: { $ref: '#/components/schemas/Task' } }
+        openWaits: { type: array, items: { $ref: '#/components/schemas/InstanceWait' } }
+    InstancePage:
+      type: object
+      required: [items, total]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/Instance' } }
+        total: { type: integer, minimum: 0 }
+    InstanceStats:
+      type: object
+      required: [running, waiting, failed, completedToday]
+      properties:
+        running: { type: integer, minimum: 0 }
+        waiting: { type: integer, minimum: 0 }
+        failed: { type: integer, minimum: 0 }
+        completedToday: { type: integer, minimum: 0 }
+    InstanceWait:
+      type: object
+      required: [step, event, correlation]
+      properties:
+        step: { type: string }
+        event: { type: string }
+        correlation: { type: object, additionalProperties: { type: [string, 'null'] } }
+        expiresAt: { type: [string, 'null'], format: date-time }
+    InstanceEvent:
+      type: object
+      required: [id, type, payload, at]
+      properties:
+        id: { type: integer }
+        type: { type: string, enum: [instance-started, step-entered, step-completed, incident, restarted, retried, instance-ended, task-reassigned] }
+        step: { type: [string, 'null'] }
+        outcome: { type: [string, 'null'] }
+        actor: { type: [string, 'null'] }
+        payload: { type: object, additionalProperties: true }
+        at: { type: string, format: date-time }
+    Assignee:
+      type: object
+      required: [type, name, scope]
+      properties:
+        type: { type: string, enum: [user, role] }
+        name: { type: string }
+        scope: { type: object, additionalProperties: { type: string } }
+    FormField:
+      type: object
+      required: [name, type, required]
+      properties:
+        name: { type: string }
+        type: { type: string, enum: [text, number, boolean] }
+        required: { type: boolean }
+    Task:
+      type: object
+      required: [id, instanceId, definition, step, label, assignee, outcomes, form, status, createdAt, scopedTo]
+      properties:
+        id: { type: string }
+        instanceId: { type: string }
+        definition: { type: string }
+        step: { type: string }
+        label: { type: string }
+        assignee: { $ref: '#/components/schemas/Assignee' }
+        outcomes: { type: array, items: { type: string } }
+        form: { type: array, items: { $ref: '#/components/schemas/FormField' } }
+        status: { type: string, enum: [open, done] }
+        outcome: { type: [string, 'null'] }
+        decidedBy: { type: [string, 'null'] }
+        createdAt: { type: string, format: date-time }
+        scopedTo: { type: string, enum: [user, team] }
+        reassignableBy: { type: [string, 'null'] }
+    TaskPage:
+      type: object
+      required: [items, total]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/Task' } }
+        total: { type: integer, minimum: 0 }
+    CompleteTaskRequest:
+      type: object
+      required: [outcome]
+      properties:
+        outcome: { type: string }
+        form: { type: object, additionalProperties: true }
+    ReassignRequest:
+      type: object
+      required: [to]
+      properties:
+        to: { type: string }
+        toTeam: { type: boolean, default: false }
+        scope: { type: object, additionalProperties: { type: string } }
+    RestartRequest:
+      type: object
+      required: [step]
+      properties: { step: { type: string } }
+    Wait:
+      type: object
+      required: [id, instanceId, definition, version, step, event, correlation]
+      properties:
+        id: { type: string }
+        instanceId: { type: string }
+        definition: { type: string }
+        version: { type: integer }
+        step: { type: string }
+        event: { type: string }
+        correlation: { type: object, additionalProperties: { type: [string, 'null'] } }
+        expiresAt: { type: [string, 'null'], format: date-time }
+    WaitPage:
+      type: object
+      required: [items, total]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/Wait' } }
+        total: { type: integer, minimum: 0 }
+    EventRequest:
+      type: object
+      properties:
+        correlation: { type: object, additionalProperties: { type: string } }
+        payload: { type: object, additionalProperties: true }
+    EventAccepted:
+      type: object
+      required: [woke]
+      properties: { woke: { type: array, items: { type: string } } }
+    Incident:
+      type: object
+      required: [id, instanceId, definition, version, step, message, at, status]
+      properties:
+        id: { type: string }
+        instanceId: { type: string }
+        definition: { type: string }
+        version: { type: integer }
+        step: { type: string }
+        message: { type: string }
+        at: { type: string, format: date-time }
+        status: { type: string, enum: [failed] }
+    IncidentPage:
+      type: object
+      required: [items, total]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/Incident' } }
+        total: { type: integer, minimum: 0 }
+    Person:
+      type: object
+      required: [user, name, teams]
+      properties:
+        user: { type: string }
+        name: { type: string }
+        teams: { type: array, items: { type: string } }
+    PortableDocument:
+      type: object
+      required: [format, version, resource, exportedAt, items]
+      properties:
+        format: { type: string, const: fleet.portable }
+        version: { type: integer }
+        resource: { type: string }
+        exportedAt: { type: string, format: date-time }
+        items: { type: array, items: { type: object, additionalProperties: true } }

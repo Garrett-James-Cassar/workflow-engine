@@ -4,3 +4,8 @@ build/
 *.iml
 .kotlin/
 .DS_Store
+node_modules/
+apps/web/dist/
+apps/web/coverage/
+apps/web/.nyc_output/
+test-evidence/

@@ -1,0 +1,63 @@
+/* Fleet UI tokens: STYLE.md v1.3 section 2 (accent: orange; success stays sage). The only file (with
+   components/grid/theme.ts, which references them) allowed to define colour. */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+
+    /* surfaces */
+    --background:    150 8% 5%;
+    --surface:       165 9% 9%;
+    --surface-2:     156 8% 12%;
+    --border:        160 8% 16%;
+    --border-strong: 150 6% 40%;
+
+    /* text: two tiers, no more */
+    --foreground:       47 17% 90%;
+    --muted-foreground: 140 3% 56%;
+
+    /* accent */
+    --primary:            25 95% 53%;   /* #f97415 orange, shared with rules-engine and forge */
+    --primary-hover:      25 95% 47%;
+    --primary-foreground: 150 8% 5%;
+    --primary-soft:       25 45% 18%;
+    --ring:               25 95% 53%;
+
+    /* status */
+    --success:     156 23% 64%;  /* sage: passing, done, healthy (not the accent) */
+    --warning:     33 62% 60%;
+    --destructive: 8 68% 63%;
+    --destructive-foreground: 150 8% 5%;
+    --info:        240 40% 72%;
+  }
+
+  html, body, #root { min-height: 100%; }
+  body {
+    @apply bg-background text-foreground font-sans text-sm antialiased;
+    font-variant-numeric: tabular-nums;
+  }
+  ::selection { background: hsl(var(--primary) / .3); }
+  :focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
+  * { scrollbar-width: thin; scrollbar-color: hsl(var(--border-strong)) transparent; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: hsl(var(--border-strong)); border-radius: 4px; }
+  .font-mono, code, pre { font-variant-ligatures: none; }
+  h1, h2, h3 { font-weight: inherit; }
+}
+
+@layer utilities {
+  .shell-wash { background-image: radial-gradient(60rem 30rem at 20% -10%, hsl(var(--primary) / .06), transparent 70%); }
+  .skeleton { @apply bg-surface-2 rounded-md; animation: pulse 1.5s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: .55; } }
+  .tap-target { position: relative; }
+  @media (pointer: coarse) {
+    .tap-target { min-height: 44px; min-width: 44px; }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}

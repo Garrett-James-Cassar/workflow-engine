@@ -1,4 +1,4 @@
-.PHONY: up down stop dev restart test ci diagrams
+.PHONY: up down stop dev restart test ci diagrams web web-demo web-install web-gen-check web-typecheck web-lint web-test web-build web-demo-build web-cy web-smoke web-demo-check web-ci share share-local cy-live
 
 PORT ?= 47831
 export PORT
@@ -42,7 +42,57 @@ restart: dev
 test: ## unit + compile-fail + e2e (Testcontainers; needs Docker)
 	./gradlew check
 
-ci: test
+ci: test web-ci ## Gradle check + the web gate
 
 diagrams: ## regenerate docs/workflows from the DSL
 	./gradlew :engine:app:diagrams
+
+# ---- web studio (apps/web, see docs/ui-plan.md) ----
+WEB := pnpm -C apps/web
+
+web-install: ## install the web studio's dependencies
+	$(WEB) install --frozen-lockfile
+
+web: ## studio on :5183, mock profile (MSW + Object Mother; ?scenario=empty|error|slow)
+	$(WEB) dev
+
+web-demo: ## studio on :5183, demo profile (mock reset per load + Run demo button)
+	$(WEB) dev:demo
+
+web-gen-check: ## the generated client is up to date with contract/openapi.yaml
+	$(WEB) gen:api && git diff --exit-code -- apps/web/src/api/generated/schema.d.ts
+
+web-typecheck:
+	$(WEB) typecheck
+
+web-lint: ## STYLE.md section 10 grep gate (tokens only, no caps, no native date inputs)
+	$(WEB) lint
+
+web-test: ## vitest, including the contract test (every mock response validated against openapi.yaml)
+	$(WEB) test
+
+web-build:
+	$(WEB) build
+
+web-demo-build: ## static demo build for the fleet stack: apps/web/dist (index.html + mockServiceWorker.js)
+	$(WEB) build:demo
+
+web-cy: ## all Cypress specs, headless, mocked, with the 80% coverage gate
+	$(WEB) cy:run
+
+web-smoke: ## Cypress smoke specs only (the lefthook pre-push hook)
+	$(WEB) cy:smoke
+
+web-demo-check: ## plays every Demo chapter unpaced in the demo build (demo.7)
+	$(WEB) cy:demo
+
+web-ci: web-gen-check web-typecheck web-lint web-test web-build web-cy web-demo-check
+
+cy-live: ## Cypress against the real engine on :47831 and Postgres on 55434 (opt-in; nightly in e2e-live.yml)
+	$(WEB) cy:live
+
+share: ## serve the DEMO build through ngrok (needs NGROK_AUTHTOKEN); remote viewers run the Demo in their own tab
+	$(WEB) exec node scripts/share.mjs
+
+share-local: ## serve the demo build on 0.0.0.0:5183 without a tunnel
+	$(WEB) exec node scripts/share.mjs --no-tunnel
