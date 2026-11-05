@@ -2,7 +2,7 @@
 // paging/sort/filter semantics a real backend must honour.
 import assert from 'node:assert/strict';
 import type { Incident, Instance, Page, PortableDocument, Task, Wait, WorkflowSummary } from '../api/types';
-import { FIXED } from './mother';
+import { FIXED } from './fixtures';
 import { someoneWho } from './rbac';
 import type { MockStore } from './store';
 

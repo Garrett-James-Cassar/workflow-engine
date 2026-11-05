@@ -30,6 +30,7 @@ export function WhereItIs({ run, events }: { run: Instance; events: InstanceEven
           <li key={w.step} data-cy="run-open-wait">
             <p className="font-semibold">Waiting for event <Mono>{w.event}</Mono></p>
             <p className="text-xs text-muted-foreground">Correlation <Mono>{Object.entries(w.correlation).map(([k, v]) => `${k}=${v}`).join(', ') || 'none'}</Mono>{w.expiresAt && <>, expires <Time value={w.expiresAt} mode="relative" /></>}</p>
+            <Link to={`/events?instance=${run.id}`} data-cy="run-send-event" className="text-xs text-primary underline">Send this event</Link>
           </li>
         ))}
       </ul>

@@ -2,6 +2,7 @@
 // load. Runs are not hand-written rows: they are STARTED and DRIVEN through the same
 // simulator the routes use, so every history, task and wait is one the simulator can produce.
 import { definition } from './defs';
+import { FIXED } from './fixtures';
 import { finishTask, deliver } from './ops';
 import { seeded, type Rand } from './random';
 import { someoneWho } from './rbac';
@@ -9,10 +10,7 @@ import type { MockStore } from './store';
 import { blankRun, startRun, type Clock, type Run, type Sim, type Vars } from './sim';
 import type { Task } from '../api/types';
 
-export const FIXED = {
-  /** A trade whose booking failed 3 minutes ago: the newest incident (the Demo's retry chapter). */
-  stuckBooking: { id: '0f1c0de0-0000-4000-8000-00000000f001', ref: 'FAIL-5001' }
-} as const;
+export { FIXED };
 
 const MIN = 60_000;
 const COUNTERPARTIES = ['ACME', 'Globex Ltd', 'Initech', 'Umbrella Corp', 'Stark Industries', 'Wayne Trading'];
