@@ -1,0 +1,9 @@
+{
+  "name": "workflow-engine",
+  "start": { "cmd": "make dev", "cwd": ".", "port": 47831, "envNames": ["PORT", "DATABASE_URL", "DB_USER", "DB_PASSWORD", "WORKFLOW_HTTP_ALLOWED_HOSTS", "TIMEOUT_POLL_INTERVAL", "LOG_LEVEL"] },
+  "health": { "url": "http://localhost:47831/health" },
+  "dependsOn": [],
+  "calls": [],
+  "test": { "cmd": "make test", "kind": "e2e" },
+  "notes": "Kotlin/Spring Boot 4.1, Java 25, Gradle. make dev starts compose Postgres on 127.0.0.1:55434 then bootRun. DATABASE_URL is JDBC form. Swagger at /docs, spec at /openapi.json. Auth is the X-User header; RBAC grants come from workflow.rbac.grants in application.yaml (stub until the central rbac service). Tests use Testcontainers (Docker required)."
+}

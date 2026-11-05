@@ -1,0 +1,71 @@
+server:
+  port: ${PORT:47831}
+
+spring:
+  application:
+    name: workflow-engine
+  datasource:
+    # JDBC form, e.g. jdbc:postgresql://127.0.0.1:55434/workflow
+    url: ${DATABASE_URL:jdbc:postgresql://127.0.0.1:55434/workflow}
+    username: ${DB_USER:workflow}
+    password: ${DB_PASSWORD:workflow}
+
+springdoc:
+  api-docs:
+    path: /openapi.json
+  swagger-ui:
+    path: /docs
+
+logging:
+  level:
+    root: ${LOG_LEVEL:INFO}
+
+workflow:
+  http:
+    # Hosts the built-in http { } service task may call. Empty means none.
+    allowed-hosts: ${WORKFLOW_HTTP_ALLOWED_HOSTS:localhost,127.0.0.1}
+  service:
+    backoff: 200ms
+  timeouts:
+    poll-interval: ${TIMEOUT_POLL_INTERVAL:5s}
+  rbac:
+    # v1 stub: grants from config. Replaced by the central rbac service client (E7).
+    # Human names for the dev logins below. Used only for display.
+    people:
+      l.jones: Laura Jones
+      h.legal: Harriet Lane
+      d.head: David Okafor
+      c.acme: Carla Mendes
+      k.comply: Kieran Walsh
+      m.lro: Marcus Reid
+      o.ops: Olivia Park
+      m.office: Maya Osei
+      ops.admin: Sam Patel
+      l.rossi: Lucia Rossi
+      l.dubois: Louis Dubois
+      l.weber: Lena Weber
+      a.ops: Alex Turner
+      p.maint: Priya Nair
+      p.owner: Pablo Ortiz
+      w.support: Riley Chen
+    grants:
+      - { user: l.jones, role: legal }
+      - { user: h.legal, role: head-of-legal }
+      # Legal teams by country. Each has its own lawyer; the head of legal sits in all of them.
+      - { user: l.rossi, role: legal-italy }
+      - { user: l.dubois, role: legal-france }
+      - { user: l.weber, role: legal-germany }
+      - { user: h.legal, role: legal }
+      - { user: h.legal, role: legal-italy }
+      - { user: h.legal, role: legal-france }
+      - { user: h.legal, role: legal-germany }
+      - { user: d.head, role: desk-head }
+      - { user: c.acme, role: counterparty-signatory, scope: { counterparty: ACME } }
+      - { user: k.comply, role: compliance, scope: { region: EU } }
+      - { user: m.lro, role: mlro }
+      - { user: o.ops, role: onboarding-ops, scope: { region: EU } }
+      - { user: m.office, role: middle-office }
+      # Holds the default reassign permission on every user task (see DEFAULT_REASSIGNER in core).
+      - { user: ops.admin, role: ops }
+      # Can restart any workflow at any user task (InstanceService.WORKFLOW_SUPPORT_ROLE).
+      - { user: w.support, role: workflow-support }

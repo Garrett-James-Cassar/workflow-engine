@@ -1,0 +1,54 @@
+---
+config:
+  flowchart:
+    curve: linear
+    nodeSpacing: 36
+    rankSpacing: 56
+    padding: 14
+    htmlLabels: false
+---
+%% trade-booking v1: generated from the Kotlin DSL; do not edit
+flowchart LR
+  n_start((" "))
+  n_book_trade("#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;⚙#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;<br/>Book in<br/>trading system")
+  n_confirmation_matched("#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;✉#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;<br/>Await matched<br/>confirmation")
+  n_release_to_settlement("#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;⚙#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;<br/>Release to<br/>settlement")
+  n_end_duplicate(("duplicate"))
+  n_end_abandoned(("abandoned"))
+  n_end_cancelled(("cancelled"))
+  n_end_completed(("completed"))
+  subgraph p_repair ["repair"]
+    direction LR
+    n_repair_trade("#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;👥#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;<br/>Repair trade<br/>#nbsp;<br/><i>team · middle-office</i>")
+  end
+  subgraph p_chase ["chase"]
+    direction LR
+    n_chase_counterparty("#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;⚙#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;<br/>Chase<br/>counterparty")
+    n_chase_decision("#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;👥#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;<br/>Unmatched:<br/>decide<br/><i>team · middle-office</i>")
+  end
+  n_start --> n_book_trade
+  n_book_trade -->|"BOOKED"| n_confirmation_matched
+  n_book_trade -->|"DUPLICATE"| n_end_duplicate
+  n_book_trade -->|"REJECTED"| n_repair_trade
+  n_repair_trade -->|"RESUBMIT"| n_book_trade
+  n_repair_trade -->|"ABANDON"| n_end_abandoned
+  n_confirmation_matched -->|"RECEIVED"| n_release_to_settlement
+  n_confirmation_matched -->|"TIMED_OUT"| n_chase_counterparty
+  n_chase_counterparty --> n_chase_decision
+  n_chase_decision -->|"WAIT_AGAIN"| n_confirmation_matched
+  n_chase_decision -->|"FORCE_MATCH"| n_release_to_settlement
+  n_chase_decision -->|"CANCEL"| n_end_cancelled
+  n_release_to_settlement --> n_end_completed
+  classDef userTask fill:#fbe7ee,stroke:#b9768f,stroke-width:1.5px,color:#2b1a21
+  classDef serviceTask fill:#ffffff,stroke:#5f6b66,stroke-width:1.5px,color:#1c2320
+  classDef eventWait fill:#ffffff,stroke:#5f6b66,stroke-width:1.5px,color:#1c2320
+  classDef gateway fill:#fff8e6,stroke:#a8842f,stroke-width:1.5px,color:#3a2e10,font-size:12px
+  classDef startEvent fill:#ffffff,stroke:#4a7d5c,stroke-width:1.5px,color:#4a7d5c
+  classDef endEvent fill:#ffffff,stroke:#2b2b2b,stroke-width:4px,color:#2b2b2b,font-size:11px
+  class n_start startEvent
+  class n_book_trade,n_chase_counterparty,n_release_to_settlement serviceTask
+  class n_repair_trade,n_chase_decision userTask
+  class n_confirmation_matched eventWait
+  class n_end_duplicate,n_end_abandoned,n_end_cancelled,n_end_completed endEvent
+  style p_repair fill:none,stroke:#9aa29e,stroke-width:1px,stroke-dasharray:6 4,color:#5f6b66
+  style p_chase fill:none,stroke:#9aa29e,stroke-width:1px,stroke-dasharray:6 4,color:#5f6b66

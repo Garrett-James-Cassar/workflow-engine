@@ -1,0 +1,56 @@
+---
+config:
+  flowchart:
+    curve: linear
+    nodeSpacing: 36
+    rankSpacing: 56
+    padding: 14
+    htmlLabels: false
+---
+%% clause-change-approval v1: generated from the Kotlin DSL; do not edit
+flowchart LR
+  n_start((" "))
+  n_classify{"✕<br/>Classify<br/>impact"}
+  n_schedule_release("#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;👤#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;<br/>Schedule<br/>release<br/><i>user · p.maint</i>")
+  n_publish("#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;⚙#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;<br/>Publish to<br/>clause library")
+  n_revise("#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;👤#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;<br/>Revise change<br/>#nbsp;<br/><i>user · from change.author</i>")
+  n_end_published(("published"))
+  n_end_abandoned(("abandoned"))
+  subgraph p_material_review ["material-review"]
+    direction LR
+    n_legal_approval("#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;👥#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;<br/>Legal approval<br/>#nbsp;<br/><i>team · legal</i>")
+    n_product_owner_sign_off("#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;👤#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;<br/>Product owner<br/>sign-off<br/><i>user · from change.productOwner</i>")
+  end
+  subgraph p_regulatory_review ["regulatory-review"]
+    direction LR
+    n_compliance_approval("#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;👥#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;<br/>Compliance<br/>approval<br/><i>team · compliance (region=EU)</i>")
+    n_legal_approval_regulatory("#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;👥#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;<br/>Legal approval<br/>(regulatory)<br/><i>team · legal</i>")
+  end
+  n_start --> n_classify
+  n_classify -->|"MINOR"| n_schedule_release
+  n_classify -->|"MATERIAL: #gt; 10 templates"| n_legal_approval
+  n_classify -->|"REGULATORY: regulatory flag"| n_compliance_approval
+  n_legal_approval -->|"APPROVE"| n_product_owner_sign_off
+  n_legal_approval -->|"REQUEST_CHANGES"| n_revise
+  n_product_owner_sign_off --> n_schedule_release
+  n_compliance_approval -->|"APPROVE"| n_legal_approval_regulatory
+  n_compliance_approval -->|"REQUEST_CHANGES"| n_revise
+  n_legal_approval_regulatory -->|"APPROVE"| n_schedule_release
+  n_legal_approval_regulatory -->|"REQUEST_CHANGES"| n_revise
+  n_schedule_release --> n_publish
+  n_publish --> n_end_published
+  n_revise -->|"RESUBMIT_CHANGE"| n_classify
+  n_revise -->|"ABANDON_CHANGE"| n_end_abandoned
+  classDef userTask fill:#fbe7ee,stroke:#b9768f,stroke-width:1.5px,color:#2b1a21
+  classDef serviceTask fill:#ffffff,stroke:#5f6b66,stroke-width:1.5px,color:#1c2320
+  classDef eventWait fill:#ffffff,stroke:#5f6b66,stroke-width:1.5px,color:#1c2320
+  classDef gateway fill:#fff8e6,stroke:#a8842f,stroke-width:1.5px,color:#3a2e10,font-size:12px
+  classDef startEvent fill:#ffffff,stroke:#4a7d5c,stroke-width:1.5px,color:#4a7d5c
+  classDef endEvent fill:#ffffff,stroke:#2b2b2b,stroke-width:4px,color:#2b2b2b,font-size:11px
+  class n_start startEvent
+  class n_classify gateway
+  class n_legal_approval,n_product_owner_sign_off,n_compliance_approval,n_legal_approval_regulatory,n_schedule_release,n_revise userTask
+  class n_publish serviceTask
+  class n_end_published,n_end_abandoned endEvent
+  style p_material_review fill:none,stroke:#9aa29e,stroke-width:1px,stroke-dasharray:6 4,color:#5f6b66
+  style p_regulatory_review fill:none,stroke:#9aa29e,stroke-width:1px,stroke-dasharray:6 4,color:#5f6b66

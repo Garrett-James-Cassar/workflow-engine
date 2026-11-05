@@ -1,0 +1,208 @@
+{
+  "name" : "clause-change-approval",
+  "version" : 1,
+  "nodes" : [ {
+    "id" : "start",
+    "kind" : "start",
+    "label" : "start",
+    "path" : null,
+    "meta" : { }
+  }, {
+    "id" : "classify",
+    "kind" : "decision",
+    "label" : "Classify impact",
+    "path" : null,
+    "meta" : {
+      "describe" : {
+        "MATERIAL" : "> 10 templates",
+        "REGULATORY" : "regulatory flag"
+      }
+    }
+  }, {
+    "id" : "legal-approval",
+    "kind" : "user-task",
+    "label" : "Legal approval",
+    "path" : "material-review",
+    "meta" : {
+      "scopedTo" : "team",
+      "reassignableBy" : "ops",
+      "role" : "legal",
+      "form" : [ {
+        "name" : "comment",
+        "type" : "TEXT",
+        "required" : false
+      } ]
+    }
+  }, {
+    "id" : "product-owner-sign-off",
+    "kind" : "user-task",
+    "label" : "Product owner sign-off",
+    "path" : "material-review",
+    "meta" : {
+      "scopedTo" : "user",
+      "reassignableBy" : "ops",
+      "userFrom" : "change.productOwner"
+    }
+  }, {
+    "id" : "compliance-approval",
+    "kind" : "user-task",
+    "label" : "Compliance approval",
+    "path" : "regulatory-review",
+    "meta" : {
+      "scopedTo" : "team",
+      "reassignableBy" : "ops",
+      "role" : "compliance",
+      "scope" : {
+        "region" : "EU"
+      }
+    }
+  }, {
+    "id" : "legal-approval-regulatory",
+    "kind" : "user-task",
+    "label" : "Legal approval (regulatory)",
+    "path" : "regulatory-review",
+    "meta" : {
+      "scopedTo" : "team",
+      "reassignableBy" : "ops",
+      "role" : "legal"
+    }
+  }, {
+    "id" : "schedule-release",
+    "kind" : "user-task",
+    "label" : "Schedule release",
+    "path" : null,
+    "meta" : {
+      "scopedTo" : "user",
+      "reassignableBy" : "ops",
+      "user" : "p.maint",
+      "form" : [ {
+        "name" : "releaseWindow",
+        "type" : "TEXT",
+        "required" : true
+      } ]
+    }
+  }, {
+    "id" : "publish",
+    "kind" : "service-task",
+    "label" : "Publish to clause library",
+    "path" : null,
+    "meta" : {
+      "http" : "POST {services.publish}",
+      "retries" : 2
+    }
+  }, {
+    "id" : "revise",
+    "kind" : "user-task",
+    "label" : "Revise change",
+    "path" : null,
+    "meta" : {
+      "scopedTo" : "user",
+      "reassignableBy" : "ops",
+      "userFrom" : "change.author",
+      "form" : [ {
+        "name" : "summary",
+        "type" : "TEXT",
+        "required" : true
+      } ]
+    }
+  }, {
+    "id" : "end:published",
+    "kind" : "end",
+    "label" : "published",
+    "path" : null,
+    "meta" : { }
+  }, {
+    "id" : "end:abandoned",
+    "kind" : "end",
+    "label" : "abandoned",
+    "path" : null,
+    "meta" : { }
+  } ],
+  "edges" : [ {
+    "from" : "start",
+    "to" : "classify",
+    "outcome" : null,
+    "label" : null
+  }, {
+    "from" : "classify",
+    "to" : "schedule-release",
+    "outcome" : "MINOR",
+    "label" : "MINOR"
+  }, {
+    "from" : "classify",
+    "to" : "legal-approval",
+    "outcome" : "MATERIAL",
+    "label" : "MATERIAL: > 10 templates"
+  }, {
+    "from" : "classify",
+    "to" : "compliance-approval",
+    "outcome" : "REGULATORY",
+    "label" : "REGULATORY: regulatory flag"
+  }, {
+    "from" : "legal-approval",
+    "to" : "product-owner-sign-off",
+    "outcome" : "APPROVE",
+    "label" : "APPROVE"
+  }, {
+    "from" : "legal-approval",
+    "to" : "revise",
+    "outcome" : "REQUEST_CHANGES",
+    "label" : "REQUEST_CHANGES"
+  }, {
+    "from" : "product-owner-sign-off",
+    "to" : "schedule-release",
+    "outcome" : null,
+    "label" : null
+  }, {
+    "from" : "compliance-approval",
+    "to" : "legal-approval-regulatory",
+    "outcome" : "APPROVE",
+    "label" : "APPROVE"
+  }, {
+    "from" : "compliance-approval",
+    "to" : "revise",
+    "outcome" : "REQUEST_CHANGES",
+    "label" : "REQUEST_CHANGES"
+  }, {
+    "from" : "legal-approval-regulatory",
+    "to" : "schedule-release",
+    "outcome" : "APPROVE",
+    "label" : "APPROVE"
+  }, {
+    "from" : "legal-approval-regulatory",
+    "to" : "revise",
+    "outcome" : "REQUEST_CHANGES",
+    "label" : "REQUEST_CHANGES"
+  }, {
+    "from" : "schedule-release",
+    "to" : "publish",
+    "outcome" : null,
+    "label" : null
+  }, {
+    "from" : "publish",
+    "to" : "end:published",
+    "outcome" : null,
+    "label" : null
+  }, {
+    "from" : "revise",
+    "to" : "classify",
+    "outcome" : "RESUBMIT_CHANGE",
+    "label" : "RESUBMIT_CHANGE"
+  }, {
+    "from" : "revise",
+    "to" : "end:abandoned",
+    "outcome" : "ABANDON_CHANGE",
+    "label" : "ABANDON_CHANGE"
+  } ],
+  "paths" : [ {
+    "name" : "material-review",
+    "parent" : null,
+    "branchedFrom" : "classify",
+    "nodes" : [ "legal-approval", "product-owner-sign-off" ]
+  }, {
+    "name" : "regulatory-review",
+    "parent" : null,
+    "branchedFrom" : "classify",
+    "nodes" : [ "compliance-approval", "legal-approval-regulatory" ]
+  } ]
+}

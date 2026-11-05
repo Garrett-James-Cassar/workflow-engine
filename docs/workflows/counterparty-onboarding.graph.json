@@ -1,0 +1,186 @@
+{
+  "name" : "counterparty-onboarding",
+  "version" : 1,
+  "nodes" : [ {
+    "id" : "start",
+    "kind" : "start",
+    "label" : "start",
+    "path" : null,
+    "meta" : { }
+  }, {
+    "id" : "request-screening",
+    "kind" : "service-task",
+    "label" : "Request screening",
+    "path" : null,
+    "meta" : {
+      "http" : "POST {services.screening}",
+      "retries" : 2
+    }
+  }, {
+    "id" : "screening-result",
+    "kind" : "event-wait",
+    "label" : "Await screening result",
+    "path" : null,
+    "meta" : {
+      "event" : "screening-result",
+      "correlateBy" : {
+        "caseId" : "request-screening.body.caseId"
+      }
+    }
+  }, {
+    "id" : "risk-route",
+    "kind" : "decision",
+    "label" : "Route on risk",
+    "path" : null,
+    "meta" : {
+      "describe" : {
+        "MEDIUM" : "hits need review",
+        "HIGH" : "auto-decline"
+      }
+    }
+  }, {
+    "id" : "compliance-review",
+    "kind" : "user-task",
+    "label" : "Compliance review",
+    "path" : "enhanced-due-diligence",
+    "meta" : {
+      "scopedTo" : "team",
+      "reassignableBy" : "ops",
+      "role" : "compliance",
+      "scopeFrom" : {
+        "region" : "counterparty.region"
+      },
+      "form" : [ {
+        "name" : "findings",
+        "type" : "TEXT",
+        "required" : true
+      }, {
+        "name" : "pep",
+        "type" : "BOOLEAN",
+        "required" : true
+      }, {
+        "name" : "hitsReviewed",
+        "type" : "NUMBER",
+        "required" : false
+      } ]
+    }
+  }, {
+    "id" : "mlro-decision",
+    "kind" : "user-task",
+    "label" : "MLRO decision",
+    "path" : "mlro",
+    "meta" : {
+      "scopedTo" : "team",
+      "reassignableBy" : "ops",
+      "role" : "mlro",
+      "form" : [ {
+        "name" : "rationale",
+        "type" : "TEXT",
+        "required" : true
+      } ]
+    }
+  }, {
+    "id" : "set-up-account",
+    "kind" : "user-task",
+    "label" : "Set up account",
+    "path" : null,
+    "meta" : {
+      "scopedTo" : "team",
+      "reassignableBy" : "ops",
+      "role" : "onboarding-ops",
+      "scopeFrom" : {
+        "region" : "counterparty.region"
+      },
+      "form" : [ {
+        "name" : "accountId",
+        "type" : "TEXT",
+        "required" : true
+      } ]
+    }
+  }, {
+    "id" : "end:declined-high-risk",
+    "kind" : "end",
+    "label" : "declined-high-risk",
+    "path" : null,
+    "meta" : { }
+  }, {
+    "id" : "end:declined",
+    "kind" : "end",
+    "label" : "declined",
+    "path" : null,
+    "meta" : { }
+  }, {
+    "id" : "end:completed",
+    "kind" : "end",
+    "label" : "completed",
+    "path" : null,
+    "meta" : { }
+  } ],
+  "edges" : [ {
+    "from" : "start",
+    "to" : "request-screening",
+    "outcome" : null,
+    "label" : null
+  }, {
+    "from" : "request-screening",
+    "to" : "screening-result",
+    "outcome" : null,
+    "label" : null
+  }, {
+    "from" : "screening-result",
+    "to" : "risk-route",
+    "outcome" : null,
+    "label" : null
+  }, {
+    "from" : "risk-route",
+    "to" : "set-up-account",
+    "outcome" : "LOW",
+    "label" : "LOW"
+  }, {
+    "from" : "risk-route",
+    "to" : "compliance-review",
+    "outcome" : "MEDIUM",
+    "label" : "MEDIUM: hits need review"
+  }, {
+    "from" : "risk-route",
+    "to" : "end:declined-high-risk",
+    "outcome" : "HIGH",
+    "label" : "HIGH: auto-decline"
+  }, {
+    "from" : "compliance-review",
+    "to" : "set-up-account",
+    "outcome" : "CLEAR",
+    "label" : "CLEAR"
+  }, {
+    "from" : "compliance-review",
+    "to" : "mlro-decision",
+    "outcome" : "ESCALATE",
+    "label" : "ESCALATE"
+  }, {
+    "from" : "mlro-decision",
+    "to" : "set-up-account",
+    "outcome" : "ACCEPT",
+    "label" : "ACCEPT"
+  }, {
+    "from" : "mlro-decision",
+    "to" : "end:declined",
+    "outcome" : "DECLINE",
+    "label" : "DECLINE"
+  }, {
+    "from" : "set-up-account",
+    "to" : "end:completed",
+    "outcome" : null,
+    "label" : null
+  } ],
+  "paths" : [ {
+    "name" : "enhanced-due-diligence",
+    "parent" : null,
+    "branchedFrom" : "risk-route",
+    "nodes" : [ "compliance-review" ]
+  }, {
+    "name" : "mlro",
+    "parent" : "enhanced-due-diligence",
+    "branchedFrom" : "compliance-review",
+    "nodes" : [ "mlro-decision" ]
+  } ]
+}

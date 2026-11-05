@@ -1,0 +1,245 @@
+{
+  "name" : "confirmation-approval",
+  "version" : 1,
+  "nodes" : [ {
+    "id" : "start",
+    "kind" : "start",
+    "label" : "start",
+    "path" : null,
+    "meta" : { }
+  }, {
+    "id" : "legal-review",
+    "kind" : "user-task",
+    "label" : "Legal review",
+    "path" : null,
+    "meta" : {
+      "scopedTo" : "team",
+      "reassignableBy" : "ops",
+      "role" : "legal",
+      "form" : [ {
+        "name" : "comment",
+        "type" : "TEXT",
+        "required" : false
+      } ]
+    }
+  }, {
+    "id" : "notify-requester",
+    "kind" : "service-task",
+    "label" : "Notify requester",
+    "path" : "rework",
+    "meta" : {
+      "handler" : "NotifyRequester",
+      "retries" : 2
+    }
+  }, {
+    "id" : "amend-draft",
+    "kind" : "user-task",
+    "label" : "Amend draft",
+    "path" : "rework",
+    "meta" : {
+      "scopedTo" : "user",
+      "reassignableBy" : "ops",
+      "userFrom" : "doc.requester"
+    }
+  }, {
+    "id" : "negotiate",
+    "kind" : "user-task",
+    "label" : "Counterparty negotiation",
+    "path" : "negotiation",
+    "meta" : {
+      "scopedTo" : "team",
+      "reassignableBy" : "ops",
+      "role" : "counterparty-signatory",
+      "scopeFrom" : {
+        "counterparty" : "doc.counterparty"
+      },
+      "form" : [ {
+        "name" : "proposal",
+        "type" : "TEXT",
+        "required" : false
+      } ]
+    }
+  }, {
+    "id" : "size-check",
+    "kind" : "decision",
+    "label" : "Size check",
+    "path" : null,
+    "meta" : {
+      "describe" : {
+        "LARGE" : "notional > 50m"
+      }
+    }
+  }, {
+    "id" : "desk-head-sign-off",
+    "kind" : "user-task",
+    "label" : "Desk head sign-off",
+    "path" : "senior",
+    "meta" : {
+      "scopedTo" : "team",
+      "reassignableBy" : "ops",
+      "role" : "desk-head"
+    }
+  }, {
+    "id" : "send-for-signature",
+    "kind" : "service-task",
+    "label" : "Send for signature",
+    "path" : null,
+    "meta" : {
+      "handler" : "SendForSignature",
+      "retries" : 2
+    }
+  }, {
+    "id" : "signed",
+    "kind" : "event-wait",
+    "label" : "Await signature",
+    "path" : null,
+    "meta" : {
+      "event" : "signed",
+      "correlateBy" : {
+        "envelopeId" : "send-for-signature.envelopeId"
+      },
+      "timeout" : "PT168H"
+    }
+  }, {
+    "id" : "stamp",
+    "kind" : "service-task",
+    "label" : "Stamp executed copy",
+    "path" : null,
+    "meta" : {
+      "handler" : "StampDocument",
+      "retries" : 2
+    }
+  }, {
+    "id" : "end:withdrawn",
+    "kind" : "end",
+    "label" : "withdrawn",
+    "path" : null,
+    "meta" : { }
+  }, {
+    "id" : "end:abandoned",
+    "kind" : "end",
+    "label" : "abandoned",
+    "path" : null,
+    "meta" : { }
+  }, {
+    "id" : "end:signature-failed",
+    "kind" : "end",
+    "label" : "signature-failed",
+    "path" : null,
+    "meta" : { }
+  }, {
+    "id" : "end:expired",
+    "kind" : "end",
+    "label" : "expired",
+    "path" : null,
+    "meta" : { }
+  }, {
+    "id" : "end:completed",
+    "kind" : "end",
+    "label" : "completed",
+    "path" : null,
+    "meta" : { }
+  } ],
+  "edges" : [ {
+    "from" : "start",
+    "to" : "legal-review",
+    "outcome" : null,
+    "label" : null
+  }, {
+    "from" : "legal-review",
+    "to" : "size-check",
+    "outcome" : "APPROVE",
+    "label" : "APPROVE"
+  }, {
+    "from" : "legal-review",
+    "to" : "notify-requester",
+    "outcome" : "REJECT",
+    "label" : "REJECT"
+  }, {
+    "from" : "legal-review",
+    "to" : "negotiate",
+    "outcome" : "COUNTER",
+    "label" : "COUNTER"
+  }, {
+    "from" : "notify-requester",
+    "to" : "amend-draft",
+    "outcome" : null,
+    "label" : null
+  }, {
+    "from" : "amend-draft",
+    "to" : "legal-review",
+    "outcome" : "RESUBMIT",
+    "label" : "RESUBMIT"
+  }, {
+    "from" : "amend-draft",
+    "to" : "end:withdrawn",
+    "outcome" : "WITHDRAW",
+    "label" : "WITHDRAW"
+  }, {
+    "from" : "negotiate",
+    "to" : "legal-review",
+    "outcome" : "AGREED",
+    "label" : "AGREED"
+  }, {
+    "from" : "negotiate",
+    "to" : "end:abandoned",
+    "outcome" : "WALK_AWAY",
+    "label" : "WALK_AWAY"
+  }, {
+    "from" : "size-check",
+    "to" : "desk-head-sign-off",
+    "outcome" : "LARGE",
+    "label" : "LARGE: notional > 50m"
+  }, {
+    "from" : "size-check",
+    "to" : "send-for-signature",
+    "outcome" : "NORMAL",
+    "label" : "NORMAL"
+  }, {
+    "from" : "desk-head-sign-off",
+    "to" : "send-for-signature",
+    "outcome" : null,
+    "label" : null
+  }, {
+    "from" : "send-for-signature",
+    "to" : "signed",
+    "outcome" : "SENT",
+    "label" : "SENT"
+  }, {
+    "from" : "send-for-signature",
+    "to" : "end:signature-failed",
+    "outcome" : "REJECTED_BY_PROVIDER",
+    "label" : "REJECTED_BY_PROVIDER"
+  }, {
+    "from" : "signed",
+    "to" : "stamp",
+    "outcome" : "RECEIVED",
+    "label" : "RECEIVED"
+  }, {
+    "from" : "signed",
+    "to" : "end:expired",
+    "outcome" : "TIMED_OUT",
+    "label" : "TIMED_OUT"
+  }, {
+    "from" : "stamp",
+    "to" : "end:completed",
+    "outcome" : null,
+    "label" : null
+  } ],
+  "paths" : [ {
+    "name" : "rework",
+    "parent" : null,
+    "branchedFrom" : "legal-review",
+    "nodes" : [ "notify-requester", "amend-draft" ]
+  }, {
+    "name" : "negotiation",
+    "parent" : null,
+    "branchedFrom" : "legal-review",
+    "nodes" : [ "negotiate" ]
+  }, {
+    "name" : "senior",
+    "parent" : null,
+    "branchedFrom" : "size-check",
+    "nodes" : [ "desk-head-sign-off" ]
+  } ]
+}

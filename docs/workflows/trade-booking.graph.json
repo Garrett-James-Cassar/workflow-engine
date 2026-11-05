@@ -1,0 +1,180 @@
+{
+  "name" : "trade-booking",
+  "version" : 1,
+  "nodes" : [ {
+    "id" : "start",
+    "kind" : "start",
+    "label" : "start",
+    "path" : null,
+    "meta" : { }
+  }, {
+    "id" : "book-trade",
+    "kind" : "service-task",
+    "label" : "Book in trading system",
+    "path" : null,
+    "meta" : {
+      "handler" : "BookTrade",
+      "retries" : 2
+    }
+  }, {
+    "id" : "repair-trade",
+    "kind" : "user-task",
+    "label" : "Repair trade",
+    "path" : "repair",
+    "meta" : {
+      "scopedTo" : "team",
+      "reassignableBy" : "ops",
+      "role" : "middle-office",
+      "form" : [ {
+        "name" : "quantity",
+        "type" : "NUMBER",
+        "required" : true
+      }, {
+        "name" : "note",
+        "type" : "TEXT",
+        "required" : false
+      } ]
+    }
+  }, {
+    "id" : "confirmation-matched",
+    "kind" : "event-wait",
+    "label" : "Await matched confirmation",
+    "path" : null,
+    "meta" : {
+      "event" : "confirmation-matched",
+      "correlateBy" : {
+        "tradeRef" : "book-trade.tradeRef"
+      },
+      "timeout" : "PT1M"
+    }
+  }, {
+    "id" : "chase-counterparty",
+    "kind" : "service-task",
+    "label" : "Chase counterparty",
+    "path" : "chase",
+    "meta" : {
+      "handler" : "ChaseCounterparty",
+      "retries" : 2
+    }
+  }, {
+    "id" : "chase-decision",
+    "kind" : "user-task",
+    "label" : "Unmatched: decide",
+    "path" : "chase",
+    "meta" : {
+      "scopedTo" : "team",
+      "reassignableBy" : "ops",
+      "role" : "middle-office"
+    }
+  }, {
+    "id" : "release-to-settlement",
+    "kind" : "service-task",
+    "label" : "Release to settlement",
+    "path" : null,
+    "meta" : {
+      "handler" : "ReleaseToSettlement",
+      "retries" : 2
+    }
+  }, {
+    "id" : "end:duplicate",
+    "kind" : "end",
+    "label" : "duplicate",
+    "path" : null,
+    "meta" : { }
+  }, {
+    "id" : "end:abandoned",
+    "kind" : "end",
+    "label" : "abandoned",
+    "path" : null,
+    "meta" : { }
+  }, {
+    "id" : "end:cancelled",
+    "kind" : "end",
+    "label" : "cancelled",
+    "path" : null,
+    "meta" : { }
+  }, {
+    "id" : "end:completed",
+    "kind" : "end",
+    "label" : "completed",
+    "path" : null,
+    "meta" : { }
+  } ],
+  "edges" : [ {
+    "from" : "start",
+    "to" : "book-trade",
+    "outcome" : null,
+    "label" : null
+  }, {
+    "from" : "book-trade",
+    "to" : "confirmation-matched",
+    "outcome" : "BOOKED",
+    "label" : "BOOKED"
+  }, {
+    "from" : "book-trade",
+    "to" : "end:duplicate",
+    "outcome" : "DUPLICATE",
+    "label" : "DUPLICATE"
+  }, {
+    "from" : "book-trade",
+    "to" : "repair-trade",
+    "outcome" : "REJECTED",
+    "label" : "REJECTED"
+  }, {
+    "from" : "repair-trade",
+    "to" : "book-trade",
+    "outcome" : "RESUBMIT",
+    "label" : "RESUBMIT"
+  }, {
+    "from" : "repair-trade",
+    "to" : "end:abandoned",
+    "outcome" : "ABANDON",
+    "label" : "ABANDON"
+  }, {
+    "from" : "confirmation-matched",
+    "to" : "release-to-settlement",
+    "outcome" : "RECEIVED",
+    "label" : "RECEIVED"
+  }, {
+    "from" : "confirmation-matched",
+    "to" : "chase-counterparty",
+    "outcome" : "TIMED_OUT",
+    "label" : "TIMED_OUT"
+  }, {
+    "from" : "chase-counterparty",
+    "to" : "chase-decision",
+    "outcome" : null,
+    "label" : null
+  }, {
+    "from" : "chase-decision",
+    "to" : "confirmation-matched",
+    "outcome" : "WAIT_AGAIN",
+    "label" : "WAIT_AGAIN"
+  }, {
+    "from" : "chase-decision",
+    "to" : "release-to-settlement",
+    "outcome" : "FORCE_MATCH",
+    "label" : "FORCE_MATCH"
+  }, {
+    "from" : "chase-decision",
+    "to" : "end:cancelled",
+    "outcome" : "CANCEL",
+    "label" : "CANCEL"
+  }, {
+    "from" : "release-to-settlement",
+    "to" : "end:completed",
+    "outcome" : null,
+    "label" : null
+  } ],
+  "paths" : [ {
+    "name" : "repair",
+    "parent" : null,
+    "branchedFrom" : "book-trade",
+    "nodes" : [ "repair-trade" ]
+  }, {
+    "name" : "chase",
+    "parent" : null,
+    "branchedFrom" : "confirmation-matched",
+    "nodes" : [ "chase-counterparty", "chase-decision" ]
+  } ]
+}

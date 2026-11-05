@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Workflow engine</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand">Workflow engine</div>
+    <nav id="nav">
+      <a href="#/definitions" data-section="definitions">Definitions</a>
+      <a href="#/instances" data-section="instances">Instances</a>
+      <a href="#/tasks" data-section="tasks">My tasks</a>
+      <a href="#/demos" data-section="demos">Demos</a>
+    </nav>
+    <div class="persona">
+      <span class="acting-title">Acting as</span>
+      <div id="acting" class="stack"></div>
+      <input id="persona" type="hidden">
+      <datalist id="users"></datalist>
+      <span class="helper">Sent as the X-User header on every call.</span>
+    </div>
+    <a class="api-link" href="/docs" target="_blank" rel="noopener">API reference</a>
+  </aside>
+  <main id="main"></main>
+</div>
+<div id="toasts" aria-live="polite"></div>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

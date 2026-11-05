@@ -1,0 +1,67 @@
+---
+config:
+  flowchart:
+    curve: linear
+    nodeSpacing: 36
+    rankSpacing: 56
+    padding: 14
+    htmlLabels: false
+---
+%% confirmation-approval v1: generated from the Kotlin DSL; do not edit
+flowchart LR
+  n_start((" "))
+  n_legal_review("#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;👥#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;<br/>Legal review<br/>#nbsp;<br/><i>team · legal</i>")
+  n_size_check{"✕<br/>Size check"}
+  n_send_for_signature("#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;⚙#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;<br/>Send for<br/>signature")
+  n_signed("#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;✉#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;<br/>Await<br/>signature")
+  n_stamp("#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;⚙#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;<br/>Stamp executed<br/>copy")
+  n_end_withdrawn(("withdrawn"))
+  n_end_abandoned(("abandoned"))
+  n_end_signature_failed(("signature<br/>failed"))
+  n_end_expired(("expired"))
+  n_end_completed(("completed"))
+  subgraph p_rework ["rework"]
+    direction LR
+    n_notify_requester("#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;⚙#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;<br/>Notify<br/>requester")
+    n_amend_draft("#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;👤#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;<br/>Amend draft<br/>#nbsp;<br/><i>user · from doc.requester</i>")
+  end
+  subgraph p_negotiation ["negotiation"]
+    direction LR
+    n_negotiate("#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;👥#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;<br/>Counterparty<br/>negotiation<br/><i>team · counterparty-signatory</i>")
+  end
+  subgraph p_senior ["senior"]
+    direction LR
+    n_desk_head_sign_off("#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;👥#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;#nbsp;<br/>Desk head<br/>sign-off<br/><i>team · desk-head</i>")
+  end
+  n_start --> n_legal_review
+  n_legal_review -->|"APPROVE"| n_size_check
+  n_legal_review -->|"REJECT"| n_notify_requester
+  n_legal_review -->|"COUNTER"| n_negotiate
+  n_notify_requester --> n_amend_draft
+  n_amend_draft -->|"RESUBMIT"| n_legal_review
+  n_amend_draft -->|"WITHDRAW"| n_end_withdrawn
+  n_negotiate -->|"AGREED"| n_legal_review
+  n_negotiate -->|"WALK_AWAY"| n_end_abandoned
+  n_size_check -->|"LARGE: notional #gt; 50m"| n_desk_head_sign_off
+  n_size_check -->|"NORMAL"| n_send_for_signature
+  n_desk_head_sign_off --> n_send_for_signature
+  n_send_for_signature -->|"SENT"| n_signed
+  n_send_for_signature -->|"REJECTED_BY_PROVIDER"| n_end_signature_failed
+  n_signed -->|"RECEIVED"| n_stamp
+  n_signed -->|"TIMED_OUT"| n_end_expired
+  n_stamp --> n_end_completed
+  classDef userTask fill:#fbe7ee,stroke:#b9768f,stroke-width:1.5px,color:#2b1a21
+  classDef serviceTask fill:#ffffff,stroke:#5f6b66,stroke-width:1.5px,color:#1c2320
+  classDef eventWait fill:#ffffff,stroke:#5f6b66,stroke-width:1.5px,color:#1c2320
+  classDef gateway fill:#fff8e6,stroke:#a8842f,stroke-width:1.5px,color:#3a2e10,font-size:12px
+  classDef startEvent fill:#ffffff,stroke:#4a7d5c,stroke-width:1.5px,color:#4a7d5c
+  classDef endEvent fill:#ffffff,stroke:#2b2b2b,stroke-width:4px,color:#2b2b2b,font-size:11px
+  class n_start startEvent
+  class n_legal_review,n_amend_draft,n_negotiate,n_desk_head_sign_off userTask
+  class n_notify_requester,n_send_for_signature,n_stamp serviceTask
+  class n_size_check gateway
+  class n_signed eventWait
+  class n_end_withdrawn,n_end_abandoned,n_end_signature_failed,n_end_expired,n_end_completed endEvent
+  style p_rework fill:none,stroke:#9aa29e,stroke-width:1px,stroke-dasharray:6 4,color:#5f6b66
+  style p_negotiation fill:none,stroke:#9aa29e,stroke-width:1px,stroke-dasharray:6 4,color:#5f6b66
+  style p_senior fill:none,stroke:#9aa29e,stroke-width:1px,stroke-dasharray:6 4,color:#5f6b66
