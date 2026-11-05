@@ -32,6 +32,9 @@
     --destructive: 8 68% 63%;
     --destructive-foreground: 150 8% 5%;
     --info:        240 40% 72%;
+
+    /* the light panel Mermaid diagrams render on, so the exporter's node fills read as on GitHub */
+    --paper:       40 20% 97%;
   }
 
   html, body, #root { min-height: 100%; }

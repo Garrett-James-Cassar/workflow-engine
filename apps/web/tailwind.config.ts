@@ -34,6 +34,7 @@ export default {
         success: token('success'),
         warning: token('warning'),
         info: token('info'),
+        paper: token('paper'),
         destructive: { DEFAULT: token('destructive'), foreground: token('destructive-foreground') }
       },
       fontFamily: {

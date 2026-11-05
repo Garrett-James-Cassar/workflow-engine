@@ -77,7 +77,7 @@ export function seed(store: MockStore): void {
       const startAt = now - rand.int(40, 14 * 24 * 60) * MIN;
       const roll = rand.next();
       const steps = roll < 0.22 ? 40 : roll < 0.8 ? rand.int(1, 5) : 0;
-      const park = i % 6 === 3;
+      const park = i % 17 === 3;
       store.runs.push(play(store, name, sampleVars(name, n, rand), rand, { startAt, limit, steps, park, actor: rand.pick(REQUESTERS) }));
     }
   });

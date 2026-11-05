@@ -121,7 +121,7 @@ Workflows are code in this engine, so there is no import (pt.3 does not apply he
 **Route:** `/instances` (list) and `/instances/:id` (one run). Filters live in the query string (`?status=waiting&workflow=trade-booking`).
 
 **Data shown, list** (`GET /api/v1/instances`, infinite row model, as on view 1):
-- **Key figures** (`GET /api/v1/instances/stats`): Running, Waiting, Failed (coral with an `alert-triangle` icon when above 0, since that number *is* a status), Completed today.
+- **Key figures** (`GET /api/v1/instances/stats`): Running, Waiting, Failed (coral with an `alert-triangle` icon when above 0, since that number *is* a status), Completed in the last 24 hours (`completedToday` in the contract: the last 24 hours, so it never reads zero just after midnight).
 - **Grid:**
 
 | Column | Field | minWidth | Notes |
