@@ -22,6 +22,7 @@ object Permissions {
     const val INCIDENTS_RETRY = "incidents.retry"
     const val INCIDENTS_EXPORT = "incidents.export"
     const val PEOPLE_READ = "people.read"
+    const val DEMO_RESET = "demo.reset"
 
     val ALL: List<String> = listOf(
         WORKFLOWS_READ, WORKFLOWS_EXPORT,
@@ -29,6 +30,6 @@ object Permissions {
         TASKS_READ, TASKS_COMPLETE, TASKS_REASSIGN,
         EVENTS_SEND,
         INCIDENTS_READ, INCIDENTS_RETRY, INCIDENTS_EXPORT,
-        PEOPLE_READ,
+        PEOPLE_READ, DEMO_RESET,
     )
 }

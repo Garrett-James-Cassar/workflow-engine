@@ -1,0 +1,17 @@
+package dev.workflow.app.runtime
+
+import dev.workflow.app.security.AuthMode
+import dev.workflow.app.security.AuthProperties
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.stereotype.Component
+
+/** The demo surface (console player, `POST /demo/reset`): on in dev and demo (`DEMO_ENABLED`, default on), 404 in live. */
+@Component
+class DemoGate(
+    @Value("\${workflow.demo.enabled:true}") private val enabled: Boolean,
+    private val auth: AuthProperties,
+) {
+    fun check() {
+        if (!enabled || auth.authMode != AuthMode.DEV) throw NotFoundException("the demo is not available in this deployment")
+    }
+}

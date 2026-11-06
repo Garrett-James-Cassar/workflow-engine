@@ -93,7 +93,7 @@ class IdentityInterceptor(
         path == "/" || path == "/index.html" || path == "/health" || path == "/app.js" || path == "/app.css" ||
             path == "/openapi.json" || path.startsWith("/docs") || path.startsWith("/swagger-ui") || path.startsWith("/v3/api-docs") ||
             // The demo providers stand in for third parties the engine calls (its own http tasks); live, they are real services.
-            path.startsWith("/demo/")
+            path.startsWith("/demo/screening") || path.startsWith("/demo/clause-store/") || path.startsWith("/demo/booking-system")
 }
 
 /** Checks a permission before work is done. A denial is a 403 that carries rbac's reason. */

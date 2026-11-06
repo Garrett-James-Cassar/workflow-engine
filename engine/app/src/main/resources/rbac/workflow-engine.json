@@ -15,7 +15,8 @@
     "incidents.read",
     "incidents.retry",
     "incidents.export",
-    "people.read"
+    "people.read",
+    "demo.reset"
   ],
   "roles": [
     {
@@ -135,22 +136,23 @@
       "name": "engine-admin",
       "description": "Everything in the workflow engine, in every team",
       "permissions": [
-        "workflows.read",
-        "workflows.export",
-        "instances.read",
-        "instances.start",
-        "instances.retry",
-        "instances.restart",
-        "instances.fire-timeout",
-        "instances.export",
-        "tasks.read",
-        "tasks.complete",
-        "tasks.reassign",
+        "demo.reset",
         "events.send",
+        "incidents.export",
         "incidents.read",
         "incidents.retry",
-        "incidents.export",
-        "people.read"
+        "instances.export",
+        "instances.fire-timeout",
+        "instances.read",
+        "instances.restart",
+        "instances.retry",
+        "instances.start",
+        "people.read",
+        "tasks.complete",
+        "tasks.read",
+        "tasks.reassign",
+        "workflows.export",
+        "workflows.read"
       ]
     },
     {

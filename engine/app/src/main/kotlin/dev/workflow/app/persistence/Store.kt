@@ -41,7 +41,7 @@ data class EventRow(val id: Long, val event: EngineEvent)
 
 /** All persistence, in plain SQL. Callers own the transaction. */
 @Repository
-class Store(private val jdbc: JdbcClient, private val json: JsonMapper) {
+class Store(private val jdbc: JdbcClient, private val json: JsonMapper, private val dataSource: javax.sql.DataSource) {
 
     fun insertInstance(state: InstanceState) {
         jdbc.sql(
@@ -69,6 +69,17 @@ class Store(private val jdbc: JdbcClient, private val json: JsonMapper) {
             .param("end", state.endStatus)
             .param("vars", json.writeValueAsString(state.vars))
             .update()
+    }
+
+    /**
+     * Clears every run, task, wait and event (demo reset). Postgres: one TRUNCATE, which skips the append-only
+     * trigger. H2 (tests) cannot truncate a referenced table, so it deletes children first.
+     */
+    fun resetAll(dataSource: javax.sql.DataSource) {
+        val tables = listOf("events", "waits", "user_tasks", "instances")
+        val h2 = dataSource.connection.use { it.metaData.databaseProductName.equals("H2", ignoreCase = true) }
+        if (h2) tables.forEach { jdbc.sql("delete from $it").update() }
+        else jdbc.sql("truncate table ${tables.joinToString()}").update()
     }
 
     fun instance(id: UUID): InstanceState? =
