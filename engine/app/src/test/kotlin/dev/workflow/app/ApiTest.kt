@@ -59,8 +59,7 @@ abstract class ApiTest {
         return Res(res.statusCode(), parsed)
     }
 
-    protected fun doc(notional: Long = 75_000_000, counterparty: String = "ACME") =
-        mapOf("doc" to mapOf("id" to "D-1", "requester" to "a.ops", "counterparty" to counterparty, "notional" to notional))
+    protected fun doc(notional: Long = 75_000_000, counterparty: String = "ACME") = Mother.doc(notional, counterparty)
 
     protected fun start(vars: Map<String, Any?>, name: String = "confirmation-approval"): Res =
         call("POST", "/definitions/$name/instances", "a.ops", mapOf("vars" to vars)).also { assertEquals(201, it.status, "${it.body}") }

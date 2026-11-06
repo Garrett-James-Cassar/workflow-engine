@@ -13,13 +13,7 @@ class SamplesE2ETest : ApiTest() {
 
     // ---- counterparty-onboarding ----
 
-    private fun onboard(): Res = start(
-        mapOf(
-            "counterparty" to mapOf("name" to "Globex Ltd", "region" to "EU"),
-            "services" to mapOf("screening" to "${base()}/demo/screening"),
-        ),
-        "counterparty-onboarding",
-    )
+    private fun onboard(): Res = start(Mother.counterparty(base = base()), "counterparty-onboarding")
 
     private fun screeningResult(i: Res, risk: String): Res {
         val caseId = i.vars("request-screening.body.caseId") as String
@@ -58,8 +52,7 @@ class SamplesE2ETest : ApiTest() {
 
     // ---- trade-booking ----
 
-    private fun book(ref: String = "T-1", quantity: Long = 5_000_000) =
-        start(mapOf("trade" to mapOf("ref" to ref, "quantity" to quantity, "counterparty" to "ACME")), "trade-booking")
+    private fun book(ref: String = "T-1", quantity: Long = 5_000_000) = start(Mother.trade(ref, quantity), "trade-booking")
 
     @Test
     fun `trade-booking - business outcomes route differently`() {
@@ -102,16 +95,8 @@ class SamplesE2ETest : ApiTest() {
 
     // ---- clause-change-approval ----
 
-    private fun change(templates: Int, regulatory: Boolean = false) = start(
-        mapOf(
-            "change" to mapOf(
-                "clauseId" to "governing-law", "author" to "a.ops", "productOwner" to "p.owner",
-                "affectedTemplates" to templates, "regulatory" to regulatory,
-            ),
-            "services" to mapOf("publish" to "${base()}/demo/clause-store/publish"),
-        ),
-        "clause-change-approval",
-    )
+    private fun change(templates: Int, regulatory: Boolean = false) =
+        start(Mother.change(templates, regulatory, base()), "clause-change-approval")
 
     @Test
     fun `clause-change - minor change goes straight to release and publishes`() {
