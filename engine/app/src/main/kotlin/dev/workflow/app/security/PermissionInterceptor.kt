@@ -55,7 +55,12 @@ class PermissionInterceptor(
     private fun requireTask(request: HttpServletRequest, login: String, permission: String) {
         @Suppress("UNCHECKED_CAST")
         val vars = request.getAttribute(HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE) as Map<String, String>
-        val task = vars["id"]?.let { runCatching { UUID.fromString(it) }.getOrNull() }?.let { store.task(it) } ?: return
+        // An unknown or unreadable task id still needs a decision: the permission must hold globally, else it is refused.
+        val task = vars["id"]?.let { runCatching { UUID.fromString(it) }.getOrNull() }?.let { store.task(it) }
+        if (task == null) {
+            authorizer.require(login, permission)
+            return
+        }
         val assignment = task.assignment
         if (assignment.type == dev.workflow.core.Assignment.Type.USER) {
             if (permission == Permissions.TASKS_COMPLETE) {
