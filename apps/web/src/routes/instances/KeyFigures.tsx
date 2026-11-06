@@ -35,7 +35,7 @@ export function KeyFigures({ version }: { version: string }) {
   const api = useApi();
   const res = useResource(() => api.instanceStats(), version);
   return (
-    <section aria-label="Key figures" className="mb-8 grid grid-cols-2 gap-3 lg:grid-cols-4">
+    <section aria-label="Key figures" className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(200px,1fr))]">
       {res.state === 'loading' && [0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-[88px]" />)}
       {res.state === 'error' && <div className="col-span-full"><ErrorState heading="Could not load the key figures" error={res.error} onRetry={res.reload} /></div>}
       {res.data && <Figures s={res.data} />}

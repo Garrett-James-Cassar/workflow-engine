@@ -6,6 +6,7 @@ import { FilterPanel, TextFilter } from '../../components/filters/filters';
 import { FleetGrid } from '../../components/grid/FleetGrid';
 import type { PageQuery } from '../../components/grid/datasource';
 import { PageHeader } from '../../components/PageHeader';
+import { PageGrid } from '../../components/PageGrid';
 import { Button } from '../../components/ui/button';
 import { can } from '../../lib/access';
 import { queryOf, useUrlFilters } from '../../lib/useUrlFilters';
@@ -23,7 +24,7 @@ export function WorkflowsPage() {
   const query = queryOf(f, FILTERS) as Partial<WorkflowListQuery>;
   const empty = f.count ? { ...NO_MATCH, action: <Button variant="ghost" data-cy="workflows-empty-clear" onClick={f.clear}>Clear filters</Button> } : EMPTY;
   return (
-    <>
+    <PageGrid fill above={2}>
       <PageHeader title="Workflows" description="The approval workflows the engine runs, with their diagrams and sample data." />
       <FilterPanel cy="workflows-filters" count={f.count} onClear={f.clear}>
         <TextFilter label="Name contains" cy="workflows-filter-name" mono value={f.get('name')} onChange={(v) => f.set({ name: v })} />
@@ -35,6 +36,6 @@ export function WorkflowsPage() {
         actions={<WorkflowsGridActions name={query.name} />}
         states={{ empty, errorHeading: 'Could not load workflows' }}
       />
-    </>
+    </PageGrid>
   );
 }

@@ -8,6 +8,7 @@ import { AllCommunityModule, ModuleRegistry, type ColDef, type GridApi } from 'a
 import { Download } from 'lucide-react';
 import { fleetGridTheme, reducedMotion, rowHeight } from './theme';
 import { infiniteDatasource, type FetchPage, type GridStatus } from './datasource';
+import { cn } from '../../lib/cn';
 import { Button } from '../ui/button';
 import { EmptyState } from '../states/EmptyState';
 import { ErrorState } from '../states/ErrorState';
@@ -30,6 +31,8 @@ export type FleetGridProps<T> = {
   onRowOpen?: (row: T) => void;
   /** The stable identity of a row (AG Grid's getRowId). */
   rowId: (row: T) => string;
+  /** Grid placement on the page (a column span, say). The grid always fills its row's height. */
+  className?: string;
 };
 
 function Toolbar({ title, actions, onExport }: { title: string; actions?: ReactNode; onExport?: () => void }) {
@@ -68,9 +71,9 @@ export function FleetGrid<T>(props: FleetGridProps<T>) {
   const api = useRef<GridApi<T> | null>(null);
   const exportCsv = props.permissions?.export ? () => api.current?.exportDataAsCsv({ fileName: `${props.dataCy}.csv` }) : undefined;
   return (
-    <section data-cy={props.dataCy} aria-label={props.title} className="overflow-hidden rounded-lg border border-border bg-surface">
+    <section data-cy={props.dataCy} aria-label={props.title} className={cn('flex h-full min-h-[320px] flex-col overflow-hidden rounded-lg border border-border bg-surface', props.className)}>
       <Toolbar title={props.title} actions={props.actions} onExport={exportCsv} />
-      <div className="relative h-[480px] md:h-[560px]">
+      <div className="relative min-h-0 flex-1">
         <Overlay status={status} states={props.states} onRetry={retry} />
         <AgGridReact<T>
           theme={fleetGridTheme} rowModelType="infinite" datasource={datasource} columnDefs={props.columns}

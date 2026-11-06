@@ -51,6 +51,16 @@
   h1, h2, h3 { font-weight: inherit; }
 }
 
+/* Page grid (STYLE v1.5): the content area is 12 columns, every region spans 12 until the page says
+   otherwise (utilities such as lg:col-span-8 win: they come after this layer). `page-fill` lets the
+   primary grid or canvas take the remaining height: --above is how many auto rows sit over it. */
+@layer components {
+  .page { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 16px; align-content: start; }
+  @media (min-width: 1280px) { .page { gap: 24px; } }
+  .page > * { grid-column: span 12 / span 12; min-width: 0; }
+  .page-fill { flex: 1 0 auto; align-content: stretch; grid-template-rows: repeat(var(--above, 1), auto) minmax(320px, 1fr); }
+}
+
 @layer utilities {
   .shell-wash { background-image: radial-gradient(60rem 30rem at 20% -10%, hsl(var(--primary) / .06), transparent 70%); }
   .skeleton { @apply bg-surface-2 rounded-md; animation: pulse 1.5s ease-in-out infinite; }

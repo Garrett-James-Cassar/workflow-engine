@@ -64,7 +64,7 @@ export function SendEventForm({ prefill, onSent }: { prefill: Prefill | null; on
   const failed = problem instanceof ApiProblem ? problem : null;
   const payloadError = parsed.error ?? fieldError(problem, '/payload');
   return (
-    <Card data-cy="send-event" className="mt-6 max-w-form">
+    <Card data-cy="send-event" className="max-w-form">
       <h2 className="mb-4 text-lg">Send event</h2>
       <div className="flex flex-col gap-4">
         <Field label="Event name" cy="event-name">

@@ -11,7 +11,8 @@ const RULES = [
   [/\brgba?\(/, 'rgb() colour (use a token)'],
   [/\b(uppercase|capitalize)\b/, 'all-caps text (sentence case only)'],
   [/type=["']date(time-local)?["']/, 'native date input (use DateTimeField)'],
-  [/from ['"]playwright|@playwright/, 'Playwright (Cypress only)']
+  [/from ['"]playwright|@playwright/, 'Playwright (Cypress only)'],
+  [/\bmax-w-(content|screen-\w+|[2-7]xl)\b/, 'page max-width cap (STYLE v1.5: only forms 560px, prose 72ch, dialogs 480px)']
 ];
 const ALLOW = [/hsl\(var\(--[\w-]+\)/];
 

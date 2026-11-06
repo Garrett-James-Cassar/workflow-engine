@@ -51,7 +51,7 @@ export function ToggleFilter<T extends string>({ label, options, value, onChange
 export function FilterPanel({ count, onClear, children, cy }: { count: number; onClear: () => void; children: ReactNode; cy: string }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="mb-4">
+    <div>
       <Button variant="outline" size="sm" className="mb-3 sm:hidden" aria-expanded={open} data-cy={`${cy}-toggle`} onClick={() => setOpen((o) => !o)}><SlidersHorizontal size={16} strokeWidth={1.75} aria-hidden />Filters{count ? ` (${count})` : ''}</Button>
       <div className={cn('flex-wrap items-end gap-3', open ? 'flex' : 'hidden sm:flex')}>
         {children}

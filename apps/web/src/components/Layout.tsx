@@ -53,14 +53,14 @@ function TopBar({ onMenu }: { onMenu: () => void }) {
 export function Layout({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="min-h-screen lg:flex">
-      <aside className="hidden border-r border-border bg-surface lg:block lg:w-sidebar lg:shrink-0">
+    <div className="flex h-dvh flex-col overflow-hidden lg:flex-row">
+      <aside className="hidden overflow-y-auto border-r border-border bg-surface lg:block lg:w-sidebar lg:shrink-0">
         <div className="p-4"><div className="pb-4"><Brand /></div><Nav onNavigate={() => undefined} /></div>
       </aside>
-      <div className="shell-wash min-w-0 flex-1">
-        <header><TopBar onMenu={() => setOpen((o) => !o)} /></header>
-        {open && <div className="border-b border-border bg-surface p-4 lg:hidden"><Nav onNavigate={() => setOpen(false)} /></div>}
-        <main className="max-w-content px-4 py-6 sm:px-6">{children}</main>
+      <div className="shell-wash flex min-h-0 min-w-0 flex-1 flex-col">
+        <header className="shrink-0"><TopBar onMenu={() => setOpen((o) => !o)} /></header>
+        {open && <div className="shrink-0 border-b border-border bg-surface p-4 lg:hidden"><Nav onNavigate={() => setOpen(false)} /></div>}
+        <main data-cy="main" className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 py-6 sm:px-6">{children}</main>
       </div>
     </div>
   );

@@ -284,13 +284,16 @@ Keys (fleet standard): Space Space pause or play, Shift up or down speed, Shift 
 
 ## Layout (v1.5)
 
-Every page uses the 12-column `.page` grid with no max-width on the content (caps only: forms 560px, prose 72ch, dialogs 480px). The shell is the viewport (`100dvh`); the sidebar and the content scroll on their own.
+Both UIs (the studio in `apps/web` and the console) use the 12-column page grid with no max-width on the content (caps only: forms 560px, prose 72ch, dialogs 480px). The shell is the viewport (`100dvh`); the sidebar and the content scroll on their own. Under 1024px every region is span 12. In the studio the primitive is `PageGrid` (`src/components/PageGrid.tsx`; `fill` and `above` make the last row take the remaining height); in the console it is `.page` (`.page.fill-1` and `.fill-2`). The 1920px step (`3xl`) widens the Detail main column from 8 to 9 spans.
 
 | page | archetype | regions |
 |---|---|---|
-| Definitions, Instances | List | header, (figures), the table fills the remaining height |
-| Definition | Detail | main span 8 (diagram, steps), side span 4 (start form); 9 and 3 from 1920px |
-| Instance | Detail | main span 8 (diagram, timeline), side span 4 (waiting on, restart, vars) |
-| My tasks, Demos | Overview | stacked sections, cards in an auto-fit grid |
+| Studio: Workflows, Workflow runs, Incidents | List | header, filters (and key figures on runs), then the FleetGrid fills the remaining height (min 320px) |
+| Studio: Workflow, Workflow run | Detail | main span 8 (diagram and steps, or where it is and the timeline), side span 4 (sample variables, or variables) |
+| Studio: Events | Master-detail | the waits grid span 7 (8 at 1920px) filling the height, the Send event form span 5 (4) beside it |
+| Studio: My tasks | Overview | task cards as tiles in `repeat(auto-fit, minmax(420px, 1fr))` |
+| Console: Definitions, Instances | List | header, (figures), the table fills the remaining height |
+| Console: Definition, Instance | Detail | main span 8, side span 4 (9 and 3 from 1920px) |
+| Console: My tasks, Demos | Overview | stacked sections, cards in an auto-fit grid |
 
-Proved by `cypress/e2e/layout` at 1920×1080, 1440×900 and 390×844.
+Key figures use `repeat(auto-fit, minmax(200px, 1fr))` (STYLE suggests 280px; four tiles must fit one row at 1440px). Proved by a Cypress `layout` spec per UI, at 1920×1080, 1440×900 and 390×844: `apps/web/cypress/e2e/layout` (part of the mocked fast gate) and `engine/console-e2e/cypress/e2e/layout`.

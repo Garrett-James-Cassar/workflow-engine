@@ -17,6 +17,8 @@ export default {
       figure: ['28px', { lineHeight: '32px' }],
       title: ['36px', { lineHeight: '40px', letterSpacing: '-0.015em' }]
     },
+    // v1.5 adds a 1920px step for the wide archetype spans (Detail 9/3); the rest are Tailwind's defaults.
+    screens: { sm: '640px', md: '768px', lg: '1024px', xl: '1280px', '2xl': '1536px', '3xl': '1920px' },
     extend: {
       colors: {
         background: token('background'),
@@ -48,7 +50,7 @@ export default {
         raised: '0 2px 8px -2px rgb(0 0 0 / .5), 0 1px 3px -1px rgb(0 0 0 / .4)'
       },
       width: { sidebar: '232px' },
-      maxWidth: { content: '1280px', form: '560px', prose: '72ch', dialog: '480px' }
+      maxWidth: { form: '560px', prose: '72ch', dialog: '480px' }
     }
   },
   plugins: []

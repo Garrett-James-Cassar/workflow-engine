@@ -7,6 +7,7 @@ import { FilterPanel, SelectFilter, TextFilter } from '../../components/filters/
 import { FleetGrid } from '../../components/grid/FleetGrid';
 import type { PageQuery } from '../../components/grid/datasource';
 import { PageHeader } from '../../components/PageHeader';
+import { PageGrid } from '../../components/PageGrid';
 import { Button } from '../../components/ui/button';
 import { useToast } from '../../components/ui/toast';
 import { can } from '../../lib/access';
@@ -31,7 +32,7 @@ export function IncidentsPage() {
   const exportJson = () => api.exportIncidents(query).then((doc) => { saveJson(`incidents-${stamp()}.json`, doc); toast('Export started'); }, () => toast('Could not export incidents', { error: true }));
   const empty = f.count ? { ...NO_MATCH, action: <Button variant="ghost" data-cy="incidents-empty-clear" onClick={f.clear}>Clear filters</Button> } : EMPTY;
   return (
-    <>
+    <PageGrid fill above={2}>
       <PageHeader title="Incidents" description="Runs that stopped because a step kept failing. Retry the step once the cause is fixed." />
       <FilterPanel cy="incidents-filters" count={f.count} onClear={f.clear}>
         <SelectFilter label="Workflow" cy="incidents-filter-workflow" value={f.get('workflow')} options={(workflows.data?.items ?? []).map((w) => ({ value: w.name, label: w.name }))} onChange={(v) => f.set({ workflow: v })} />
@@ -45,6 +46,6 @@ export function IncidentsPage() {
         states={{ empty, errorHeading: 'Could not load incidents' }}
       />
       {open && <IncidentDialog incident={open} onClose={() => setOpen(null)} onRetried={() => setVersion((v) => v + 1)} />}
-    </>
+    </PageGrid>
   );
 }

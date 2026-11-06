@@ -4,6 +4,7 @@ import { useApi } from '../../api';
 import { ApiProblem } from '../../api/problem';
 import { Breadcrumbs } from '../../components/Breadcrumbs';
 import { PageHeader } from '../../components/PageHeader';
+import { PageGrid } from '../../components/PageGrid';
 import { RunBadge } from '../../components/RunBadge';
 import { ErrorState } from '../../components/states/ErrorState';
 import { Card } from '../../components/ui/card';
@@ -32,23 +33,27 @@ export function InstancePage() {
   if (run.state === 'error') {
     const missing = run.error instanceof ApiProblem && run.error.status === 404;
     const shown = missing ? new ApiProblem({ type: 'about:blank', status: 404, title: 'Not found', detail: `No run has the ID ${id}; it may have been typed wrong.`, traceId: (run.error as ApiProblem).traceId }) : run.error;
-    return <><PageHeader title="Workflow run" crumbs={crumbs} /><ErrorState heading={missing ? 'Run not found' : 'Could not load this run'} error={shown} onRetry={missing ? undefined : run.reload} /><p className="mt-4"><Link to="/instances" className="text-primary underline" data-cy="run-back">Back to workflow runs</Link></p></>;
+    return <PageGrid><PageHeader title="Workflow run" crumbs={crumbs} /><ErrorState heading={missing ? 'Run not found' : 'Could not load this run'} error={shown} onRetry={missing ? undefined : run.reload} /><p><Link to="/instances" className="text-primary underline" data-cy="run-back">Back to workflow runs</Link></p></PageGrid>;
   }
   const r = run.data;
   return (
-    <>
+    <PageGrid>
       <PageHeader
         title={r ? `${r.definition} v${r.version}` : 'Workflow run'} crumbs={crumbs}
         description={r && <span className="flex flex-wrap items-center gap-x-3 gap-y-1"><RunBadge run={r} />{r.currentStep && <span>Step <Mono>{r.currentStep}</Mono></span>}<span>Started <Time value={r.startedAt} /></span><span className="inline-flex items-center gap-1">Run <Mono data-cy="run-id">{r.id}</Mono><CopyButton value={r.id} what="Run ID" dataCy="run-copy-id" /></span></span>}
         actions={r && <RunActions run={r} onChanged={reload} />}
       />
       {!r || events.state === 'loading' ? <Loading /> : (
-        <div className="flex flex-col gap-3">
-          <WhereItIs run={r} events={events.data ?? []} />
-          {events.state === 'error' ? <ErrorState heading="Could not load the timeline" error={events.error} onRetry={events.reload} /> : <Timeline events={events.data ?? []} />}
-          <Card><h2 className="mb-3 text-lg">Variables</h2><JsonBlock value={r.vars} dataCy="run-vars" /></Card>
-        </div>
+        <>
+          <div className="flex flex-col gap-3 lg:col-span-8 3xl:col-span-9">
+            <WhereItIs run={r} events={events.data ?? []} />
+            {events.state === 'error' ? <ErrorState heading="Could not load the timeline" error={events.error} onRetry={events.reload} /> : <Timeline events={events.data ?? []} />}
+          </div>
+          <aside aria-label="Properties" className="flex flex-col gap-3 lg:col-span-4 3xl:col-span-3">
+            <Card><h2 className="mb-3 text-lg">Variables</h2><JsonBlock value={r.vars} dataCy="run-vars" /></Card>
+          </aside>
+        </>
       )}
-    </>
+    </PageGrid>
   );
 }

@@ -5,7 +5,7 @@ export type Crumb = { label: string; to?: string };
 
 export function PageHeader({ title, description, actions, crumbs }: { title: ReactNode; description?: ReactNode; actions?: ReactNode; crumbs?: ReactNode }) {
   return (
-    <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start">
+    <header className="flex flex-col gap-4 sm:flex-row sm:items-start">
       <div className="min-w-0 flex-1">
         {crumbs}
         <h1 data-cy="page-title" className="break-words font-display text-title font-medium">{title}</h1>

@@ -5,6 +5,7 @@ import type { Instance, InstanceListQuery } from '../../api/types';
 import { FleetGrid } from '../../components/grid/FleetGrid';
 import type { PageQuery } from '../../components/grid/datasource';
 import { PageHeader } from '../../components/PageHeader';
+import { PageGrid } from '../../components/PageGrid';
 import { Button } from '../../components/ui/button';
 import { can } from '../../lib/access';
 import { queryOf, useUrlFilters } from '../../lib/useUrlFilters';
@@ -25,7 +26,7 @@ export function InstancesPage() {
     ? { ...NO_MATCH, action: <Button variant="ghost" data-cy="instances-empty-clear" onClick={f.clear}>Clear filters</Button> }
     : { ...EMPTY, action: <Link to="/workflows" data-cy="instances-empty-workflows" className="tap-target inline-flex h-9 items-center rounded-md border border-border-strong bg-surface-2 px-4 font-semibold hover:bg-surface">Start a run</Link> };
   return (
-    <>
+    <PageGrid fill above={3}>
       <PageHeader title="Workflow runs" description="Every run of a workflow: where it is and what happened." />
       <KeyFigures version="figures" />
       <InstanceFilters f={f} />
@@ -36,6 +37,6 @@ export function InstancesPage() {
         actions={<InstancesGridActions query={query} />}
         states={{ empty, errorHeading: 'Could not load workflow runs' }}
       />
-    </>
+    </PageGrid>
   );
 }

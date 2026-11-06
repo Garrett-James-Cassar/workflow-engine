@@ -2,6 +2,7 @@
 import { Link } from 'react-router-dom';
 import { useApi } from '../../api';
 import { PageHeader } from '../../components/PageHeader';
+import { PageGrid } from '../../components/PageGrid';
 import { EmptyState } from '../../components/states/EmptyState';
 import { ErrorState } from '../../components/states/ErrorState';
 import { Skeleton } from '../../components/ui/skeleton';
@@ -27,9 +28,9 @@ export function TasksPage() {
   const res = useResource(() => api.listTasks({ mine: !everyone, ...(instance ? { instance } : {}), limit: 100 }), `${user}|${everyone}|${instance}`);
   const tasks = res.data?.items ?? [];
   return (
-    <>
+    <PageGrid>
       <PageHeader title="My tasks" description="Approvals and decisions that wait for you or your team." />
-      <div className="mb-4 flex flex-wrap items-center gap-4">
+      <div className="flex flex-wrap items-center gap-4">
         {can('tasks.read') && (
           <label className="tap-target flex items-center gap-2">
             <input type="checkbox" role="switch" data-cy="tasks-everyone" className="accent-primary" checked={everyone} onChange={(e) => f.set({ all: e.target.checked ? '1' : null })} />
@@ -44,8 +45,8 @@ export function TasksPage() {
         <EmptyState headline={everyone ? 'No open tasks' : 'Nothing waiting for you'} text="Tasks appear here when a workflow needs a decision from you or your team." action={<Link to="/instances" data-cy="tasks-empty-runs" className={LINK}>Open workflow runs</Link>} />
       )}
       {res.state === 'ready' && tasks.length > 0 && (
-        <ul data-cy="tasks-list" className="flex flex-col gap-3">{tasks.map((t) => <li key={t.id}><TaskCard task={t} onDone={res.reload} /></li>)}</ul>
+        <ul data-cy="tasks-list" className="grid items-start gap-3 [grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr))]">{tasks.map((t) => <li key={t.id}><TaskCard task={t} onDone={res.reload} /></li>)}</ul>
       )}
-    </>
+    </PageGrid>
   );
 }

@@ -7,6 +7,7 @@ import { ApiProblem } from '../../api/problem';
 import { Breadcrumbs } from '../../components/Breadcrumbs';
 import { MermaidDiagram } from '../../components/MermaidDiagram';
 import { PageHeader } from '../../components/PageHeader';
+import { PageGrid } from '../../components/PageGrid';
 import { ErrorState } from '../../components/states/ErrorState';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
@@ -71,30 +72,28 @@ export function WorkflowPage() {
   const res = useResource(() => api.getWorkflow(name, version), `${name}@${version ?? ''}`);
   const crumbs = <Breadcrumbs items={[{ label: 'Workflows', to: '/workflows' }, { label: name }]} />;
   if (res.state === 'error') {
-    return <><PageHeader title={name} crumbs={crumbs} /><NotFound error={res.error} name={name} onRetry={res.reload} /><p className="mt-4"><Link to="/workflows" className="text-primary underline" data-cy="workflow-back">Back to workflows</Link></p></>;
+    return <PageGrid><PageHeader title={name} crumbs={crumbs} /><NotFound error={res.error} name={name} onRetry={res.reload} /><p><Link to="/workflows" className="text-primary underline" data-cy="workflow-back">Back to workflows</Link></p></PageGrid>;
   }
   const w = res.data;
   return (
-    <>
+    <PageGrid>
       <PageHeader
         title={name} crumbs={crumbs} description={w ? undefined : <Skeleton className="h-6 w-80" />}
         actions={w && can('instances.start') && <Button variant="default" data-cy="workflow-start" onClick={() => setStarting(true)}><Play size={16} strokeWidth={1.75} aria-hidden />Start run</Button>}
       />
       {w && w.versions.length > 1 && (
-        <div role="group" aria-label="Version" className="mb-6 flex gap-2">
+        <div role="group" aria-label="Version" className="flex gap-2">
           {w.versions.map((v) => <Button key={v} size="sm" variant={v === w.version ? 'secondary' : 'ghost'} aria-pressed={v === w.version} onClick={() => setParams({ version: String(v) })}>v{v}</Button>)}
         </div>
       )}
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-3 lg:col-span-8 3xl:col-span-9">
         <DiagramCard name={name} version={version} />
-        {w ? (
-          <div className="grid gap-3 lg:grid-cols-2">
-            <StepsCard graph={w.graph} />
-            <Card><h2 className="mb-3 text-lg">Sample variables</h2><p className="mb-3 text-xs text-muted-foreground">A run of <Mono>{w.name}</Mono> v{w.version} starts with these values unless you change them.</p><JsonBlock value={w.sample} dataCy="workflow-sample" /></Card>
-          </div>
-        ) : <Skeleton className="h-64 w-full" />}
+        {w ? <StepsCard graph={w.graph} /> : <Skeleton className="h-64 w-full" />}
       </div>
+      <aside aria-label="Properties" className="flex flex-col gap-3 lg:col-span-4 3xl:col-span-3">
+        {w ? <Card><h2 className="mb-3 text-lg">Sample variables</h2><p className="mb-3 text-xs text-muted-foreground">A run of <Mono>{w.name}</Mono> v{w.version} starts with these values unless you change them.</p><JsonBlock value={w.sample} dataCy="workflow-sample" /></Card> : <Skeleton className="h-64 w-full" />}
+      </aside>
       {starting && w && <StartRunDialog name={name} sample={w.sample} onClose={() => setStarting(false)} />}
-    </>
+    </PageGrid>
   );
 }
