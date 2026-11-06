@@ -31,6 +31,7 @@ dependencies {
     testImplementation("org.testcontainers:testcontainers-junit-jupiter")
     testImplementation("org.testcontainers:testcontainers-postgresql")
     testImplementation("com.h2database:h2")
+    testImplementation("com.tngtech.archunit:archunit-junit5:1.5.1")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
@@ -39,6 +40,7 @@ dependencies {
 // which `check` (the end-of-task full gate) depends on.
 tasks.test {
     useJUnitPlatform { excludeTags("postgres") }
+    exclude("**/architecture/**")
     jvmArgs("-Xshare:off")
     systemProperty("docsDir", rootDir.resolve("docs/workflows").path)
 }
@@ -51,6 +53,19 @@ tasks.register<Test>("postgresTest") {
     useJUnitPlatform { includeTags("postgres") }
     jvmArgs("-Xshare:off")
     systemProperty("docsDir", rootDir.resolve("docs/workflows").path)
+}
+
+// arch.1 / arch.3 / arch.7 / arch.8 (ArchUnit, fleet JVM preset): REPORT-ONLY until the engine's
+// current violations are fixed (see fleet-layers.json). Run with `./gradlew :engine:app:archReport`.
+// Not part of `check` yet, so the gate stays green; switch it on by depending check on it.
+tasks.register<Test>("archReport") {
+    group = "verification"
+    description = "ArchUnit layer and dependency rules (ARCHITECTURE-RULES.md), report-only"
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    useJUnitPlatform()
+    include("**/architecture/**")
+    ignoreFailures = true
 }
 
 tasks.named("check") { dependsOn("postgresTest") }

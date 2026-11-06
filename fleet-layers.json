@@ -1,0 +1,18 @@
+{
+  "note": "Role map for ARCHITECTURE-RULES.md (JVM: maps packages). Folders are not renamed; the packages are mapped to roles.",
+  "base": "dev.workflow",
+  "roles": {
+    "domain": ["dev.workflow.core"],
+    "workflow": ["dev.workflow.app.workflow"],
+    "ports": ["dev.workflow.app.ports"],
+    "services": ["dev.workflow.app.runtime", "dev.workflow.app.rbac"],
+    "controllers": ["dev.workflow.app.api"],
+    "dtos": ["dev.workflow.app.api.dtos"],
+    "mappers": [],
+    "repositories": ["dev.workflow.app.persistence"],
+    "clients": [],
+    "adapters": ["dev.workflow.app.registry", "dev.workflow.app.diagrams", "dev.workflow.app.samples"],
+    "composition": ["dev.workflow.app"]
+  },
+  "composition_files": ["dev.workflow.app.WorkflowEngineApplication"]
+}
