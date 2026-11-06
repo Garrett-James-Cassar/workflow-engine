@@ -1,6 +1,6 @@
 # Workflow studio: web UI plan
 
-Status: **built** (2026-11-05), slices 1–7 on `main`. Scope: a new React studio in `apps/web`, a pnpm package beside the Gradle build. The engine (`engine/*`) and the static console in `engine/app/src/main/resources/static` are not changed. The UI is built against its own OpenAPI contract and an in-browser mock. The engine's own Preview mode (E8) is out of scope.
+Status: **built** (2026-11-05), slices 1–7 on `main`. Scope: a new React studio in `apps/web`, a pnpm package beside the Gradle build. The engine (`engine/*`) and the static console in `engine/app/src/main/resources/static` are not changed by this plan. **Update 2026-11-06:** the static console is the Demo surface (real engine, real Cypress chapters, `engine/console-e2e`); this studio is the mocked test UI against its own contract. The UI is built against its own OpenAPI contract and an in-browser mock. The engine's own Preview mode (E8) is out of scope.
 
 The views are specified in [`../UI-SPEC.md`](../UI-SPEC.md). The binding style is `/Users/garrett.cassar/Projects/fleet/standards/ui/STYLE.md` v1.4 and its `specimen.html`. The capability rows it targets are in `/Users/garrett.cassar/Projects/fleet/standards/matrices/matrices.json`. References: `notifications-hub/apps/web` and `scheduler/apps/web`.
 
@@ -250,7 +250,7 @@ Fresh seed per chapter (`resetData`), ring and captions, reduced motion, and CI 
 | R3 | **Vendored demo runtime** (~900 lines from rules-engine) is outside the lint gate. | Record it under CLAUDE.md "Fleet deviations"; lift it into a fleet package when a third app needs it. |
 | R4 | **Simulator drift:** the table of service-task and decision outcomes could diverge from the Kotlin handlers. | Keep the table tiny and keyed by step id; `contract.test.ts` plus a unit test assert every step in every graph has a rule or a declared outcome path. |
 | R5 | **Persona is a dev aid:** the engine trusts `X-User`. | Keep the switcher in `sessionStorage`, label it "Acting as", replace with the central RBAC session when it lands (ui.3/ui.4). |
-| R6 | **Two UIs side by side** (static console and studio) on the same engine. | Keep the console untouched until the studio reaches parity; then retire it in one commit. |
+| R6 | **Two UIs side by side** (static console and studio) on the same engine. | Superseded 2026-11-06: the console stays as the Demo surface and is not retired; the studio is the mocked test UI. |
 | Q1 | Where does `/api/v1` live: engine facade or a gateway? | Engine facade controller, behind a flag, in a separate task. |
 | Q2 | The coordinator named "two sample workflows"; there are four. | Seed all four; chapters use `confirmation-approval` and `trade-booking`. |
 | Q3 | Import? | Not offered: workflows are Kotlin code (E7 brings export/import), histories are export-only. |

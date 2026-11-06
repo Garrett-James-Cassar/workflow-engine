@@ -2,7 +2,7 @@
 
 Criterion **ui.2**. The views of the workflow studio in `apps/web` (React, Vite, TypeScript, Tailwind). Every view follows the fleet style guide (`/Users/garrett.cassar/Projects/fleet/standards/ui/STYLE.md` v1.4).
 
-The studio is written against its own contract, [`apps/web/contract/openapi.yaml`](apps/web/contract/openapi.yaml): the API it *wants*, under `/api/v1`. It is **not** the engine's current unversioned API, which is unchanged (gaps are listed in [`docs/ui-plan.md`](docs/ui-plan.md) §4). Components see only the `ApiPort` interface (`apps/web/src/api`). The `mock` and `demo` profiles serve the contract from an in-browser mock. The existing static console in `engine/app/src/main/resources/static` stays as it is for now.
+The studio is written against its own contract, [`apps/web/contract/openapi.yaml`](apps/web/contract/openapi.yaml): the API it *wants*, under `/api/v1`. It is **not** the engine's current unversioned API, which is unchanged (gaps are listed in [`docs/ui-plan.md`](docs/ui-plan.md) §4). Components see only the `ApiPort` interface (`apps/web/src/api`). The `mock` and `demo` profiles serve the contract from an in-browser mock. The static console in `engine/app/src/main/resources/static` is the Demo surface (see "Console (the Demo surface)" at the end); this studio is the mocked test UI.
 
 **Who uses it:** people who run business approvals on the engine: approvers (legal, desk head, compliance) working their task inbox, operations and middle office watching instances and clearing incidents, and workflow authors checking what a workflow does. The engine's own Preview mode (E8) is out of scope.
 
@@ -261,3 +261,36 @@ Incidents are an append-only history, so they are export-only (no import).
 - **Top bar right:** the "Acting as" persona switcher, the mode banner pill in mock mode ("Mock API: no backend, changes last until reload") and demo mode ("Demo data: changes reset on reload"). Live mode shows no banner. In demo mode the Demo button ("Run demo", secondary) replays the smoke and main-flow specs in this tab.
 - **Toasts:** bottom-right, per STYLE.md §6.
 - **Unknown route:** headline "This page does not exist", with a link to Workflows.
+
+## Console (the Demo surface)
+
+The no-build console in `engine/app/src/main/resources/static` runs against the real engine. Views, by hash route:
+
+| view | route | data and operations | who sees what |
+|---|---|---|---|
+| Definitions | `#/definitions` | list of workflows; open a definition | read as the viewer; any acting user |
+| Definition | `#/definitions/{name}` | diagram, steps table, sample vars, start an instance, export links | start needs `instances.start` (requester) |
+| Instances | `#/instances` | runs with status filter and figures | read as the viewer |
+| Instance | `#/instances/{id}` | diagram with current step, open tasks and waits, timeline, vars, retry, restart | complete needs the task's role; retry `incident-handler`; restart `workflow-support`; reassign `ops`; events and timeouts `engine-admin` |
+| My tasks | `#/tasks` | the acting user's inbox and all open tasks | needs `tasks.read` (a denied person sees the reason) |
+| Demos | `#/demos` | scenarios, the fake booking system up and down, screening and clause store, users and roles | start needs `instances.start` |
+
+Acting as: actions go as the person chosen in the sidebar (`X-User`); pages are read as the auditor `r.viewer`. Dev auth only.
+
+### Demo chapters (real Cypress specs, `engine/console-e2e/cypress/e2e/chapters`)
+1. Browse the workflows and read a diagram. 2. Start a sample and read its timeline. 3. Someone without the role is blocked, then the right person approves. 4. Reject, rework and approve. 5. A screening event arrives, then compliance completes. 6. A timeout takes the TIMED_OUT path. 7. Booking system down: incident, recovery and retry. 8. Reassign a task, then restart at a step.
+
+Keys (fleet standard): Space Space pause or play, Shift up or down speed, Shift right right skip a step, Tab Tab chapters menu, Esc close the menu or leave. Each has an on-screen button.
+
+## Layout (v1.5)
+
+Every page uses the 12-column `.page` grid with no max-width on the content (caps only: forms 560px, prose 72ch, dialogs 480px). The shell is the viewport (`100dvh`); the sidebar and the content scroll on their own.
+
+| page | archetype | regions |
+|---|---|---|
+| Definitions, Instances | List | header, (figures), the table fills the remaining height |
+| Definition | Detail | main span 8 (diagram, steps), side span 4 (start form); 9 and 3 from 1920px |
+| Instance | Detail | main span 8 (diagram, timeline), side span 4 (waiting on, restart, vars) |
+| My tasks, Demos | Overview | stacked sections, cards in an auto-fit grid |
+
+Proved by `cypress/e2e/layout` at 1920×1080, 1440×900 and 390×844.
