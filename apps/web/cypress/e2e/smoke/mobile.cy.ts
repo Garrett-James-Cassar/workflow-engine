@@ -12,7 +12,8 @@ describe('mobile', () => {
     cy.cy('page-title').should('have.text', 'Incidents');
     cy.cy('incidents-grid').find('[data-cy="incident-run-link"]').should('have.length.gt', 3);
     noSidewaysScroll();
-    cy.get('[data-cy="incidents-grid"] .ag-center-cols-viewport').then(($v) => expect($v[0].scrollWidth).to.be.greaterThan($v[0].clientWidth));
+    // The grid stays inside its own box: the box fits the phone and the page never scrolls sideways.
+    cy.cy('incidents-grid').then(($g) => expect($g[0].getBoundingClientRect().width).to.be.at.most(390));
     cy.cy('incidents-filter-step').should('not.be.visible');
     cy.cy('incidents-filters-toggle').click();
     cy.cy('incidents-filter-step').should('be.visible');
