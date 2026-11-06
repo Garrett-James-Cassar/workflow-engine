@@ -3,7 +3,7 @@ describe('workflows', () => {
   it('workflows: the grid lists the sample workflows and filters by name', () => {
     cy.step('Open Workflows', () => {
       cy.visit('/workflows');
-      cy.get('h1').should('have.text', 'Workflows');
+      cy.cy('page-title').should('have.text', 'Workflows');
       cy.cy('workflows-grid').find('[data-cy="workflow-link"]').should('have.length', 4);
       cy.cy('workflows-grid').should('contain.text', 'confirmation-approval');
       cy.a11y();

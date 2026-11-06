@@ -3,7 +3,7 @@ describe('events', () => {
   it('events: the grid lists what runs wait for and a row fills the form', () => {
     cy.step('Open Events', () => {
       cy.visit('/events');
-      cy.get('h1').should('have.text', 'Events');
+      cy.cy('page-title').should('have.text', 'Events');
       cy.cy('waits-grid').find('[data-cy="wait-event"]').should('have.length.gt', 3);
       cy.cy('event-send').should('be.disabled');
       cy.a11y();

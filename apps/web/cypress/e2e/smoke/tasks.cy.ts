@@ -3,7 +3,7 @@ describe('my tasks', () => {
   it('tasks: the inbox shows what waits for the acting persona, with one button per outcome', () => {
     cy.step('Open My tasks as a lawyer', () => {
       cy.visit('/tasks');
-      cy.get('h1').should('have.text', 'My tasks');
+      cy.cy('page-title').should('have.text', 'My tasks');
       cy.cy('task-card').should('have.length.gt', 0);
       cy.cy('task-card').first().find('button').should('have.length.gte', 1);
       cy.a11y();

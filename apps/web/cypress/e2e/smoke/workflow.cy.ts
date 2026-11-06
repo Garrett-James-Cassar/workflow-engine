@@ -4,7 +4,7 @@ describe('workflow', () => {
     cy.step('Open a workflow from the list', () => {
       cy.visit('/workflows');
       cy.contains('[data-cy="workflow-link"]', 'confirmation-approval').click();
-      cy.get('h1').should('have.text', 'confirmation-approval');
+      cy.cy('page-title').should('have.text', 'confirmation-approval');
     });
     cy.step('Read the diagram the engine drew', () => {
       cy.cy('workflow-diagram').find('svg').should('exist');
@@ -26,7 +26,7 @@ describe('workflow', () => {
     cy.visit('/workflows/nope');
     cy.cy('state-error').should('contain.text', 'Workflow not found').and('contain.text', 'No workflow is registered as nope');
     cy.cy('workflow-back').click();
-    cy.get('h1').should('have.text', 'Workflows');
+    cy.cy('page-title').should('have.text', 'Workflows');
   });
 
   it('workflow: the error scenario shows the problem and the trace ID', () => {

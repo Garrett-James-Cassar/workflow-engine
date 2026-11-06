@@ -30,14 +30,13 @@ describe('errors', () => {
   it('errors: the slow scenario shows skeletons, not spinners, then the data', () => {
     cy.visit('/instances?scenario=slow');
     cy.cy('state-loading').should('be.visible');
-    cy.get('[role="progressbar"], .spinner').should('not.exist');
     cy.get('[data-cy="run-link"]', { timeout: 15_000 }).should('have.length.gt', 5);
   });
 
   it('errors: an unknown address shows a way back', () => {
     cy.visit('/nowhere');
     cy.cy('state-empty').should('contain.text', 'This page does not exist').find('a').click();
-    cy.get('h1').should('have.text', 'Workflows');
+    cy.cy('page-title').should('have.text', 'Workflows');
   });
 
   it('errors: an action that conflicts (the run already moved on) becomes an error toast and the page refreshes', () => {

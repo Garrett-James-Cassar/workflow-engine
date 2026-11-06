@@ -9,7 +9,7 @@ describe('mobile', () => {
     cy.cy('nav-incidents').should('not.be.visible');
     cy.cy('menu-toggle').click();
     cy.cy('nav-incidents').filter(':visible').click();
-    cy.get('h1').should('have.text', 'Incidents');
+    cy.cy('page-title').should('have.text', 'Incidents');
     cy.cy('incidents-grid').find('[data-cy="incident-run-link"]').should('have.length.gt', 3);
     noSidewaysScroll();
     cy.get('[data-cy="incidents-grid"] .ag-center-cols-viewport').then(($v) => expect($v[0].scrollWidth).to.be.greaterThan($v[0].clientWidth));

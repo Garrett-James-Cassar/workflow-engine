@@ -5,7 +5,7 @@ describe('incidents', () => {
   it('incidents: the newest incident is the stuck booking, with its message', () => {
     cy.step('Open Incidents', () => {
       cy.visit('/incidents');
-      cy.get('h1').should('have.text', 'Incidents');
+      cy.cy('page-title').should('have.text', 'Incidents');
       cy.cy('incidents-grid').find('[data-cy="incident-run-link"]').first().should('have.attr', 'data-id', FIXED.stuckBooking.id);
       cy.a11y();
     });

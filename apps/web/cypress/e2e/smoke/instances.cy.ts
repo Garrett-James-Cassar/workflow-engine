@@ -3,7 +3,7 @@ describe('workflow runs', () => {
   it('instances: the grid pages through the runs and filters by status', () => {
     cy.step('Open the workflow runs', () => {
       cy.visit('/instances');
-      cy.get('h1').should('have.text', 'Workflow runs');
+      cy.cy('page-title').should('have.text', 'Workflow runs');
       cy.cy('instances-grid').find('[data-cy="run-link"]').should('have.length.gt', 5);
       cy.cy('figure-failed').should('not.be.empty');
       cy.a11y();
@@ -33,7 +33,7 @@ describe('workflow runs', () => {
     cy.visit('/instances/NOPE');
     cy.cy('state-error').should('contain.text', 'Run not found').and('contain.text', 'No run has the ID NOPE');
     cy.cy('run-back').click();
-    cy.get('h1').should('have.text', 'Workflow runs');
+    cy.cy('page-title').should('have.text', 'Workflow runs');
   });
 
   it('instances: empty and error states', () => {
