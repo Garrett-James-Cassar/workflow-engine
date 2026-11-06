@@ -69,4 +69,21 @@ class AuthorizationTest : ApiTest() {
         assertTrue(listed.all { (it["assignee"] as Map<*, *>)["scope"].let { s -> s == emptyMap<String, String>() || (s as Map<*, *>)["region"] == "EU" } })
         assertNotNull(eu.map["id"])
     }
+
+    @Test
+    fun `a counterparty sees only its own counterparty's tasks, and the listing omits the rest`() {
+        val acme = start(doc(counterparty = "ACME")).let { complete(it, "l.jones", "COUNTER") }
+        val globex = start(doc(counterparty = "GLOBEX")).let { complete(it, "l.jones", "COUNTER") }
+        val acmeId = acme.map["id"] as String
+        val globexId = globex.map["id"] as String
+
+        val own = call("GET", "/tasks?instance=$acmeId", "c.acme")
+        assertEquals(200, own.status)
+        assertEquals("negotiate", own.list.single()["step"])
+
+        val other = call("GET", "/tasks?instance=$globexId", "c.acme")
+        assertEquals(200, other.status, "no 403 leak: the listing just omits it")
+        assertEquals(emptyList(), other.list)
+        assertEquals(emptyList(), call("GET", "/tasks?mine=true&instance=$globexId", "c.acme").list)
+    }
 }

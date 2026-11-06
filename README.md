@@ -91,6 +91,7 @@ The dev users come from `engine/app/src/main/resources/application.yaml` (`workf
 | `p.maint` | Priya Nair | (named directly in the DSL) | clause release scheduling |
 | `p.owner` | Pablo Ortiz | (named in the change's data) | product owner sign-off |
 | `ops.admin` | Sam Patel | `ops` | reassigns any open task (see below) |
+| `i.handler` | Ivan Hale | `incident-handler` | retries a failed step once the cause is fixed |
 | `h.legal` | Harriet Lane | `head-of-legal`, plus every legal team | head of legal, in all four legal teams |
 | `l.rossi` | Lucia Rossi | `legal-italy` | Italian legal |
 | `l.dubois` | Louis Dubois | `legal-france` | French legal |

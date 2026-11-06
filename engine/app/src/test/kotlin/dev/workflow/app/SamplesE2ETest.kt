@@ -71,7 +71,7 @@ class SamplesE2ETest : ApiTest() {
             val i = book(ref = "T-3")
             assertEquals("failed", i.map["status"])
             DemoBookingSystem.up.set(true)
-            assertEquals("confirmation-matched", call("POST", "/instances/${i.map["id"]}/retry", "ops.admin").map["currentStep"])
+            assertEquals("confirmation-matched", call("POST", "/instances/${i.map["id"]}/retry", "i.handler").map["currentStep"])
         } finally {
             DemoBookingSystem.up.set(true)
         }

@@ -31,9 +31,16 @@
       "name": "ops",
       "description": "Reassigns any open workflow task",
       "permissions": [
-        "instances.retry",
         "tasks.read",
         "tasks.reassign"
+      ]
+    },
+    {
+      "name": "incident-handler",
+      "description": "Clears failed service tasks: reads runs and retries a step after the cause is fixed",
+      "permissions": [
+        "instances.read",
+        "instances.retry"
       ]
     },
     {
@@ -319,6 +326,16 @@
       ]
     },
     {
+      "login": "i.handler",
+      "name": "Ivan Hale",
+      "grants": [
+        {
+          "role": "incident-handler",
+          "scope": {}
+        }
+      ]
+    },
+    {
       "login": "w.support",
       "name": "Riley Chen",
       "grants": [
@@ -356,6 +373,56 @@
           "role": "auditor",
           "scope": {}
         }
+      ]
+    }
+  ],
+  "coverage": {
+    "admin": "e.admin (engine-admin, everything); ops.admin (tasks.reassign via ops)",
+    "read-only": "r.viewer (auditor: workflows.read, instances.read, tasks.read; no write permission)",
+    "denied": "p.maint (no grants; /check says why; the 403-with-reason is proven in AuthorizationTest 'a denied person gets 403 with the reason...' and '...cannot start a run')",
+    "scoped": "k.comply (compliance, region EU); c.acme (counterparty ACME)"
+  },
+  "changes": [
+    {
+      "item": "compliance gained tasks.complete",
+      "from": "tasks.read",
+      "to": "tasks.read, tasks.complete",
+      "reason": "Two workflow steps are completed by compliance: compliance-approval (clause change, region EU) and compliance-review (counterparty onboarding, region from the counterparty). k.comply is therefore no longer read-only; r.viewer (auditor) is the read-only persona.",
+      "evidence": [
+        "engine/app/src/main/kotlin/dev/workflow/app/workflow/ClauseChangeApproval.kt:76",
+        "engine/app/src/main/kotlin/dev/workflow/app/workflow/CounterpartyOnboarding.kt:59"
+      ]
+    },
+    {
+      "item": "a.ops gained the requester role",
+      "from": "no grants",
+      "to": "requester (instances.read, instances.start)",
+      "reason": "a.ops is the requester in confirmation-approval: they start runs (POST /definitions/{name}/instances needs instances.start) and own the amend-draft user task (assigned from doc.requester, which needs no grant). a.ops still cannot complete team tasks (403 'does not hold role legal'). The denied persona is now p.maint (no grants).",
+      "evidence": [
+        "engine/app/src/main/kotlin/dev/workflow/app/api/Controllers.kt:104",
+        "engine/app/src/main/kotlin/dev/workflow/app/workflow/ConfirmationApproval.kt:50",
+        "engine/app/src/test/kotlin/dev/workflow/app/EngineE2ETest.kt:37"
+      ]
+    },
+    {
+      "item": "ops instances.retry",
+      "from": "ops had instances.retry (this draft)",
+      "to": "moved to a dedicated incident-handler role (instances.read, instances.retry); persona i.handler",
+      "reason": "No doc names incident retry as an ops duty (README says only 'once you've fixed the cause'), and the draft ops role is 'reassigns any open workflow task'. Retry is a separate duty, so ops is back to tasks.read and tasks.reassign. engine-admin keeps retry.",
+      "evidence": [
+        "engine/app/src/main/kotlin/dev/workflow/app/api/Controllers.kt:138",
+        "engine/app/src/test/kotlin/dev/workflow/app/EngineE2ETest.kt:189"
+      ]
+    },
+    {
+      "item": "counterparty-signatory has tasks.read",
+      "from": "tasks.complete only",
+      "to": "tasks.read, tasks.complete",
+      "reason": "The signatory lists their own open task (negotiate step, scope counterparty from doc.counterparty). Kept because the task listing is filtered by the grant's scope: a GLOBEX task is omitted for c.acme (ACME). There is no GET /tasks/{id} route in this app, so there is no single-task read to return 404 for; the listing is the only task read.",
+      "evidence": [
+        "engine/app/src/main/kotlin/dev/workflow/app/api/Controllers.kt:163",
+        "engine/app/src/main/kotlin/dev/workflow/app/workflow/ConfirmationApproval.kt:62",
+        "engine/app/src/test/kotlin/dev/workflow/app/AuthorizationTest.kt (counterparty scope test)"
       ]
     }
   ]
