@@ -1,0 +1,360 @@
+{
+  "permissions": [
+    "workflows.read",
+    "workflows.export",
+    "instances.read",
+    "instances.start",
+    "instances.retry",
+    "instances.restart",
+    "instances.fire-timeout",
+    "instances.export",
+    "tasks.read",
+    "tasks.complete",
+    "tasks.reassign",
+    "events.send",
+    "incidents.read",
+    "incidents.retry",
+    "incidents.export",
+    "people.read"
+  ],
+  "roles": [
+    {
+      "name": "requester",
+      "description": "Starts workflow runs and reads them; acts only on tasks assigned to them",
+      "permissions": [
+        "instances.read",
+        "instances.start"
+      ]
+    },
+    {
+      "name": "ops",
+      "description": "Reassigns any open workflow task",
+      "permissions": [
+        "instances.retry",
+        "tasks.read",
+        "tasks.reassign"
+      ]
+    },
+    {
+      "name": "workflow-support",
+      "description": "Restarts any workflow at any user task",
+      "permissions": [
+        "instances.read",
+        "instances.restart"
+      ]
+    },
+    {
+      "name": "legal",
+      "description": "Legal team",
+      "permissions": [
+        "tasks.read",
+        "tasks.complete"
+      ]
+    },
+    {
+      "name": "legal-italy",
+      "description": "Legal, Italy",
+      "permissions": [
+        "tasks.read",
+        "tasks.complete"
+      ]
+    },
+    {
+      "name": "legal-france",
+      "description": "Legal, France",
+      "permissions": [
+        "tasks.read",
+        "tasks.complete"
+      ]
+    },
+    {
+      "name": "legal-germany",
+      "description": "Legal, Germany",
+      "permissions": [
+        "tasks.read",
+        "tasks.complete"
+      ]
+    },
+    {
+      "name": "head-of-legal",
+      "description": "Head of legal",
+      "permissions": [
+        "tasks.read",
+        "tasks.complete"
+      ]
+    },
+    {
+      "name": "desk-head",
+      "description": "Signs off large trades",
+      "permissions": [
+        "tasks.read",
+        "tasks.complete"
+      ]
+    },
+    {
+      "name": "compliance",
+      "description": "Compliance, scoped by region",
+      "permissions": [
+        "tasks.read",
+        "tasks.complete"
+      ]
+    },
+    {
+      "name": "mlro",
+      "description": "Money laundering reporting officer",
+      "permissions": [
+        "tasks.read",
+        "tasks.complete"
+      ]
+    },
+    {
+      "name": "onboarding-ops",
+      "description": "Sets up accounts, scoped by region",
+      "permissions": [
+        "tasks.read",
+        "tasks.complete"
+      ]
+    },
+    {
+      "name": "middle-office",
+      "description": "Trade repair and unmatched confirmations",
+      "permissions": [
+        "tasks.read",
+        "tasks.complete"
+      ]
+    },
+    {
+      "name": "counterparty-signatory",
+      "description": "An external counterparty's signatory, scoped to that counterparty",
+      "permissions": [
+        "tasks.read",
+        "tasks.complete"
+      ]
+    },
+    {
+      "name": "engine-admin",
+      "description": "Everything in the workflow engine, in every team",
+      "permissions": [
+        "workflows.read",
+        "workflows.export",
+        "instances.read",
+        "instances.start",
+        "instances.retry",
+        "instances.restart",
+        "instances.fire-timeout",
+        "instances.export",
+        "tasks.read",
+        "tasks.complete",
+        "tasks.reassign",
+        "events.send",
+        "incidents.read",
+        "incidents.retry",
+        "incidents.export",
+        "people.read"
+      ]
+    },
+    {
+      "name": "auditor",
+      "description": "Reads workflows, runs and tasks; changes nothing",
+      "permissions": [
+        "workflows.read",
+        "instances.read",
+        "tasks.read"
+      ]
+    }
+  ],
+  "personas": [
+    {
+      "login": "a.ops",
+      "name": "Alex Turner",
+      "grants": [
+        {
+          "role": "requester",
+          "scope": {}
+        }
+      ]
+    },
+    {
+      "login": "l.jones",
+      "name": "Laura Jones",
+      "grants": [
+        {
+          "role": "legal",
+          "scope": {}
+        }
+      ]
+    },
+    {
+      "login": "h.legal",
+      "name": "Harriet Lane",
+      "grants": [
+        {
+          "role": "head-of-legal",
+          "scope": {}
+        },
+        {
+          "role": "legal",
+          "scope": {}
+        },
+        {
+          "role": "legal-italy",
+          "scope": {}
+        },
+        {
+          "role": "legal-france",
+          "scope": {}
+        },
+        {
+          "role": "legal-germany",
+          "scope": {}
+        }
+      ]
+    },
+    {
+      "login": "l.rossi",
+      "name": "Lucia Rossi",
+      "grants": [
+        {
+          "role": "legal-italy",
+          "scope": {}
+        }
+      ]
+    },
+    {
+      "login": "l.dubois",
+      "name": "Louis Dubois",
+      "grants": [
+        {
+          "role": "legal-france",
+          "scope": {}
+        }
+      ]
+    },
+    {
+      "login": "l.weber",
+      "name": "Lena Weber",
+      "grants": [
+        {
+          "role": "legal-germany",
+          "scope": {}
+        }
+      ]
+    },
+    {
+      "login": "d.head",
+      "name": "David Okafor",
+      "grants": [
+        {
+          "role": "desk-head",
+          "scope": {}
+        }
+      ]
+    },
+    {
+      "login": "c.acme",
+      "name": "Carla Mendes",
+      "grants": [
+        {
+          "role": "counterparty-signatory",
+          "scope": {
+            "counterparty": "ACME"
+          }
+        }
+      ]
+    },
+    {
+      "login": "k.comply",
+      "name": "Kieran Walsh",
+      "grants": [
+        {
+          "role": "compliance",
+          "scope": {
+            "region": "EU"
+          }
+        }
+      ]
+    },
+    {
+      "login": "m.lro",
+      "name": "Marcus Reid",
+      "grants": [
+        {
+          "role": "mlro",
+          "scope": {}
+        }
+      ]
+    },
+    {
+      "login": "o.ops",
+      "name": "Olivia Park",
+      "grants": [
+        {
+          "role": "onboarding-ops",
+          "scope": {
+            "region": "EU"
+          }
+        }
+      ]
+    },
+    {
+      "login": "m.office",
+      "name": "Maya Osei",
+      "grants": [
+        {
+          "role": "middle-office",
+          "scope": {}
+        }
+      ]
+    },
+    {
+      "login": "ops.admin",
+      "name": "Sam Patel",
+      "grants": [
+        {
+          "role": "ops",
+          "scope": {}
+        }
+      ]
+    },
+    {
+      "login": "w.support",
+      "name": "Riley Chen",
+      "grants": [
+        {
+          "role": "workflow-support",
+          "scope": {}
+        }
+      ]
+    },
+    {
+      "login": "p.maint",
+      "name": "Priya Nair",
+      "grants": []
+    },
+    {
+      "login": "p.owner",
+      "name": "Pablo Ortiz",
+      "grants": []
+    },
+    {
+      "login": "e.admin",
+      "name": "Erin Admin",
+      "grants": [
+        {
+          "role": "engine-admin",
+          "scope": {}
+        }
+      ]
+    },
+    {
+      "login": "r.viewer",
+      "name": "Robin Viewer",
+      "grants": [
+        {
+          "role": "auditor",
+          "scope": {}
+        }
+      ]
+    }
+  ]
+}

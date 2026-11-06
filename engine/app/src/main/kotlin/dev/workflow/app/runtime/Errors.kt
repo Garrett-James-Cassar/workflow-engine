@@ -8,4 +8,4 @@ class BadRequestException(message: String) : RuntimeException(message)
 
 class ConflictException(message: String) : RuntimeException(message)
 
-class UnauthenticatedException : RuntimeException("X-User header is required")
+class UnauthenticatedException : RuntimeException("Sign in: send the identity this app expects")

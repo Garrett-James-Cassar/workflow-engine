@@ -11,7 +11,7 @@ import kotlin.test.assertTrue
 class ConsoleTest : ApiTest() {
     private fun raw(path: String, accept: String): HttpResponse<String> =
         HttpClient.newHttpClient().send(
-            HttpRequest.newBuilder(URI.create("http://localhost:${env.getProperty("local.server.port")}$path")).header("Accept", accept).build(),
+            HttpRequest.newBuilder(URI.create("http://localhost:${env.getProperty("local.server.port")}$path")).header("Accept", accept).header("X-User", ADMIN).build(),
             HttpResponse.BodyHandlers.ofString(),
         )
 
@@ -35,7 +35,7 @@ class ConsoleTest : ApiTest() {
         assertEquals(200, index.statusCode())
         assertTrue(index.body().contains("<title>Workflow engine</title>"))
         assertEquals(200, raw("/app.js", "*/*").statusCode())
-        assertTrue(call("GET", "/rbac/grants").list.any { it["user"] == "l.jones" && it["role"] == "legal" })
+        assertTrue(call("GET", "/rbac/people", user = "l.jones").list.any { it["user"] == "l.jones" && (it["teams"] as List<*>).contains("legal") })
         assertEquals(mapOf("up" to true), call("GET", "/demo/booking-system").map)
     }
 }

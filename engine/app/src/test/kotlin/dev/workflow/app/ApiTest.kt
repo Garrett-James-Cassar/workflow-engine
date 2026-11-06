@@ -48,15 +48,20 @@ abstract class ApiTest {
         val list get() = body as List<Map<String, Any?>>
     }
 
-    protected fun call(method: String, path: String, user: String? = null, body: Any? = null): Res {
+    /** Flow steps act as the engine admin unless a test names a persona; `user = ""` sends no identity at all. */
+    protected fun call(method: String, path: String, user: String? = ADMIN, body: Any? = null): Res {
         val req = HttpRequest.newBuilder(URI.create("http://localhost:${env.getProperty("local.server.port")}$path"))
             .method(method, body?.let { HttpRequest.BodyPublishers.ofString(json.writeValueAsString(it)) } ?: HttpRequest.BodyPublishers.noBody())
             .header("Content-Type", "application/json")
-            .apply { if (user != null) header("X-User", user) }
+            .apply { if (!user.isNullOrEmpty()) header("X-User", user) }
             .build()
         val res = http.send(req, HttpResponse.BodyHandlers.ofString())
         val parsed: Any? = if (res.body().isBlank()) null else runCatching { json.readValue<Any?>(res.body()) }.getOrDefault(res.body())
         return Res(res.statusCode(), parsed)
+    }
+
+    protected companion object {
+        const val ADMIN = "e.admin"
     }
 
     protected fun doc(notional: Long = 75_000_000, counterparty: String = "ACME") = Mother.doc(notional, counterparty)

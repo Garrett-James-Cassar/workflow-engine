@@ -132,4 +132,12 @@ data class EventView(
     }
 }
 
-data class ErrorView(val error: String, val reason: String? = null)
+/** An error as problem+json (RFC 7807): `error` and `detail` both carry the message (the console reads `error`). */
+data class ErrorView(
+    val error: String,
+    val reason: String? = null,
+    val title: String = error,
+    val status: Int = 0,
+    val detail: String = error,
+    val type: String = "about:blank",
+)

@@ -185,7 +185,7 @@ class EngineE2ETest : ApiTest() {
         assertTrue(((incident["payload"] as Map<*, *>)["message"] as String).contains("after 2 attempt(s)"))
 
         FlakyHandler.failing = false
-        val retried = call("POST", "/instances/$id/retry", "ops")
+        val retried = call("POST", "/instances/$id/retry", "ops.admin")
         assertEquals("completed", retried.map["status"], "${retried.body}")
     }
 

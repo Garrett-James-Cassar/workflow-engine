@@ -3,8 +3,10 @@ package dev.workflow.app.runtime
 import dev.workflow.app.persistence.Store
 import dev.workflow.app.persistence.TaskRow
 import dev.workflow.app.persistence.WaitRow
-import dev.workflow.app.rbac.Rbac
 import dev.workflow.app.rbac.RbacDecision
+import dev.workflow.app.rbac.RbacPort
+import dev.workflow.app.security.Authorizer
+import dev.workflow.app.security.Permissions
 import dev.workflow.app.registry.WorkflowRegistry
 import dev.workflow.core.Assignment
 import dev.workflow.core.Definition
@@ -35,25 +37,30 @@ class InstanceService(
     private val store: Store,
     private val engine: Engine,
     private val services: ServiceRunner,
-    private val rbac: Rbac,
+    private val rbac: RbacPort,
+    private val authorizer: Authorizer,
     private val tx: TransactionTemplate,
     private val clock: Clock,
 ) {
-    fun start(name: String, vars: Map<String, Any?>, actor: String?): InstanceState = inTx {
-        val def = registry.latest(name)
-        val id = UUID.randomUUID()
-        val t = engine.start(def, id.toString(), vars, actor)
-        store.insertInstance(t.state.copy(currentStep = null))
-        apply(def, t)
+    fun start(name: String, vars: Map<String, Any?>, login: String): InstanceState {
+        authorizer.require(login, Permissions.INSTANCES_START)
+        return inTx {
+            val def = registry.latest(name)
+            val id = UUID.randomUUID()
+            val t = engine.start(def, id.toString(), vars, login)
+            store.insertInstance(t.state.copy(currentStep = null))
+            apply(def, t)
+        }
     }
 
     fun get(id: UUID): InstanceState = store.instance(id) ?: throw NotFoundException("no instance $id")
 
+    /** A user task is for the person it names; a team task is for anyone holding the team's role in the task's scope. */
     fun eligibility(task: TaskRow, user: String): RbacDecision = when (task.assignment.type) {
         Assignment.Type.USER ->
             if (task.assignment.name == user) RbacDecision(true, "assigned to '$user'")
             else RbacDecision(false, "task is assigned to user '${task.assignment.name}', not '$user'")
-        Assignment.Type.ROLE -> rbac.check(user, task.assignment.name, task.assignment.scope)
+        Assignment.Type.ROLE -> rbac.holdsRole(user, task.assignment.name, task.assignment.scope)
     }
 
     fun tasksFor(user: String): List<TaskRow> = store.openTasks().filter { eligibility(it, user).allowed }
@@ -66,29 +73,35 @@ class InstanceService(
      * Restart an instance at any user task. Needs the workflow-support role. Open tasks and waits are
      * cancelled, and the instance re-enters [stepId] with its vars and history kept.
      */
-    fun restartAt(instanceId: UUID, user: String, stepId: String): InstanceState = inTx {
+    fun restartAt(instanceId: UUID, user: String, stepId: String): InstanceState {
+        authorizer.require(user, Permissions.INSTANCES_RESTART)
+        return inTx { restartLocked(instanceId, user, stepId) }
+    }
+
+    private fun restartLocked(instanceId: UUID, user: String, stepId: String): InstanceState {
         val state = lock(instanceId)
-        val decision = rbac.check(user, WORKFLOW_SUPPORT_ROLE, emptyMap())
-        if (!decision.allowed) {
-            throw ForbiddenException("'$user' may not restart this workflow", "restarting needs role '$WORKFLOW_SUPPORT_ROLE': ${decision.reason}")
-        }
         val def = definitionOf(state)
         if (!def.hasStep(stepId) || def.step(stepId) !is Step.UserTask) {
             throw BadRequestException("restart at a user task; '$stepId' is not one in ${def.name}")
         }
         store.cancelOpenWork(UUID.fromString(state.id))
-        apply(def, engine.restartAt(def, state, stepId, user))
+        return apply(def, engine.restartAt(def, state, stepId, user))
     }
 
-    fun reassignTask(taskId: UUID, user: String, to: Assignment): InstanceState = inTx {
+    fun reassignTask(taskId: UUID, user: String, to: Assignment): InstanceState {
         val task = store.task(taskId) ?: throw NotFoundException("no task $taskId")
+        authorizer.require(user, Permissions.TASKS_REASSIGN, task.assignment.scope)
+        return inTx { reassignLocked(taskId, task, user, to) }
+    }
+
+    private fun reassignLocked(taskId: UUID, task: TaskRow, user: String, to: Assignment): InstanceState {
         val state = lock(task.instanceId)
         if (task.status != "OPEN") throw ConflictException("task $taskId is already ${task.status}")
         val def = definitionOf(state)
         val step = def.step(task.step) as Step.UserTask
         val permitted = step.reassignableBy
             ?: throw ForbiddenException("task ${task.step} cannot be reassigned", "this task is not reassignable")
-        val decision = rbac.check(user, permitted.name, permitted.scope)
+        val decision = rbac.holdsRole(user, permitted.name, permitted.scope)
         if (!decision.allowed) {
             throw ForbiddenException("'$user' may not reassign task $taskId", "reassigning needs role '${permitted.name}': ${decision.reason}")
         }
@@ -109,15 +122,21 @@ class InstanceService(
                 ),
             ),
         )
-        state
+        return state
     }
 
-    fun completeTask(taskId: UUID, user: String, outcome: String, form: Map<String, Any?>): InstanceState = inTx {
+    fun completeTask(taskId: UUID, user: String, outcome: String, form: Map<String, Any?>): InstanceState {
         val task = store.task(taskId) ?: throw NotFoundException("no task $taskId")
-        val state = lock(task.instanceId)
-        if (task.status != "OPEN") throw ConflictException("task $taskId is already ${task.status}")
         val decision = eligibility(task, user)
         if (!decision.allowed) throw ForbiddenException("'$user' may not complete task $taskId", decision.reason)
+        // A team task needs the completing permission in the task's scope; a person's own task needs none.
+        if (task.assignment.type == Assignment.Type.ROLE) authorizer.require(user, Permissions.TASKS_COMPLETE, task.assignment.scope)
+        return inTx { completeLocked(taskId, task, user, outcome, form) }
+    }
+
+    private fun completeLocked(taskId: UUID, task: TaskRow, user: String, outcome: String, form: Map<String, Any?>): InstanceState {
+        val state = lock(task.instanceId)
+        if (task.status != "OPEN") throw ConflictException("task $taskId is already ${task.status}")
 
         val def = definitionOf(state)
         val step = def.step(task.step) as Step.UserTask
@@ -125,11 +144,12 @@ class InstanceService(
         validateForm(step, form)
 
         store.closeTask(taskId, outcome, form, user, clock.instant())
-        apply(def, engine.complete(def, state, task.step, outcome, form, user))
+        return apply(def, engine.complete(def, state, task.step, outcome, form, user))
     }
 
     /** Wake every instance parked on [event] whose correlation matches. Returns the woken instance ids. */
-    fun receiveEvent(event: String, correlation: Map<String, String>, payload: Map<String, Any?>): List<UUID> {
+    fun receiveEvent(event: String, correlation: Map<String, String>, payload: Map<String, Any?>, login: String): List<UUID> {
+        authorizer.require(login, Permissions.EVENTS_SEND)
         val matching = store.openWaits(event).filter { it.correlationKey == null || correlation[it.correlationKey] == it.correlationValue }
         return matching.mapNotNull { wait ->
             inTx {
@@ -145,22 +165,33 @@ class InstanceService(
         }
     }
 
-    /** Fire an event wait's timeout: its TIMED_OUT outcome. Called by the poller or the scheduler callback. */
-    fun fireTimeout(instanceId: UUID, step: String): InstanceState = inTx {
+    /**
+     * Fire an event wait's timeout: its TIMED_OUT outcome. [login] is the caller on the HTTP route; null is
+     * the in-process poller, which is the system and needs no permission.
+     */
+    fun fireTimeout(instanceId: UUID, step: String, login: String? = null): InstanceState {
+        login?.let { authorizer.require(it, Permissions.INSTANCES_FIRE_TIMEOUT) }
+        return inTx { fireTimeoutLocked(instanceId, step) }
+    }
+
+    private fun fireTimeoutLocked(instanceId: UUID, step: String): InstanceState {
         val state = lock(instanceId)
         val wait = store.openWaitsFor(instanceId).firstOrNull { it.step == step && it.expiresAt != null }
             ?: throw ConflictException("instance $instanceId has no open timed wait at '$step'")
         store.closeWait(wait.id)
         val def = definitionOf(state)
-        apply(def, engine.complete(def, state, step, TIMED_OUT, emptyMap(), "timer"))
+        return apply(def, engine.complete(def, state, step, TIMED_OUT, emptyMap(), "timer"))
     }
 
     fun expiredWaits(): List<WaitRow> = store.expiredWaits(clock.instant())
 
-    fun retry(instanceId: UUID, actor: String?): InstanceState = inTx {
-        val state = lock(instanceId)
-        val def = definitionOf(state)
-        apply(def, engine.retry(def, state, actor))
+    fun retry(instanceId: UUID, login: String?): InstanceState {
+        login?.let { authorizer.require(it, Permissions.INSTANCES_RETRY) }
+        return inTx {
+            val state = lock(instanceId)
+            val def = definitionOf(state)
+            apply(def, engine.retry(def, state, login))
+        }
     }
 
     private fun apply(def: Definition, transition: Transition): InstanceState {
@@ -226,8 +257,6 @@ class InstanceService(
     }
 
     private companion object {
-        /** Who may restart any workflow at any user task. */
-        const val WORKFLOW_SUPPORT_ROLE = "workflow-support"
         const val RECEIVED = "RECEIVED"
         const val TIMED_OUT = "TIMED_OUT"
     }
