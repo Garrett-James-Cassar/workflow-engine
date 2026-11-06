@@ -95,10 +95,27 @@ function renderActing() {
   );
 }
 
+// The console acts as the person chosen in the sidebar: every action (start, complete, reassign, restart,
+// retry, send event) goes as them, so the engine's answer is theirs. The pages themselves are read as the
+// auditor `r.viewer`, so a team member's view of a run does not depend on holding a read permission.
+// "My tasks" (mine=true) is the one read that is the person's own, so it goes as them.
+/** A non-2xx answer: problem+json with a `detail`, and rbac's `reason` on a 403. */
+class ApiError extends Error {
+  constructor(status, data) {
+    const body = data && typeof data === 'object' ? data : {};
+    super(body.detail || body.message || body.title || (typeof data === 'string' && data) || `HTTP ${status}`);
+    this.status = status;
+    this.reason = body.reason;
+  }
+}
+
+const VIEWER = 'r.viewer';
+const asPersona = (method, path) => method !== 'GET' || path.startsWith('/tasks?mine=true');
+
 async function api(method, path, body, asUser) {
   const headers = { 'Accept': 'application/json' };
   if (body !== undefined) headers['Content-Type'] = 'application/json';
-  const user = (asUser ?? persona.value).trim();
+  const user = (asUser ?? (asPersona(method, path) ? persona.value : VIEWER)).trim();
   if (user) headers['X-User'] = user;
   const res = await fetch(path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
   const text = await res.text();
@@ -106,6 +123,28 @@ async function api(method, path, body, asUser) {
   try { data = text ? JSON.parse(text) : null; } catch { data = text; }
   if (!res.ok) throw new ApiError(res.status, data);
   return data;
+}
+
+/** A text read (Mermaid source) as the viewer; throws like api() on an error. */
+async function apiText(path) {
+  const res = await fetch(path, { headers: { 'X-User': VIEWER } });
+  if (!res.ok) throw new ApiError(res.status, await res.json().catch(() => null));
+  return res.text();
+}
+
+/** Open an export in a new tab. A plain link can't send X-User, so fetch it as the viewer and open the result. */
+function openExport(path, type) {
+  return async e => {
+    e.preventDefault();
+    try {
+      const res = await fetch(path, { headers: { 'X-User': VIEWER } });
+      if (!res.ok) throw new ApiError(res.status, await res.json().catch(() => null));
+      let body = await res.text();
+      // The picture page loads Mermaid by a site-relative path, which a blob page can't resolve.
+      body = body.replaceAll('"/vendor/mermaid.min.js"', JSON.stringify(location.origin + '/vendor/mermaid.min.js'));
+      window.open(URL.createObjectURL(new Blob([body], { type })), '_blank', 'noopener');
+    } catch (err) { fail('Open')(err); }
+  };
 }
 
 function toast(message, { error, reason } = {}) {
@@ -281,7 +320,7 @@ async function definitionsPage() {
         { label: 'Name', value: d => h('a', { href: `#/definitions/${d.name}` }, d.name) },
         { label: 'Version', value: d => 'v' + d.latestVersion },
         { label: 'Steps', value: d => d.steps },
-        { label: 'Picture', value: d => h('a', { href: `/definitions/${d.name}/export?format=html`, target: '_blank', onclick: e => e.stopPropagation() }, 'Open picture') },
+        { label: 'Picture', value: d => h('a', { href: `/definitions/${d.name}/export?format=html`, onclick: e => { e.stopPropagation(); openExport(`/definitions/${d.name}/export?format=html`, 'text/html')(e); } }, 'Open picture') },
       ], defs, {
         cy: 'definitions', rowCy: d => `definition-${d.name}`,
         onRow: d => { location.hash = `#/definitions/${d.name}`; },
@@ -294,7 +333,7 @@ async function definitionPage(name) {
   main.replaceChildren(loading());
   let def, mmd;
   try {
-    [def, mmd] = await Promise.all([api('GET', `/definitions/${name}`), fetch(`/definitions/${name}/export?format=mermaid`).then(r => r.text())]);
+    [def, mmd] = await Promise.all([api('GET', `/definitions/${name}`), apiText(`/definitions/${name}/export?format=mermaid`)]);
   } catch (e) { return main.replaceChildren(errorState('the definition', e, () => definitionPage(name))); }
 
   const vars = h('textarea', { id: 'vars', 'data-cy': 'vars', rows: 10, spellcheck: 'false' }, json(def.sample));
@@ -320,9 +359,9 @@ async function definitionPage(name) {
       crumbs: h('span', {}, h('a', { href: '#/definitions' }, 'Definitions'), ' / ', name),
       title: name, lede: `Version ${def.version}. ${steps.length} steps.`,
       actions: [
-        h('a', { class: 'btn outline', href: `/definitions/${name}/export?format=html`, target: '_blank' }, 'Open picture'),
-        h('a', { class: 'btn outline', href: `/definitions/${name}/export?format=mermaid`, target: '_blank' }, 'Mermaid source'),
-        h('a', { class: 'btn outline', href: `/definitions/${name}/graph`, target: '_blank' }, 'Graph JSON'),
+        h('a', { class: 'btn outline', href: `/definitions/${name}/export?format=html`, onclick: openExport(`/definitions/${name}/export?format=html`, 'text/html') }, 'Open picture'),
+        h('a', { class: 'btn outline', href: `/definitions/${name}/export?format=mermaid`, onclick: openExport(`/definitions/${name}/export?format=mermaid`, 'text/plain') }, 'Mermaid source'),
+        h('a', { class: 'btn outline', href: `/definitions/${name}/graph`, onclick: openExport(`/definitions/${name}/graph`, 'application/json') }, 'Graph JSON'),
       ],
     }),
     h('section', { class: 'main-col' }, h('h2', {}, 'Diagram'), await diagram(mmd)),
@@ -381,13 +420,14 @@ async function instancePage(id) {
   let i, events, mmd, definition;
   try {
     [i, events] = await Promise.all([api('GET', `/instances/${id}`), api('GET', `/instances/${id}/events`)]);
-    mmd = await fetch(`/definitions/${i.definition}/export?format=mermaid&version=${i.version}`).then(r => r.text());
+    mmd = await apiText(`/definitions/${i.definition}/export?format=mermaid&version=${i.version}`);
     definition = await api('GET', `/definitions/${i.definition}?version=${i.version}`);
   } catch (e) { return main.replaceChildren(errorState('the instance', e, () => instancePage(id))); }
 
   const reload = () => instancePage(id);
   const done = [...new Set(events.filter(e => e.type === 'step-completed').map(e => e.step))].filter(s => s !== i.currentStep);
   const actions = [h('button', { class: 'outline', onclick: reload }, 'Refresh')];
+  if (i.status === 'failed') actions.unshift(...holderChips('incident-handler', 'retry-as', reload));
   if (i.status === 'failed') actions.unshift(h('button', { class: 'primary', 'data-cy': 'retry-step', onclick: () => api('POST', `/instances/${id}/retry`).then(() => { toast('Instance retried'); reload(); }, fail('Retry')) }, 'Retry step'));
   const incident = i.status === 'failed' ? [...events].reverse().find(e => e.type === 'incident') : null;
 
@@ -419,6 +459,13 @@ async function instancePage(id) {
   ));
 }
 
+/** Who holds [role], as buttons that make them the one acting. */
+function holderChips(role, prefix, reload) {
+  const me = persona.value.trim();
+  return [...new Set(grants.filter(g => g.role === role).map(g => g.user))].sort()
+    .map(u => h('button', { class: 'chip' + (u === me ? ' on' : ''), 'data-cy': `${prefix}-${u}`, onclick: () => { selectUser(u); reload(); } }, displayName(u)));
+}
+
 /** Support restart: move this workflow back to any user task. Needs the workflow-support role. */
 function restartPanel(i, userTasks, reload) {
   const role = 'workflow-support';
@@ -439,7 +486,7 @@ function restartPanel(i, userTasks, reload) {
     h('div', { class: 'helper' }, 'Needs the ', h('span', { class: 'mono' }, `${role} role`),
       '. Moves the workflow back to the chosen user task. Open tasks and waits are cancelled; vars and history are kept.'),
     h('div', { class: 'stack' }, h('span', { class: 'helper' }, 'Who can restart: choose one to act as them'),
-      h('div', { class: 'row' }, holders.map(u => h('button', { class: 'chip' + (u === me ? ' on' : ''),
+      h('div', { class: 'row' }, holders.map(u => h('button', { class: 'chip' + (u === me ? ' on' : ''), 'data-cy': `restart-as-${u}`,
         onclick: () => { selectUser(u); reload(); } }, displayName(u))))),
     h('div', {}, me
       ? (iCan
@@ -505,7 +552,7 @@ function reassignPanel(t, reload) {
     h('div', { class: 'stack', style: 'margin-top:12px' },
       h('div', { class: 'helper' }, 'Needs the ', h('span', { class: 'mono' }, `${t.reassignableBy} role`), ' (separate from completing the task). Moves the open task only.'),
       h('div', { class: 'stack' }, h('span', { class: 'helper' }, 'Who can reassign it: choose one to act as them'),
-        h('div', { class: 'row' }, holders.map(u => h('button', { class: 'chip' + (u === me ? ' on' : ''), 'data-cy': `act-as-${u}`,
+        h('div', { class: 'row' }, holders.map(u => h('button', { class: 'chip' + (u === me ? ' on' : ''), 'data-cy': `reassign-as-${u}`,
           onclick: () => { selectUser(u); reload(); } }, displayName(u))))),
       h('div', {}, me
         ? (iCan
@@ -524,6 +571,8 @@ function waitCard(i, w, reload) {
   return h('div', { class: 'card stack', 'data-cy': 'wait-card', 'data-event': w.event },
     h('div', {}, h('h2', { style: 'margin:0' }, `Waiting for event ${w.event}`),
       h('div', { class: 'helper' }, 'Correlation ', h('code', {}, JSON.stringify(w.correlation)), w.expiresAt ? h('span', {}, ', times out ', when(w.expiresAt)) : ', no timeout')),
+    h('div', { class: 'stack' }, h('span', { class: 'helper' }, 'Events and timeouts need the engine-admin role: choose who acts'),
+      h('div', { class: 'row' }, holderChips('engine-admin', 'send-as', reload))),
     h('div', { class: 'field' }, h('span', { class: 'helper' }, 'Payload (what the external system sends)'), payload),
     h('div', { class: 'row' },
       h('button', { class: 'sm', 'data-cy': 'send-event', onclick: send }, `Send ${w.event} event`),

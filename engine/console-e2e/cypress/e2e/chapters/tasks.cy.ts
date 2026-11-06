@@ -1,0 +1,45 @@
+// Demo chapters "blocked" and "rework". Console: an instance's task card.
+const startConfirmation = () => {
+  cy.visit('/#/demos');
+  cy.cy('scenario-confirmation-approval').click();
+  cy.cy('task-card').should('have.length', 1);
+};
+
+describe('tasks', () => {
+  it('tasks: a person without the role is blocked, then the right person approves', () => {
+    cy.step('Start a confirmation as Alex Turner, the requester', () => {
+      startConfirmation();
+      cy.cy('task-card').should('contain.text', 'Legal review');
+    });
+    cy.step('Alex does not hold the legal role, so the engine says no', () => {
+      cy.cy('outcome-APPROVE').click();
+      cy.cy('toast-error').should('contain.text', "does not hold role 'legal'");
+      cy.cy('current-step').should('contain.text', 'legal-review');
+    });
+    cy.step('Laura Jones is in legal and approves', () => {
+      cy.cy('act-as-l.jones').click();
+      cy.cy('outcome-APPROVE').click();
+      cy.cy('toast').should('contain.text', 'APPROVE as l.jones');
+      cy.cy('current-step').should('contain.text', 'desk-head-sign-off');
+    });
+  });
+
+  it('tasks: reject, resubmit and approve loop back to legal', () => {
+    cy.step('Legal rejects the draft', () => {
+      startConfirmation();
+      cy.cy('act-as-l.jones').click();
+      cy.cy('outcome-REJECT').click();
+      cy.cy('current-step').should('contain.text', 'amend-draft');
+    });
+    cy.step('The requester resubmits', () => {
+      cy.cy('act-as-a.ops').click();
+      cy.cy('outcome-RESUBMIT').click();
+      cy.cy('current-step').should('contain.text', 'legal-review');
+    });
+    cy.step('Legal approves, and a large trade goes to the desk head', () => {
+      cy.cy('act-as-l.jones').click();
+      cy.cy('outcome-APPROVE').click();
+      cy.cy('current-step').should('contain.text', 'desk-head-sign-off');
+    });
+  });
+});

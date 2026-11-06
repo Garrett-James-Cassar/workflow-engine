@@ -1,0 +1,28 @@
+{
+  "name": "@workflow-engine/console-e2e",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Cypress specs for the engine console (engine/app/src/main/resources/static). The same specs are the Demo chapters, replayed in the viewer's own tab by the in-page runtime.",
+  "scripts": {
+    "build:demo": "vite build",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p cypress/tsconfig.json --noEmit",
+    "cy:run": "node scripts/cypress.mjs",
+    "cy:smoke": "node scripts/cypress.mjs --smoke",
+    "cy:demo": "node scripts/cypress.mjs --demo"
+  },
+  "dependencies": {
+    "chai": "^4.5.0",
+    "jquery": "^3.7.1"
+  },
+  "devDependencies": {
+    "@types/chai": "^4.3.0",
+    "@types/jquery": "^3.5.0",
+    "@types/node": "^22.0.0",
+    "axe-core": "^4.10.0",
+    "cypress": "^13.15.0",
+    "cypress-axe": "^1.5.0",
+    "typescript": "^5.5.0",
+    "vite": "^5.4.0"
+  }
+}
