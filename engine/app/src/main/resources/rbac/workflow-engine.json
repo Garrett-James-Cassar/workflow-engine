@@ -21,8 +21,9 @@
   "roles": [
     {
       "name": "requester",
-      "description": "Starts workflow runs and reads them; acts only on tasks assigned to them",
+      "description": "Starts workflow runs, reads them and the workflow definitions; acts only on tasks assigned to them",
       "permissions": [
+        "workflows.read",
         "instances.read",
         "instances.start"
       ]
@@ -423,6 +424,16 @@
         "engine/app/src/main/kotlin/dev/workflow/app/api/Controllers.kt:163",
         "engine/app/src/main/kotlin/dev/workflow/app/workflow/ConfirmationApproval.kt:62",
         "engine/app/src/test/kotlin/dev/workflow/app/AuthorizationTest.kt (counterparty scope test)"
+      ]
+    },
+    {
+      "item": "requester gained workflows.read",
+      "from": "instances.read, instances.start",
+      "to": "workflows.read, instances.read, instances.start",
+      "reason": "A requester picks a workflow to start and reads the diagram of the run they started; both are definition reads (GET /definitions, /definitions/{name}/export). Without it the console and the studio fail for a.ops. Still no task read, no write beyond start.",
+      "evidence": [
+        "engine/app/src/main/kotlin/dev/workflow/app/api/Controllers.kt:52",
+        "engine/app/src/main/kotlin/dev/workflow/app/api/Controllers.kt:104"
       ]
     }
   ]

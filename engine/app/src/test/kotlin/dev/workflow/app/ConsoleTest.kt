@@ -20,7 +20,8 @@ class ConsoleTest : ApiTest() {
         val page = raw("/definitions/trade-booking/export", "text/html,application/xhtml+xml")
         assertTrue(page.headers().firstValue("Content-Type").get().startsWith("text/html"))
         assertTrue(page.body().contains("<pre class=\"mermaid\">"))
-        assertTrue(page.body().contains("mermaid@11.4.1"))
+        assertTrue(page.body().contains("/vendor/mermaid.min.js"), "Mermaid is vendored, not loaded from a CDN")
+        assertEquals(200, raw("/vendor/mermaid.min.js", "*/*").statusCode())
         assertTrue(page.body().contains("Download PNG"))
         assertTrue(page.body().contains("n_book_trade --&gt;|"), "mermaid source is HTML-escaped inside the page")
 

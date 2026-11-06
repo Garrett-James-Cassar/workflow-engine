@@ -11,7 +11,7 @@ The console in `engine/app/src/main/resources/static` is a no-build page, ahead 
 - **Fonts:** it uses the fallback stacks, not self-hosted fontsource fonts. There is no build step to bundle them.
 - **Tables:** they are plain tables, not FleetGrid. They are small dev lists, so the console is grid-exempt.
 - **Icons:** unicode glyphs stand in for lucide icons. Every status still shows a word.
-- **Mermaid:** loaded from the jsdelivr CDN, pinned to 11.4.1. Diagrams render on a light `--paper` panel so the exporter's node fills read the same as on GitHub.
+- **Mermaid:** vendored at `static/vendor/mermaid.min.js` (11.4.1, copied from `apps/web`'s dependency), no CDN. Diagrams render on a light `--paper` panel so the exporter's node fills read the same as on GitHub.
 
 ## UI standards (workflow studio, `apps/web`)
 

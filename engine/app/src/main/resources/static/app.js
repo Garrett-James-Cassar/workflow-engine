@@ -81,7 +81,7 @@ function renderActing() {
   const addTeam = choosing ? null : h('select', { 'aria-label': 'Add a team filter', onchange: e => { if (e.target.value) setTeams([...teamFilter, e.target.value]); } },
     h('option', { value: '' }, teamFilter.length ? 'Add another team…' : 'Filter by team…'),
     allTeams().filter(t => !teamFilter.includes(t)).map(t => h('option', { value: t }, t)));
-  const userSelect = h('select', { id: 'acting-user', 'aria-label': 'Acting as user', onchange: e => { selectUser(e.target.value); route(); } },
+  const userSelect = h('select', { id: 'acting-user', 'data-cy': 'acting-user', 'aria-label': 'Acting as user', onchange: e => { selectUser(e.target.value); route(); } },
     h('option', { value: '' }, candidates.length ? 'Choose a user…' : 'No user is in every selected team'),
     candidates.map(u => h('option', { value: u }, displayName(u))));
   userSelect.value = candidates.includes(persona.value) ? persona.value : '';
@@ -95,10 +95,10 @@ function renderActing() {
   );
 }
 
-async function api(method, path, body) {
+async function api(method, path, body, asUser) {
   const headers = { 'Accept': 'application/json' };
   if (body !== undefined) headers['Content-Type'] = 'application/json';
-  const user = persona.value.trim();
+  const user = (asUser ?? persona.value).trim();
   if (user) headers['X-User'] = user;
   const res = await fetch(path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
   const text = await res.text();
@@ -109,7 +109,7 @@ async function api(method, path, body) {
 }
 
 function toast(message, { error, reason } = {}) {
-  const t = h('div', { class: 'toast' + (error ? ' error' : ''), role: error ? 'alert' : 'status' },
+  const t = h('div', { class: 'toast' + (error ? ' error' : ''), role: error ? 'alert' : 'status', 'data-cy': error ? 'toast-error' : 'toast' },
     h('div', {}, h('div', {}, message), reason && h('div', { class: 'reason' }, reason)),
     error && h('button', { class: 'ghost sm', 'aria-label': 'Dismiss', onclick: () => t.remove() }, '✕'));
   document.getElementById('toasts').append(t);
@@ -156,11 +156,14 @@ function header({ crumbs, title, lede, actions }) {
     actions && h('div', { class: 'actions' }, actions));
 }
 
-function table(columns, rows, { onRow, empty } = {}) {
+/** A page on the 12-column grid (STYLE v1.5). `fill` lets the primary table take the remaining height. */
+function page(kind, ...children) { return h('div', { class: 'page' + (kind ? ' ' + kind : '') }, children); }
+
+function table(columns, rows, { onRow, empty, cy, rowCy } = {}) {
   if (!rows.length) return empty;
-  return h('div', { class: 'table-wrap' }, h('table', {},
+  return h('div', { class: 'table-wrap', 'data-cy': cy }, h('table', {},
     h('thead', {}, h('tr', {}, columns.map(c => h('th', {}, c.label)))),
-    h('tbody', {}, rows.map(r => h('tr', { class: onRow ? 'link' : null, onclick: onRow ? () => onRow(r) : null },
+    h('tbody', {}, rows.map(r => h('tr', { class: onRow ? 'link' : null, 'data-cy': rowCy ? rowCy(r) : null, onclick: onRow ? () => onRow(r) : null },
       columns.map(c => h('td', { class: c.mono ? 'mono' : null }, c.value(r))))))));
 }
 
@@ -184,7 +187,7 @@ async function diagram(source, { current, done = [], endStatus } = {}) {
   if (current) extra.push('classDef current stroke:#f97415,stroke-width:5px', `class ${nodeId(current)} current`);
   if (endStatus) extra.push('classDef reached stroke:#f97415,stroke-width:6px', `class ${nodeId('end:' + endStatus)} reached`);
   if (extra.length) text += '\n  ' + extra.join('\n  ') + '\n';
-  const box = h('div', { class: 'diagram' }, h('span', { class: 'muted' }, 'Drawing…'));
+  const box = h('div', { class: 'diagram', 'data-cy': 'diagram' }, h('span', { class: 'muted' }, 'Drawing…'));
   try {
     const { svg } = await mermaid.render('d' + (++diagramSeq), text);
     box.innerHTML = svg; // Mermaid output, sanitised by securityLevel 'strict'
@@ -215,8 +218,12 @@ function scopeBadge(t) {
 
 let grants = [];
 async function loadUsers() {
-  try { grants = await api('GET', '/rbac/grants'); } catch { grants = []; }
-  try { people = Object.fromEntries((await api('GET', '/rbac/people')).map(p => [p.user, p.name])); } catch { people = {}; }
+  // The directory is a dev convenience (who can the console act as); it is read as the engine admin so it
+  // works whoever is acting. It is not how the engine decides anything: every action still goes as the acting user.
+  let directory = [];
+  try { directory = await api('GET', '/rbac/people', undefined, 'e.admin'); } catch { directory = []; }
+  grants = directory.flatMap(p => (p.grants || []).map(g => ({ user: p.user, role: g.role, scope: g.scope || {} })));
+  people = Object.fromEntries(directory.map(p => [p.user, p.name]));
   const names = new Set([...grants.map(g => g.user), ...EXTRA_USERS, ...Object.keys(people)]);
   document.getElementById('users').replaceChildren(...[...names].sort().map(u => h('option', { value: u, label: displayName(u) })));
   const teams = [...new Set(grants.map(g => g.role))].sort();
@@ -269,16 +276,17 @@ async function definitionsPage() {
   main.replaceChildren(header({ title: 'Definitions', lede: 'Workflows written in the Kotlin DSL. Open one to see its diagram and start an instance.' }), loading());
   try {
     const defs = await api('GET', '/definitions');
-    main.replaceChildren(header({ title: 'Definitions', lede: 'Workflows written in the Kotlin DSL. Open one to see its diagram and start an instance.' }),
-      table([
+    main.replaceChildren(page('fill', header({ title: 'Definitions', lede: 'Workflows written in the Kotlin DSL. Open one to see its diagram and start an instance.' }),
+      h('div', { class: 'grow' }, table([
         { label: 'Name', value: d => h('a', { href: `#/definitions/${d.name}` }, d.name) },
         { label: 'Version', value: d => 'v' + d.latestVersion },
         { label: 'Steps', value: d => d.steps },
         { label: 'Picture', value: d => h('a', { href: `/definitions/${d.name}/export?format=html`, target: '_blank', onclick: e => e.stopPropagation() }, 'Open picture') },
       ], defs, {
+        cy: 'definitions', rowCy: d => `definition-${d.name}`,
         onRow: d => { location.hash = `#/definitions/${d.name}`; },
         empty: emptyState('No workflows yet', 'Add a Workflow object to the workflow folder and list it in Workflows.kt.'),
-      }));
+      }))));
   } catch (e) { main.replaceChildren(errorState('definitions', e, definitionsPage)); }
 }
 
@@ -289,7 +297,7 @@ async function definitionPage(name) {
     [def, mmd] = await Promise.all([api('GET', `/definitions/${name}`), fetch(`/definitions/${name}/export?format=mermaid`).then(r => r.text())]);
   } catch (e) { return main.replaceChildren(errorState('the definition', e, () => definitionPage(name))); }
 
-  const vars = h('textarea', { id: 'vars', rows: 10, spellcheck: 'false' }, json(def.sample));
+  const vars = h('textarea', { id: 'vars', 'data-cy': 'vars', rows: 10, spellcheck: 'false' }, json(def.sample));
   const varsError = h('div', { class: 'error-text' });
   const start = async () => {
     let parsed;
@@ -307,7 +315,7 @@ async function definitionPage(name) {
     : m.user ? `user ${m.user}` : m.userFrom ? `user from ${m.userFrom}` : m.handler ? `handler ${m.handler}` : m.http ? m.http
     : m.event ? `event ${m.event}` + (m.correlateBy ? ` by ${Object.keys(m.correlateBy)[0]}` : '') + (m.timeout ? `, timeout ${m.timeout}` : '') : '';
 
-  main.replaceChildren(
+  main.replaceChildren(page('',
     header({
       crumbs: h('span', {}, h('a', { href: '#/definitions' }, 'Definitions'), ' / ', name),
       title: name, lede: `Version ${def.version}. ${steps.length} steps.`,
@@ -317,12 +325,11 @@ async function definitionPage(name) {
         h('a', { class: 'btn outline', href: `/definitions/${name}/graph`, target: '_blank' }, 'Graph JSON'),
       ],
     }),
-    h('div', { class: 'split' },
-      h('section', {}, h('h2', {}, 'Diagram'), await diagram(mmd)),
-      h('section', { class: 'card stack' }, h('h2', {}, 'Start an instance'),
-        h('div', { class: 'field' }, h('label', { for: 'vars' }, 'Vars (JSON)'), vars, varsError,
-          h('span', { class: 'helper' }, 'Pre-filled with the workflow\'s sample. Started as the user in the sidebar.')),
-        h('div', {}, h('button', { class: 'primary', onclick: start }, 'Start instance')))),
+    h('section', { class: 'main-col' }, h('h2', {}, 'Diagram'), await diagram(mmd)),
+    h('section', { class: 'card stack side-col' }, h('h2', {}, 'Start an instance'),
+      h('div', { class: 'field' }, h('label', { for: 'vars' }, 'Vars (JSON)'), vars, varsError,
+        h('span', { class: 'helper' }, 'Pre-filled with the workflow\'s sample. Started as the user in the sidebar.')),
+      h('div', {}, h('button', { class: 'primary', 'data-cy': 'start-instance', onclick: start }, 'Start instance'))),
     h('section', {}, h('h2', {}, 'Steps'), table([
       { label: 'Step', mono: true, value: n => n.id },
       { label: 'Kind', value: n => kindBadge(n.kind) },
@@ -330,8 +337,8 @@ async function definitionPage(name) {
       { label: 'Path', value: n => n.path || h('span', { class: 'muted' }, 'main') },
       { label: 'Assigned / linked', value: n => describe(n.meta) },
       { label: 'Outcomes → next', value: n => out(n.id).map(e => h('div', {}, h('span', { class: 'mono' }, e.outcome || '·'), ' → ', h('span', { class: 'mono' }, e.to))) },
-    ], steps)),
-  );
+    ], steps, { cy: 'steps' })),
+  ));
 }
 
 async function instancesPage() {
@@ -339,7 +346,7 @@ async function instancesPage() {
   const head = () => header({
     title: 'Instances', lede: 'Running and finished workflow instances, newest first.',
     actions: [
-      h('select', { 'aria-label': 'Filter by status', onchange: e => { store.set('instanceFilter', e.target.value); instancesPage(); } },
+      h('select', { 'data-cy': 'status-filter', 'aria-label': 'Filter by status', onchange: e => { store.set('instanceFilter', e.target.value); instancesPage(); } },
         ['all', 'waiting', 'running', 'failed', 'completed'].map(s => h('option', { value: s, selected: s === filter }, s === 'all' ? 'All statuses' : s))),
       h('button', { class: 'outline', onclick: instancesPage }, 'Refresh'),
     ],
@@ -349,22 +356,23 @@ async function instancesPage() {
     const all = await api('GET', '/instances?limit=200');
     const rows = all.filter(i => filter === 'all' || i.status === filter);
     const count = s => all.filter(i => i.status === s).length;
-    main.replaceChildren(head(),
+    main.replaceChildren(page('fill', head(),
       h('section', { class: 'figures' },
         h('div', { class: 'figure' }, h('b', {}, count('waiting')), h('span', {}, 'Waiting')),
         h('div', { class: 'figure' }, h('b', { style: count('failed') ? 'color:hsl(var(--destructive))' : null }, count('failed')), h('span', {}, count('failed') ? '⚠ Incidents' : 'Incidents')),
         h('div', { class: 'figure' }, h('b', {}, count('completed')), h('span', {}, 'Completed'))),
-      table([
+      h('div', { class: 'grow' }, table([
         { label: 'Instance', mono: true, value: i => short(i.id) },
         { label: 'Workflow', value: i => `${i.definition} v${i.version}` },
         { label: 'Status', value: i => badge(i.status, i.endStatus) },
         { label: 'Current step', mono: true, value: i => i.currentStep || '' },
         { label: 'Waiting on', value: i => [...i.openTasks.map(t => scopeLabel(t)), ...i.openWaits.map(w => `event ${w.event}`)].join(', ') },
       ], rows, {
+        cy: 'instances', rowCy: i => `instance-${i.definition}`,
         onRow: i => { location.hash = `#/instances/${i.id}`; },
         empty: emptyState(filter === 'all' ? 'No instances yet' : `No ${filter} instances`, 'Start one from a definition, or use a demo scenario.',
           h('a', { class: 'btn', href: '#/demos' }, 'Open demos')),
-      }));
+      }))));
   } catch (e) { main.replaceChildren(errorState('instances', e, instancesPage)); }
 }
 
@@ -380,36 +388,35 @@ async function instancePage(id) {
   const reload = () => instancePage(id);
   const done = [...new Set(events.filter(e => e.type === 'step-completed').map(e => e.step))].filter(s => s !== i.currentStep);
   const actions = [h('button', { class: 'outline', onclick: reload }, 'Refresh')];
-  if (i.status === 'failed') actions.unshift(h('button', { class: 'primary', onclick: () => api('POST', `/instances/${id}/retry`).then(() => { toast('Instance retried'); reload(); }, fail('Retry')) }, 'Retry step'));
+  if (i.status === 'failed') actions.unshift(h('button', { class: 'primary', 'data-cy': 'retry-step', onclick: () => api('POST', `/instances/${id}/retry`).then(() => { toast('Instance retried'); reload(); }, fail('Retry')) }, 'Retry step'));
   const incident = i.status === 'failed' ? [...events].reverse().find(e => e.type === 'incident') : null;
 
-  main.replaceChildren(
+  main.replaceChildren(page('',
     header({
       crumbs: h('span', {}, h('a', { href: '#/instances' }, 'Instances'), ' / ', short(id)),
       title: `${i.definition}`,
-      lede: h('span', {}, `Version ${i.version}. `, badge(i.status, i.endStatus), i.currentStep ? h('span', {}, ' at ', h('code', {}, i.currentStep)) : ''),
+      lede: h('span', {}, `Version ${i.version}. `, h('span', { 'data-cy': 'instance-status' }, badge(i.status, i.endStatus)), i.currentStep ? h('span', {}, ' at ', h('code', { 'data-cy': 'current-step' }, i.currentStep)) : ''),
       actions,
     }),
-    incident && h('section', { class: 'alert' }, h('h3', {}, `⚠ Incident at ${incident.step}`), h('p', { class: 'muted' }, incident.payload.message),
+    incident && h('section', { class: 'alert', 'data-cy': 'incident' }, h('h3', {}, `⚠ Incident at ${incident.step}`), h('p', { class: 'muted' }, incident.payload.message),
       h('p', { class: 'helper' }, 'Fix the cause (for the demo booking system, bring it back up on the Demos page), then retry the step.')),
-    h('div', { class: 'split' },
-      h('section', {}, h('h2', {}, 'Where it is'), await diagram(mmd, { current: i.status === 'completed' ? null : i.currentStep, done, endStatus: i.status === 'completed' ? i.endStatus : null })),
-      h('section', { class: 'stack' },
-        h('h2', {}, 'Waiting on'),
-        !i.openTasks.length && !i.openWaits.length && h('p', { class: 'muted' }, i.status === 'completed' ? `Finished: ${i.endStatus}.` : 'Nothing: no open task or wait.'),
-        i.openTasks.map(t => taskCard(t, reload)),
-        i.openWaits.map(w => waitCard(i, w, reload)))),
-    h('div', { class: 'split' },
-      restartPanel(i, definition.graph.nodes.filter(n => n.kind === 'user-task'), reload),
-      h('section', {}, h('h2', {}, 'Timeline'), table([
+    h('section', { class: 'main-col' }, h('h2', {}, 'Where it is'), await diagram(mmd, { current: i.status === 'completed' ? null : i.currentStep, done, endStatus: i.status === 'completed' ? i.endStatus : null })),
+    h('section', { class: 'stack side-col', 'data-cy': 'waiting-on' },
+      h('h2', {}, 'Waiting on'),
+      !i.openTasks.length && !i.openWaits.length && h('p', { class: 'muted' }, i.status === 'completed' ? `Finished: ${i.endStatus}.` : 'Nothing: no open task or wait.'),
+      i.openTasks.map(t => taskCard(t, reload)),
+      i.openWaits.map(w => waitCard(i, w, reload))),
+    h('section', { class: 'main-col' }, h('h2', {}, 'Timeline'), table([
         { label: 'When', value: e => when(e.at) },
         { label: 'Event', value: e => e.type },
         { label: 'Step', mono: true, value: e => e.step || '' },
         { label: 'Outcome', mono: true, value: e => e.outcome || (e.payload && e.payload.status) || '' },
         { label: 'By', mono: true, value: e => e.actor || '' },
-      ], events.filter(e => e.type !== 'step-entered'))),
+      ], events.filter(e => e.type !== 'step-entered'), { cy: 'timeline', rowCy: e => `event-${e.type}` })),
+    h('div', { class: 'side-col' },
+      restartPanel(i, definition.graph.nodes.filter(n => n.kind === 'user-task'), reload),
       h('section', {}, h('h2', {}, 'Vars'), h('div', { class: 'card' }, h('pre', {}, json(i.vars))))),
-  );
+  ));
 }
 
 /** Support restart: move this workflow back to any user task. Needs the workflow-support role. */
@@ -418,7 +425,7 @@ function restartPanel(i, userTasks, reload) {
   const me = persona.value.trim();
   const holders = [...new Set(grants.filter(g => g.role === role).map(g => g.user))].sort();
   const iCan = !!me && holds(me, role);
-  const step = h('select', { 'aria-label': 'User task to restart at' },
+  const step = h('select', { 'data-cy': 'restart-step', 'aria-label': 'User task to restart at' },
     h('option', { value: '' }, 'Choose a user task…'),
     userTasks.map(n => h('option', { value: n.id }, n.label)));
   const go = () => {
@@ -427,7 +434,7 @@ function restartPanel(i, userTasks, reload) {
     api('POST', `/instances/${i.id}/restart`, { step: step.value })
       .then(() => { toast(`Restarted at ${label}`); reload(); }, fail('Restart'));
   };
-  return h('section', { class: 'card stack' },
+  return h('section', { class: 'card stack', 'data-cy': 'restart-panel' },
     h('h2', {}, 'Restart at a step'),
     h('div', { class: 'helper' }, 'Needs the ', h('span', { class: 'mono' }, `${role} role`),
       '. Moves the workflow back to the chosen user task. Open tasks and waits are cancelled; vars and history are kept.'),
@@ -439,7 +446,7 @@ function restartPanel(i, userTasks, reload) {
         ? h('span', { class: 'badge success' }, '✓ ', `${displayName(me)} can restart this workflow`)
         : h('span', { class: 'badge destructive' }, '✕ ', `${displayName(me)} can't restart this: needs the ${role} role`))
       : h('span', { class: 'badge neutral' }, '■ Nobody is acting')),
-    h('div', { class: 'row' }, step, h('button', { class: 'sm primary', onclick: go }, 'Restart here')));
+    h('div', { class: 'row' }, step, h('button', { class: 'sm primary', 'data-cy': 'restart-go', onclick: go }, 'Restart here')));
 }
 
 function taskCard(t, reload) {
@@ -448,7 +455,7 @@ function taskCard(t, reload) {
   const inputs = {};
   const fields = t.form.map(f => {
     const id = `f-${t.id}-${f.name}`;
-    const input = f.type === 'boolean' ? h('input', { id, type: 'checkbox' }) : h('input', { id, type: f.type === 'number' ? 'number' : 'text' });
+    const input = f.type === 'boolean' ? h('input', { id, 'data-cy': `field-${f.name}`, type: 'checkbox' }) : h('input', { id, 'data-cy': `field-${f.name}`, type: f.type === 'number' ? 'number' : 'text' });
     inputs[f.name] = { f, input };
     return h('div', { class: 'field' }, h('label', { for: id }, f.name + (f.required ? ' (required)' : '')), input);
   });
@@ -463,14 +470,14 @@ function taskCard(t, reload) {
   const complete = outcome => api('POST', `/tasks/${t.id}/complete`, { outcome, form: formValues() })
     .then(() => { toast(`${t.label}: ${outcome} as ${me}`); reload(); }, fail(`${outcome}`));
 
-  return h('div', { class: 'card stack' },
+  return h('div', { class: 'card stack', 'data-cy': 'task-card', 'data-step': t.step },
     h('div', {}, h('h2', { style: 'margin:0' }, t.label),
       h('div', { class: 'row', style: 'margin-top:6px' }, scopeBadge(t), h('span', { class: 'mono' }, scopeLabel(t)))),
     h('div', { class: 'stack' }, h('span', { class: 'helper' }, 'Act as'),
-      h('div', { class: 'row' }, users.length ? users.map(u => h('button', { class: 'chip' + (u === me ? ' on' : ''), onclick: () => { selectUser(u); reload(); } }, displayName(u)))
+      h('div', { class: 'row' }, users.length ? users.map(u => h('button', { class: 'chip' + (u === me ? ' on' : ''), 'data-cy': `act-as-${u}`, onclick: () => { selectUser(u); reload(); } }, displayName(u)))
         : h('span', { class: 'muted' }, 'Nobody in the dev grants can do this.'))),
     fields.length && h('div', { class: 'stack' }, fields),
-    h('div', { class: 'row' }, t.outcomes.map(o => h('button', { class: 'sm', onclick: () => complete(o) }, o))),
+    h('div', { class: 'row' }, t.outcomes.map(o => h('button', { class: 'sm', 'data-cy': `outcome-${o}`, onclick: () => complete(o) }, o))),
     h('div', { class: 'stack' },
       h('div', { class: 'helper' }, 'Needs ', h('span', { class: 'mono' }, requirementText(t))),
       standingFor(t, me)),
@@ -479,9 +486,9 @@ function taskCard(t, reload) {
 
 /** Move the task to a user or a team. Only the reassign role can do it; the engine says so if you can't. */
 function reassignPanel(t, reload) {
-  const kind = h('select', { 'aria-label': 'Reassign to a user or a team' },
+  const kind = h('select', { 'data-cy': 'reassign-kind', 'aria-label': 'Reassign to a user or a team' },
     h('option', { value: 'user' }, 'a user'), h('option', { value: 'team' }, 'a team'));
-  const target = h('input', { list: 'users', 'aria-label': 'User name or team', placeholder: 'e.g. m.office, or middle-office' });
+  const target = h('input', { 'data-cy': 'reassign-target', list: 'users', 'aria-label': 'User name or team', placeholder: 'e.g. m.office, or middle-office' });
   kind.addEventListener('change', () => target.setAttribute('list', kind.value === 'team' ? 'teams' : 'users'));
   const go = () => {
     const name = target.value.trim();
@@ -498,29 +505,29 @@ function reassignPanel(t, reload) {
     h('div', { class: 'stack', style: 'margin-top:12px' },
       h('div', { class: 'helper' }, 'Needs the ', h('span', { class: 'mono' }, `${t.reassignableBy} role`), ' (separate from completing the task). Moves the open task only.'),
       h('div', { class: 'stack' }, h('span', { class: 'helper' }, 'Who can reassign it: choose one to act as them'),
-        h('div', { class: 'row' }, holders.map(u => h('button', { class: 'chip' + (u === me ? ' on' : ''),
+        h('div', { class: 'row' }, holders.map(u => h('button', { class: 'chip' + (u === me ? ' on' : ''), 'data-cy': `act-as-${u}`,
           onclick: () => { selectUser(u); reload(); } }, displayName(u))))),
       h('div', {}, me
         ? (iCan
           ? h('span', { class: 'badge success' }, '✓ ', `${displayName(me)} can reassign this`)
           : h('span', { class: 'badge destructive' }, '✕ ', `${displayName(me)} can't reassign this: needs the ${t.reassignableBy} role`))
         : h('span', { class: 'badge neutral' }, '■ Nobody is acting')),
-      h('div', { class: 'row' }, kind, target, h('button', { class: 'sm outline', onclick: go }, 'Reassign'))));
+      h('div', { class: 'row' }, kind, target, h('button', { class: 'sm outline', 'data-cy': 'reassign-go', onclick: go }, 'Reassign'))));
 }
 
 function waitCard(i, w, reload) {
-  const payload = h('textarea', { rows: 4, spellcheck: 'false', 'aria-label': 'Event payload' }, json(samplePayload(i, w)));
+  const payload = h('textarea', { 'data-cy': 'event-payload', rows: 4, spellcheck: 'false', 'aria-label': 'Event payload' }, json(samplePayload(i, w)));
   const send = () => {
     let p; try { p = JSON.parse(payload.value || '{}'); } catch (e) { return toast('Payload is not valid JSON', { error: true, reason: e.message }); }
     api('POST', `/events/${w.event}`, { correlation: w.correlation, payload: p }).then(() => { toast(`Event ${w.event} sent`); reload(); }, fail('Send event'));
   };
-  return h('div', { class: 'card stack' },
+  return h('div', { class: 'card stack', 'data-cy': 'wait-card', 'data-event': w.event },
     h('div', {}, h('h2', { style: 'margin:0' }, `Waiting for event ${w.event}`),
       h('div', { class: 'helper' }, 'Correlation ', h('code', {}, JSON.stringify(w.correlation)), w.expiresAt ? h('span', {}, ', times out ', when(w.expiresAt)) : ', no timeout')),
     h('div', { class: 'field' }, h('span', { class: 'helper' }, 'Payload (what the external system sends)'), payload),
     h('div', { class: 'row' },
-      h('button', { class: 'sm', onclick: send }, `Send ${w.event} event`),
-      w.expiresAt && h('button', { class: 'sm outline', onclick: () => api('POST', `/timeouts/${i.id}/${w.step}`).then(() => { toast('Timeout fired'); reload(); }, fail('Fire timeout')) }, 'Fire timeout now')));
+      h('button', { class: 'sm', 'data-cy': 'send-event', onclick: send }, `Send ${w.event} event`),
+      w.expiresAt && h('button', { class: 'sm outline', 'data-cy': 'fire-timeout', onclick: () => api('POST', `/timeouts/${i.id}/${w.step}`).then(() => { toast('Timeout fired'); reload(); }, fail('Fire timeout')) }, 'Fire timeout now')));
 }
 
 /** Helpful defaults for the sample workflows' events. */
@@ -548,9 +555,9 @@ async function tasksPage() {
       { label: 'Created', value: t => when(t.createdAt) },
     ];
     const open = t => { location.hash = `#/instances/${t.instanceId}`; };
-    main.replaceChildren(head,
-      h('section', {}, h('h2', {}, `Inbox for ${me}`), table(cols, mine, { onRow: open, empty: emptyState('Nothing to do', `${me} has no open tasks. Every open task is listed below.`) })),
-      h('section', {}, h('h2', {}, 'All open tasks'), table(cols, all, { onRow: open, empty: h('p', { class: 'muted' }, 'No open tasks anywhere.') })));
+    main.replaceChildren(page('', head,
+      h('section', {}, h('h2', {}, `Inbox for ${me}`), table(cols, mine, { cy: 'inbox', rowCy: t => `task-${t.step}`, onRow: open, empty: emptyState('Nothing to do', `${me} has no open tasks. Every open task is listed below.`) })),
+      h('section', {}, h('h2', {}, 'All open tasks'), table(cols, all, { cy: 'all-tasks', onRow: open, empty: h('p', { class: 'muted' }, 'No open tasks anywhere.') }))));
   } catch (e) { main.replaceChildren(errorState('tasks', e, tasksPage)); }
 }
 
@@ -580,20 +587,20 @@ async function demosPage() {
   const screenOut = h('pre', { class: 'nested' }, 'No call yet.');
   const publishOut = h('pre', { class: 'nested' }, 'No call yet.');
 
-  main.replaceChildren(head,
+  main.replaceChildren(page('', head,
     h('section', {}, h('h2', {}, 'Scenarios'), h('div', { class: 'cards' }, defs.map(d => h('div', { class: 'card stack' },
       h('div', {}, h('h2', { style: 'margin:0' }, d.name), h('p', { class: 'muted', style: 'margin:4px 0 0' }, scenarios[d.name] || `${d.steps} steps.`)),
       h('div', { class: 'row' },
-        h('button', { class: 'sm', onclick: () => startSample(d.name) }, 'Start with sample data'),
+        h('button', { class: 'sm', 'data-cy': `scenario-${d.name}`, onclick: () => startSample(d.name) }, 'Start with sample data'),
         h('a', { class: 'btn sm outline', href: `#/definitions/${d.name}` }, 'View definition')))))),
     h('section', {}, h('h2', {}, 'Fake third parties'), h('div', { class: 'cards' },
       h('div', { class: 'card stack' },
         h('h2', { style: 'margin:0' }, 'Booking system'),
         h('p', { class: 'muted', style: 'margin:0' }, 'Used by trade-booking. While it is down, booking throws, retries run out and the instance raises an incident.'),
-        h('div', {}, booking.up ? h('span', { class: 'badge success' }, '✓ Up') : h('span', { class: 'badge destructive' }, '✕ Down')),
+        h('div', { 'data-cy': 'booking-status' }, booking.up ? h('span', { class: 'badge success' }, '✓ Up') : h('span', { class: 'badge destructive' }, '✕ Down')),
         h('div', {}, booking.up
-          ? h('button', { class: 'destructive sm', onclick: () => api('POST', '/demo/booking-system/down').then(() => { toast('Booking system taken down'); demosPage(); }, fail('Take down')) }, 'Take booking system down')
-          : h('button', { class: 'sm', onclick: () => api('POST', '/demo/booking-system/up').then(() => { toast('Booking system brought up'); demosPage(); }, fail('Bring up')) }, 'Bring booking system up'))),
+          ? h('button', { class: 'destructive sm', 'data-cy': 'booking-down', onclick: () => api('POST', '/demo/booking-system/down').then(() => { toast('Booking system taken down'); demosPage(); }, fail('Take down')) }, 'Take booking system down')
+          : h('button', { class: 'sm', 'data-cy': 'booking-up', onclick: () => api('POST', '/demo/booking-system/up').then(() => { toast('Booking system brought up'); demosPage(); }, fail('Bring up')) }, 'Bring booking system up'))),
       h('div', { class: 'card stack' },
         h('h2', { style: 'margin:0' }, 'Screening provider'),
         h('p', { class: 'muted', style: 'margin:0' }, 'Used by counterparty-onboarding. Returns a case id; the result arrives later as the screening-result event.'),
@@ -608,7 +615,7 @@ async function demosPage() {
         { label: 'Role', value: g => g.role },
         { label: 'Scope', mono: true, value: g => Object.keys(g.scope || {}).length ? JSON.stringify(g.scope) : 'global' },
       ], grants)),
-  );
+  ));
 }
 
 // ---------- router ----------
@@ -626,3 +633,15 @@ async function route() {
 
 window.addEventListener('hashchange', route);
 loadUsers().then(route);
+
+// Hooks for the Demo player (loaded only when /demo/status answers 200: dev and demo, never live).
+window.__console = {
+  /** A fresh console at `hash`, without reloading the tab: the player's script lives in this page. */
+  async remount(hash, user = 'a.ops') {
+    setPersona(user);
+    location.hash = hash || '#/definitions';
+    await loadUsers();
+    await route();
+  },
+};
+fetch('/demo/status').then(r => r.ok ? import('./console-demo/demo.js') : null).catch(() => null);

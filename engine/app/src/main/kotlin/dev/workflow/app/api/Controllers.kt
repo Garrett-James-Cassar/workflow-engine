@@ -257,7 +257,7 @@ class MeController(private val rbac: RbacPort) {
 class RbacController(private val rbac: RbacPort) {
     @Requires(Permissions.PEOPLE_READ)
     @GetMapping("/rbac/people")
-    fun people(): List<Map<String, Any>> = rbac.people().map { mapOf("user" to it.login, "name" to it.name, "teams" to it.teams) }
+    fun people(): List<Map<String, Any>> = rbac.people().map { mapOf("user" to it.login, "name" to it.name, "teams" to it.teams, "grants" to it.grants.map { g -> mapOf("role" to g.role, "scope" to g.scope) }) }
 }
 
 @RestControllerAdvice

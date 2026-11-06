@@ -1,4 +1,4 @@
-/* Fleet UI tokens (fleet/standards/ui/STYLE.md v1.4, section 2). */
+/* Fleet UI tokens (fleet/standards/ui/STYLE.md v1.5, section 2). */
 :root {
   color-scheme: dark;
   --background: 150 8% 5%;
@@ -31,9 +31,10 @@ a { color: hsl(var(--primary)); text-decoration: none; }
 a:hover { text-decoration: underline; }
 :focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
 
-.shell { display: grid; grid-template-columns: 232px minmax(0, 1fr); min-height: 100vh; }
+/* Shell (v1.5): exactly the viewport; the sidebar and the content area scroll on their own. */
+.shell { display: grid; grid-template-columns: 232px minmax(0, 1fr); height: 100dvh; overflow: hidden; }
 .sidebar { background: hsl(var(--surface)); border-right: 1px solid hsl(var(--border)); padding: 20px 16px;
-  display: flex; flex-direction: column; gap: 20px; position: sticky; top: 0; height: 100vh; }
+  display: flex; flex-direction: column; gap: 20px; height: 100%; overflow-y: auto; }
 .brand { font: 500 20px/24px var(--font-display); }
 #nav { display: flex; flex-direction: column; gap: 2px; }
 #nav a { color: hsl(var(--muted-foreground)); padding: 8px 10px; border-radius: 7px; }
@@ -44,36 +45,52 @@ a:hover { text-decoration: underline; }
 .persona select { width: 100%; height: 36px; background: hsl(var(--surface-2)); color: hsl(var(--foreground)); border: 1px solid hsl(var(--border-strong)); border-radius: 7px; padding: 0 8px; font: 13px var(--font-ui); }
 .persona .chip { height: 28px; }
 .api-link { margin-top: auto; font-size: 12px; }
-main { padding: 28px 36px; width: 100%; min-width: 0;
+/* Content: full width, no max-width. A flex column so a primary table can take the remaining height. */
+main { padding: 24px; min-width: 0; height: 100%; overflow-y: auto; display: flex; flex-direction: column;
   background: radial-gradient(60rem 30rem at 20% -10%, hsl(var(--primary) / .06), transparent 70%); }
 @media (max-width: 1024px) {
-  .shell { grid-template-columns: 1fr; }
-  .sidebar { position: static; height: auto; flex-direction: row; flex-wrap: wrap; align-items: center; }
+  .shell { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); }
+  .sidebar { height: auto; flex-direction: row; flex-wrap: wrap; align-items: center; overflow: visible; }
   #nav { flex-direction: row; flex-wrap: wrap; }
   .api-link { margin-top: 0; }
 }
 @media (max-width: 640px) { main { padding: 16px; } }
-@media (min-width: 1800px) { main { padding: 32px 56px; } }
 
-.page-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 32px; flex-wrap: wrap; }
+/* Page grid (v1.5): 12 columns; regions take spans and stack under 1024px. */
+.page { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 16px; align-content: start; }
+.page > * { grid-column: span 12; min-width: 0; margin-bottom: 0; }
+@media (min-width: 1280px) { .page { gap: 24px; } }
+.page.fill { flex: 1; min-height: 0; grid-template-rows: auto auto minmax(0, 1fr); align-content: stretch; }
+.page.fill > .grow { min-height: 320px; display: flex; flex-direction: column; }
+.page.fill > .grow > .table-wrap { flex: 1; min-height: 0; overflow: auto; }
+/* Detail archetype: main span 8 and side span 4 (9 and 3 from 1920px). */
+@media (min-width: 1024px) {
+  .page > .main-col { grid-column: span 8; }
+  .page > .side-col { grid-column: span 4; }
+}
+@media (min-width: 1920px) {
+  .page > .main-col { grid-column: span 9; }
+  .page > .side-col { grid-column: span 3; }
+}
+.side-col, .main-col { display: flex; flex-direction: column; gap: 16px; }
+
+.page-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
 .crumbs { font-size: 12px; color: hsl(var(--muted-foreground)); margin-bottom: 4px; }
 h1 { font: 500 36px/40px var(--font-display); letter-spacing: -.015em; margin: 0 0 6px; }
 h2 { font: 600 17px/24px var(--font-ui); margin: 0 0 12px; }
+section h2:only-child { margin-bottom: 0; }
 .lede { font-size: 15px; line-height: 24px; color: hsl(var(--muted-foreground)); max-width: 72ch; margin: 0; }
 .actions { display: flex; gap: 8px; flex-wrap: wrap; }
-section { margin-bottom: 32px; }
 .muted { color: hsl(var(--muted-foreground)); }
 .mono, code, pre { font-family: var(--font-mono); font-variant-ligatures: none; }
 pre { margin: 0; white-space: pre-wrap; word-break: break-word; font-size: 12px; line-height: 18px; }
 
 .card { background: hsl(var(--surface)); border: 1px solid hsl(var(--border)); border-radius: 10px; padding: 16px; }
 @media (min-width: 768px) { .card { padding: 24px; } }
-.cards { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); }
+.cards { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
 .nested { background: hsl(var(--surface-2)); border-radius: 7px; padding: 12px; }
 .stack { display: flex; flex-direction: column; gap: 12px; }
 .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-.split { display: grid; gap: 20px; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); }
-@media (max-width: 1024px) { .split { grid-template-columns: 1fr; } }
 
 button, .btn { height: 36px; padding: 0 14px; border-radius: 7px; font: 600 13px var(--font-ui); cursor: pointer;
   border: 1px solid hsl(var(--border-strong)); background: hsl(var(--surface-2)); color: hsl(var(--foreground));
@@ -121,7 +138,7 @@ tr.link { cursor: pointer; }
 
 .diagram { background: hsl(var(--paper)); border-radius: 10px; padding: 16px; overflow: auto; min-height: 120px; }
 .diagram svg { max-width: 100%; height: auto; }
-.figures { display: flex; gap: 32px; flex-wrap: wrap; }
+.figures { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
 .figure b { display: block; font: 500 28px/32px var(--font-display); }
 .figure span { font-size: 12px; font-weight: 500; color: hsl(var(--muted-foreground)); }
 
@@ -130,7 +147,7 @@ tr.link { cursor: pointer; }
 .alert h3 { color: hsl(var(--destructive)); font-size: 13px; margin: 0 0 4px; }
 .skeleton { background: hsl(var(--surface-2)); border-radius: 7px; height: 40px; margin-bottom: 8px; animation: pulse 1.5s infinite; }
 @keyframes pulse { 50% { opacity: .5; } }
-@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
 
 #toasts { position: fixed; right: 16px; bottom: 16px; display: flex; flex-direction: column; gap: 8px; z-index: 10; }
 .toast { background: hsl(var(--surface-2)); border: 1px solid hsl(var(--border-strong)); border-radius: 7px; padding: 10px 14px;
@@ -139,3 +156,6 @@ tr.link { cursor: pointer; }
 .toast .reason { color: hsl(var(--muted-foreground)); font-size: 12px; }
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-thumb { background: hsl(var(--border-strong)); border-radius: 4px; }
+
+/* Demo (loaded only when the player is enabled): the target ring is distinct from the focus ring. */
+body.demo-on main, body.demo-on .sidebar { padding-bottom: 72px; }

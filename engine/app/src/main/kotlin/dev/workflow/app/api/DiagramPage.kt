@@ -6,7 +6,7 @@ package dev.workflow.app.api
  * downloads of what it drew.
  */
 object DiagramPage {
-    const val MERMAID_JS = "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"
+    const val MERMAID_JS = "/vendor/mermaid.min.js" // vendored (Mermaid 11.4.1), no CDN
 
     fun render(title: String, mermaid: String): String = """
 <!doctype html>

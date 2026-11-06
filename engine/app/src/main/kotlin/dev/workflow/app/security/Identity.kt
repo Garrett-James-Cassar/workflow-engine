@@ -90,7 +90,7 @@ class IdentityInterceptor(
         request.getHeader("Authorization")?.takeIf { it.startsWith("Bearer ", ignoreCase = true) }?.substring(7)?.trim()
 
     private fun isPublic(path: String): Boolean =
-        path == "/" || path == "/index.html" || path == "/health" || path == "/app.js" || path == "/app.css" ||
+        path == "/" || path == "/index.html" || path == "/health" || path == "/app.js" || path == "/app.css" || path.startsWith("/vendor/") || path.startsWith("/console-demo/") || path == "/demo/status" ||
             path == "/openapi.json" || path.startsWith("/docs") || path.startsWith("/swagger-ui") || path.startsWith("/v3/api-docs") ||
             // The demo providers stand in for third parties the engine calls (its own http tasks); live, they are real services.
             path.startsWith("/demo/screening") || path.startsWith("/demo/clause-store/") || path.startsWith("/demo/booking-system")

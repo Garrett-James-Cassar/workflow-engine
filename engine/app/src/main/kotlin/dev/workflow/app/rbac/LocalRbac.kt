@@ -39,6 +39,6 @@ class LocalRbac(private val model: AppModel) : RbacPort {
             .distinct()
 
     override fun people(): List<PersonInfo> = model.personas.map { p ->
-        PersonInfo(p.login, p.name, p.grants.map { it.role }.distinct().sorted())
+        PersonInfo(p.login, p.name, p.grants.map { it.role }.distinct().sorted(), p.grants.map { RoleGrant(it.role, it.scope) })
     }
 }

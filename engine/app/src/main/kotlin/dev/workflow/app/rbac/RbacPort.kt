@@ -7,7 +7,10 @@ data class RbacDecision(val allowed: Boolean, val reason: String)
 data class PermissionGrant(val permission: String, val scope: Map<String, String>)
 
 /** A person in the directory, for the dev persona list. [teams] are the roles they hold. */
-data class PersonInfo(val login: String, val name: String, val teams: List<String>)
+data class PersonInfo(val login: String, val name: String, val teams: List<String>, val grants: List<RoleGrant> = emptyList())
+
+/** A role a person holds, and where (scope). An empty scope means everywhere. */
+data class RoleGrant(val role: String, val scope: Map<String, String>)
 
 /**
  * The fleet RBAC port (RBAC.md section 4). Two adapters: [HttpRbac] when `RBAC_URL` is set, and
