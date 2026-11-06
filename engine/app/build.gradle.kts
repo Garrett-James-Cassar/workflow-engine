@@ -4,6 +4,7 @@ plugins {
     kotlin("jvm")
     kotlin("plugin.spring")
     id("org.springframework.boot")
+    jacoco
 }
 
 kotlin {
@@ -68,3 +69,29 @@ tasks.register<JavaExec>("diagrams") {
     workingDir = rootDir
     args("docs/workflows")
 }
+
+// t.be.c: backend line coverage of at least 80%, measured on the in-memory suite (the postgresTest
+// task adds its own execution data to the report).
+jacoco { toolVersion = "0.8.13" }
+
+tasks.jacocoTestReport {
+    dependsOn(tasks.test, tasks.named("postgresTest"))
+    executionData(tasks.test.get(), tasks.named("postgresTest").get())
+    reports { xml.required = true; html.required = false }
+}
+
+tasks.jacocoTestCoverageVerification {
+    dependsOn(tasks.jacocoTestReport)
+    executionData(tasks.test.get(), tasks.named("postgresTest").get())
+    violationRules {
+        rule {
+            limit {
+                counter = "LINE"
+                value = "COVEREDRATIO"
+                minimum = "0.80".toBigDecimal()
+            }
+        }
+    }
+}
+
+tasks.named("check") { dependsOn(tasks.jacocoTestCoverageVerification) }
