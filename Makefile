@@ -1,4 +1,4 @@
-.PHONY: up down stop dev restart test ci diagrams web web-demo web-install web-gen-check web-typecheck web-lint web-test web-build web-demo-build web-cy web-smoke web-demo-check web-live-check web-ci share share-local cy-live
+.PHONY: up down stop dev restart test ci diagrams hooks web web-demo web-install web-gen-check web-typecheck web-lint web-test web-build web-demo-build web-cy web-smoke web-demo-check web-live-check web-ci share share-local cy-live
 
 PORT ?= 47831
 export PORT
@@ -41,6 +41,9 @@ restart: dev
 
 test: ## unit + compile-fail + e2e (Testcontainers; needs Docker)
 	./gradlew check
+
+hooks: ## install the git hooks (lefthook: pre-commit backend+secrets, pre-push smoke)
+	lefthook install
 
 ci: test web-ci ## Gradle check + the web gate
 

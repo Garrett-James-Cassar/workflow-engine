@@ -1,7 +1,15 @@
-# Git hooks (fleet standard: lefthook). Install with `lefthook install`.
+# Git hooks (fleet standard: lefthook). `make hooks` installs them.
 #
-# pre-push: the web smoke specs (Cypress over the mock profile), t.e2e.c.
-# The full suites run in `make ci` / CI.
+# pre-commit (t.be.e, ci.a): the backend suite on in-memory H2 plus gitleaks on the staged
+#   changes, in 30 s or less; blocks the commit on failure. No Docker.
+# pre-push (t.e2e.c, ci.a): the web smoke specs (Cypress over the mock profile).
+#   The full suites run in `make ci` / CI.
+pre-commit:
+  jobs:
+    - name: backend suite (in-memory)
+      run: ./gradlew --quiet :engine:app:test :engine:core:test
+    - name: secrets (staged)
+      run: gitleaks protect --staged --redact --no-banner
 pre-push:
   jobs:
     - name: web smoke
