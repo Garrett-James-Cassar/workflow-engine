@@ -1,7 +1,8 @@
-.PHONY: up down stop dev restart test ci diagrams hooks web web-demo web-install web-gen-check web-typecheck web-lint web-test web-build web-demo-build web-cy web-smoke web-demo-check web-live-check web-ci share share-local cy-live
+.PHONY: up down stop dev demo restart test ci diagrams hooks web web-demo web-install web-gen-check web-typecheck web-lint web-test web-build web-demo-build web-cy web-smoke web-demo-check web-live-check web-ci share share-studio share-studio-local cy-live console-install console-build console-bundle-check console-typecheck console-cy console-smoke console-demo-check console-ci
 
 PORT ?= 47831
 export PORT
+OPEN_PATH ?= /
 
 up: ## start Postgres (127.0.0.1:55434)
 	docker compose up -d --wait db
@@ -31,13 +32,17 @@ stop:
 dev: stop up ## run the engine on $(PORT) against compose Postgres (Flyway migrates on start)
 	@if [ -z "$(NO_BROWSER)" ]; then \
 	  ( for i in $$(seq 1 120); do \
-	      curl -sf http://localhost:$(PORT)/health >/dev/null 2>&1 && { open "http://localhost:$(PORT)/"; exit 0; }; \
+	      curl -sf http://localhost:$(PORT)/health >/dev/null 2>&1 && { open "http://localhost:$(PORT)$(OPEN_PATH)"; exit 0; }; \
 	      sleep 1; \
 	    done ) & \
 	fi; \
 	./gradlew :engine:app:bootRun
 
 restart: dev
+
+demo: ## the engine with the console Demo: opens http://localhost:$(PORT)/?demo and starts the player (dev auth only, never live)
+	$(MAKE) dev OPEN_PATH='/?demo'
+
 
 test: ## unit + compile-fail + e2e (Testcontainers; needs Docker)
 	./gradlew check
@@ -97,8 +102,37 @@ web-ci: web-gen-check web-typecheck web-lint web-test web-build web-cy web-demo-
 cy-live: ## Cypress against the real engine on :47831 and Postgres on 55434 (opt-in; nightly in e2e-live.yml)
 	$(WEB) cy:live
 
-share: ## serve the DEMO build through ngrok (needs NGROK_AUTHTOKEN); remote viewers run the Demo in their own tab
+share-studio: ## serve the studio DEMO build through ngrok (needs NGROK_AUTHTOKEN); remote viewers run its Demo in their own tab
 	$(WEB) exec node scripts/share.mjs
 
-share-local: ## serve the demo build on 0.0.0.0:5183 without a tunnel
+share-studio-local: ## serve the studio demo build on 0.0.0.0:5183 without a tunnel
 	$(WEB) exec node scripts/share.mjs --no-tunnel
+
+# ---- console Demo (engine/console-e2e): the console's Cypress specs, which are also the Demo chapters ----
+CONSOLE := pnpm -C engine/console-e2e
+
+console-install: ## install the console e2e package's dependencies
+	$(CONSOLE) install --frozen-lockfile
+
+console-build: ## rebuild the Demo player into engine/app/src/main/resources/static/console-demo
+	$(CONSOLE) build:demo
+
+console-bundle-check: console-build ## the committed player bundle is up to date with its sources
+	git diff --exit-code -- engine/app/src/main/resources/static/console-demo
+
+console-typecheck:
+	$(CONSOLE) typecheck
+
+console-cy: ## chapters, smoke (axe) and layout specs against the RUNNING engine on $(PORT) (make dev)
+	$(CONSOLE) cy:run
+
+console-smoke: ## the console smoke specs only (needs the engine up)
+	$(CONSOLE) cy:smoke
+
+console-demo-check: ## plays every Demo chapter unpaced in the in-page runtime against the running engine (demo.7)
+	$(CONSOLE) cy:demo
+
+console-ci: console-bundle-check console-typecheck console-cy console-demo-check ## the console gate; the engine must be running (CI starts it)
+
+share: ## tunnel the console (the engine on $(PORT)) through ngrok so a remote viewer runs the Demo in their own tab
+	$(CONSOLE) exec node scripts/share.mjs --port $(PORT)

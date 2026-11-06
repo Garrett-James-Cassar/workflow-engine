@@ -315,7 +315,7 @@ async function definitionsPage() {
   main.replaceChildren(header({ title: 'Definitions', lede: 'Workflows written in the Kotlin DSL. Open one to see its diagram and start an instance.' }), loading());
   try {
     const defs = await api('GET', '/definitions');
-    main.replaceChildren(page('fill', header({ title: 'Definitions', lede: 'Workflows written in the Kotlin DSL. Open one to see its diagram and start an instance.' }),
+    main.replaceChildren(page('fill fill-1', header({ title: 'Definitions', lede: 'Workflows written in the Kotlin DSL. Open one to see its diagram and start an instance.' }),
       h('div', { class: 'grow' }, table([
         { label: 'Name', value: d => h('a', { href: `#/definitions/${d.name}` }, d.name) },
         { label: 'Version', value: d => 'v' + d.latestVersion },
@@ -395,7 +395,7 @@ async function instancesPage() {
     const all = await api('GET', '/instances?limit=200');
     const rows = all.filter(i => filter === 'all' || i.status === filter);
     const count = s => all.filter(i => i.status === s).length;
-    main.replaceChildren(page('fill', head(),
+    main.replaceChildren(page('fill fill-2', head(),
       h('section', { class: 'figures' },
         h('div', { class: 'figure' }, h('b', {}, count('waiting')), h('span', {}, 'Waiting')),
         h('div', { class: 'figure' }, h('b', { style: count('failed') ? 'color:hsl(var(--destructive))' : null }, count('failed')), h('span', {}, count('failed') ? '⚠ Incidents' : 'Incidents')),

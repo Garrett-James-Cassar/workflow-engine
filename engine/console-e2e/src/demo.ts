@@ -121,3 +121,6 @@ function mount() {
 }
 
 mount();
+
+// `/?demo` (make demo) starts the player as soon as the console is up.
+if (new URLSearchParams(window.location.search).has('demo')) void player().then((p) => p.start());
