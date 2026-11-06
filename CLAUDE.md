@@ -6,6 +6,14 @@
 - Tests: core uses kotlin.test; compile-fail cases live in `CompileFailTest` (in-process kotlinc). App e2e uses Testcontainers Postgres plus a `MutableClock`. Prefix test names with the milestone (`E5 …`).
 - Gate: `make ci` (`./gradlew check`).
 
+## Trunk-based development
+- Work directly on `main`. No feature branches, no worktrees, no PRs.
+- Make small commits. Run the fast gate (`./gradlew :engine:app:test :engine:core:test && pnpm -C apps/web lint && pnpm -C apps/web test`) before each commit.
+- The full gate (`make ci`) runs once at the end of each task.
+- Keep `main` green at all times. If it's red, fixing it comes before anything else.
+- Unfinished features go behind a flag or a demo/mock mode, not on a branch.
+- Push only via the coordinator's `/fleet-push`, never force-push.
+
 ## Fleet deviations (UI)
 The console in `engine/app/src/main/resources/static` is a no-build page and **the Demo surface**: it runs against the real engine (dev auth), and its Demo plays real Cypress specs in the viewer's own tab. The React studio in `apps/web` is the mocked test UI against its own contract.
 
