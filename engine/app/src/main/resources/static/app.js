@@ -607,7 +607,7 @@ async function tasksPage() {
     main.replaceChildren(page('', head,
       h('section', {}, h('h2', {}, `Inbox for ${me}`), table(cols, mine, { cy: 'inbox', rowCy: t => `task-${t.step}`, onRow: open, empty: emptyState('Nothing to do', `${me} has no open tasks. Every open task is listed below.`) })),
       h('section', {}, h('h2', {}, 'All open tasks'), table(cols, all, { cy: 'all-tasks', onRow: open, empty: h('p', { class: 'muted' }, 'No open tasks anywhere.') }))));
-  } catch (e) { main.replaceChildren(errorState('tasks', e, tasksPage)); }
+  } catch (e) { main.replaceChildren(page('', head, errorState('your tasks', e, tasksPage))); }
 }
 
 const scenarios = {
