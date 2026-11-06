@@ -21,7 +21,16 @@ import kotlin.test.assertTrue
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Import(TestSupport::class)
-@TestPropertySource(properties = ["workflow.timeouts.poll-interval=1h", "workflow.service.backoff=1ms"])
+@TestPropertySource(
+    properties = [
+        "workflow.timeouts.poll-interval=1h",
+        "workflow.service.backoff=1ms",
+        "spring.datasource.url=jdbc:h2:mem:workflow-test;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH",
+        "spring.datasource.username=sa",
+        "spring.datasource.password=",
+        "spring.flyway.locations=classpath:db/migration-h2",
+    ],
+)
 abstract class ApiTest {
     @Autowired lateinit var env: Environment
     @Autowired lateinit var json: JsonMapper

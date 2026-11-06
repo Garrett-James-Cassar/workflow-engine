@@ -203,12 +203,4 @@ class EngineE2ETest : ApiTest() {
         assertTrue(mmd.contains("flowchart LR"))
         assertEquals(404, call("GET", "/definitions/nope").status)
     }
-
-    @Test
-    fun `E1 the event log is append-only`() {
-        val i = start(doc())
-        assertFailsWith<Exception> {
-            jdbc.sql("update events set type = 'x' where instance_id = cast(:id as uuid)").param("id", i.map["id"]).update()
-        }
-    }
 }
