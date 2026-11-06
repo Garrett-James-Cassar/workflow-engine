@@ -1,7 +1,11 @@
 package dev.workflow.app.security
 
-/** How a route's scope is derived. NONE: the whole app. TASK: the scope of the task it acts on. */
-enum class ScopeFrom { NONE, TASK }
+/**
+ * How a route's scope is derived. NONE: the whole app (the caller must hold the permission there, or
+ * globally). TASK: the scope of the task named by the path's `id`. LIST: the caller must hold the
+ * permission in some scope, and the listing returns only the items inside the scopes they hold.
+ */
+enum class ScopeFrom { NONE, TASK, LIST }
 
 /**
  * Declares the permission a route needs (deny by default: a route without one fails

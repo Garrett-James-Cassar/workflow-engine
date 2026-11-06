@@ -103,4 +103,10 @@ class Authorizer(private val rbac: RbacPort) {
         val decision = rbac.check(login, permission, scope)
         if (!decision.allowed) throw ForbiddenException("'$login' may not do this", decision.reason)
     }
+
+    /** Held in some scope (global or scoped): the caller may list, and the listing is filtered per item. */
+    fun requireAnywhere(login: String, permission: String) {
+        if (rbac.permissionsOf(login).any { it.permission == permission }) return
+        throw ForbiddenException("'$login' may not do this", rbac.check(login, permission).reason)
+    }
 }

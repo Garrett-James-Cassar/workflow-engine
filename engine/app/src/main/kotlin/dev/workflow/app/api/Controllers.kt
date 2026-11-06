@@ -156,10 +156,11 @@ class TaskController(
     private val instances: InstanceService,
     private val registry: WorkflowRegistry,
     private val store: Store,
+    private val rbac: RbacPort,
 ) {
 
     /** Open tasks. With `mine=true`, only those the `X-User` may complete (by username or RBAC role). */
-    @Requires(Permissions.TASKS_READ)
+    @Requires(Permissions.TASKS_READ, ScopeFrom.LIST)
     @GetMapping("/tasks")
     fun list(
         @RequestParam(defaultValue = "false") mine: Boolean,
@@ -168,7 +169,8 @@ class TaskController(
     ): List<TaskView> {
         val tasks = when {
             mine -> instances.tasksFor(login)
-            else -> store.openTasks()
+            // The listing shows only the tasks inside the scopes the caller may read.
+            else -> store.openTasks().filter { rbac.check(login, Permissions.TASKS_READ, it.assignment.scope).allowed }
         }.filter { instance == null || it.instanceId == instance }
         return tasks.map { task ->
             val state = instances.get(task.instanceId)

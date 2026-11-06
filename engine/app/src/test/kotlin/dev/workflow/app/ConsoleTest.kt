@@ -35,7 +35,7 @@ class ConsoleTest : ApiTest() {
         assertEquals(200, index.statusCode())
         assertTrue(index.body().contains("<title>Workflow engine</title>"))
         assertEquals(200, raw("/app.js", "*/*").statusCode())
-        assertTrue(call("GET", "/rbac/people", user = "l.jones").list.any { it["user"] == "l.jones" && (it["teams"] as List<*>).contains("legal") })
+        assertTrue(call("GET", "/rbac/people").list.any { it["user"] == "l.jones" && (it["teams"] as List<*>).contains("legal") })
         assertEquals(mapOf("up" to true), call("GET", "/demo/booking-system").map)
     }
 }

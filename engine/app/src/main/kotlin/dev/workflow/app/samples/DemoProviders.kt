@@ -19,19 +19,23 @@ import java.util.concurrent.atomic.AtomicInteger
 class DemoProviders {
 
     /** Sanctions/KYC screening: accepts a case and replies later via `POST /events/screening-result`. */
+    @dev.workflow.app.security.Public
     @PostMapping("/screening")
     fun screening(@RequestBody body: Map<String, Any?>) =
         mapOf("caseId" to "CASE-" + UUID.randomUUID().toString().take(8), "received" to body["name"])
 
     /** Clause library: publish a change and get the new version. */
+    @dev.workflow.app.security.Public
     @PostMapping("/clause-store/publish")
     fun publish(@RequestBody body: Map<String, Any?>) =
         mapOf("clause" to body["clauseId"], "version" to publishedVersions.incrementAndGet())
 
+    @dev.workflow.app.security.Public
     @GetMapping("/booking-system")
     fun bookingSystemState() = mapOf("up" to DemoBookingSystem.up.get())
 
     /** Switch the fake booking system off/on to drive incidents and retries. */
+    @dev.workflow.app.security.Public
     @PostMapping("/booking-system/{state}")
     fun bookingSystem(@PathVariable state: String): Map<String, Any> {
         DemoBookingSystem.up.set(state == "up")
