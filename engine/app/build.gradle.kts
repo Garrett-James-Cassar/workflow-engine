@@ -73,6 +73,8 @@ fun registerDetekt(name: String, configFile: String, packages: List<String>) = t
     exclude("**/api/dtos/**")
     reports { html.required = true; checkstyle.required = true }
 }
+// The plugin's one-size `detekt` task is replaced by the two role-scoped tasks below (separate limits per role).
+tasks.named("detekt") { enabled = false }
 registerDetekt("detektEdge", "edge.yml", listOf("api", "persistence", "clients", "mappers", "adapters"))
 registerDetekt("detektCore", "core.yml", listOf("runtime", "security", "domain", "telemetry", "config/web", "samples", "workflow", "/engine/core/src/main/kotlin"))
 
@@ -84,7 +86,8 @@ tasks.register<Exec>("duplication") {
     group = "verification"
     description = "jscpd duplication gate (arch.9), threshold 3%"
     workingDir = rootDir
-    commandLine("npx", "--yes", "jscpd@4.0.5", "--config", ".jscpd.json")
+    // sh -c so npx is found even when the Gradle daemon started with a short PATH (Homebrew node on macOS).
+    commandLine("sh", "-c", "PATH=\"\$PATH:/opt/homebrew/bin:/usr/local/bin\" npx --yes jscpd@4.0.5 --config .jscpd.json")
 }
 
 tasks.named("check") { dependsOn("postgresTest", "detektEdge", "detektCore", "duplication") }
