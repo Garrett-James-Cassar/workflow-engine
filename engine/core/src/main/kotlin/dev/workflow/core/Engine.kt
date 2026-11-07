@@ -3,66 +3,6 @@ package dev.workflow.core
 import java.time.Clock
 import java.time.Instant
 
-enum class InstanceStatus {
-    /** A service task is due to run (the adapter executes [Effect.RunService]). */
-    RUNNING,
-
-    /** Parked on a user task or an event wait. */
-    WAITING,
-
-    /** Reached an end; see [InstanceState.endStatus]. */
-    COMPLETED,
-
-    /** An incident: a handler kept failing or a var was missing. `retry` re-enters [InstanceState.currentStep]. */
-    FAILED,
-}
-
-data class InstanceState(
-    val id: String,
-    val definition: String,
-    val version: Int,
-    val status: InstanceStatus,
-    val currentStep: String?,
-    val endStatus: String?,
-    val vars: Map<String, Any?>,
-)
-
-/** The resolved assignee of a user task: a username or a role within a scope. */
-data class Assignment(val type: Type, val name: String, val scope: Map<String, String>) {
-    enum class Type { USER, ROLE }
-}
-
-/** What the adapter must do after a transition. */
-sealed interface Effect {
-    data class RunService(val stepId: String) : Effect
-
-    data class CreateUserTask(val stepId: String, val assignment: Assignment) : Effect
-
-    data class ParkForEvent(
-        val stepId: String,
-        val event: String,
-        val correlationKey: String?,
-        val correlationValue: String?,
-        val expiresAt: Instant?,
-    ) : Effect
-
-    data class Ended(val status: String) : Effect
-}
-
-/** Append-only history entry. */
-data class EngineEvent(
-    val type: String,
-    val step: String?,
-    val outcome: String? = null,
-    val actor: String? = null,
-    val payload: Map<String, Any?> = emptyMap(),
-    val at: Instant,
-)
-
-data class Transition(val state: InstanceState, val effects: List<Effect>, val events: List<EngineEvent>)
-
-class IllegalTransitionException(message: String) : RuntimeException(message)
-
 /**
  * The whole engine: pure functions from (definition, state, trigger) to (state', effects, events).
  * No I/O, so every path is unit-testable and history can be replayed.
@@ -124,60 +64,87 @@ class Engine(private val clock: Clock = Clock.systemUTC()) {
         return enter(def, state.copy(status = InstanceStatus.RUNNING), Target.ToStep(step), listOf(event))
     }
 
-    private fun enter(def: Definition, initial: InstanceState, initialTarget: Target, initialEvents: List<EngineEvent>): Transition {
-        var state = initial
-        var target = initialTarget
-        val events = initialEvents.toMutableList()
+    /** The instance and its events while a run of inline steps (decisions) is followed to the next park or end. */
+    private class Run(var state: InstanceState, val events: MutableList<EngineEvent>) {
+        fun done(effects: List<Effect>): Hop = Hop.Done(Transition(state, effects, events))
+    }
 
+    private sealed interface Hop {
+        data class Next(val target: Target) : Hop
+
+        data class Done(val transition: Transition) : Hop
+    }
+
+    private fun enter(def: Definition, initial: InstanceState, initialTarget: Target, initialEvents: List<EngineEvent>): Transition {
+        val run = Run(initial, initialEvents.toMutableList())
+        var target = initialTarget
         // Decisions are pure, so they are evaluated inline; anything else parks or hands off to the adapter.
         repeat(MAX_INLINE_HOPS) {
-            when (val t = target) {
-                is Target.ToEnd -> {
-                    state = state.copy(status = InstanceStatus.COMPLETED, currentStep = null, endStatus = t.status)
-                    events += EngineEvent("instance-ended", null, payload = mapOf("status" to t.status), at = now())
-                    return Transition(state, listOf(Effect.Ended(t.status)), events)
-                }
-                is Target.ToStep -> {
-                    val step = def.step(t.id)
-                    state = state.copy(currentStep = step.id)
-                    events += EngineEvent("step-entered", step.id, at = now())
-                    try {
-                        when (step) {
-                            is Step.Decision -> {
-                                val outcome = step.evaluate(Vars(state.vars))
-                                state = state.copy(vars = state.vars + (step.id to record(emptyMap(), outcome, ENGINE)))
-                                events += EngineEvent("step-completed", step.id, outcome, ENGINE, at = now())
-                                target = def.resolve(step.id, outcome)
-                            }
-                            is Step.ServiceTask -> {
-                                state = state.copy(status = InstanceStatus.RUNNING)
-                                return Transition(state, listOf(Effect.RunService(step.id)), events)
-                            }
-                            is Step.UserTask -> {
-                                val assignment = assign(step.assignee, Vars(state.vars))
-                                state = state.copy(status = InstanceStatus.WAITING)
-                                return Transition(state, listOf(Effect.CreateUserTask(step.id, assignment)), events)
-                            }
-                            is Step.EventWait -> {
-                                val value = step.correlation?.let { Vars(state.vars).str(it.second) }
-                                val expiresAt = step.timeout?.let { now().plusMillis(it.inWholeMilliseconds) }
-                                state = state.copy(status = InstanceStatus.WAITING)
-                                val park = Effect.ParkForEvent(step.id, step.event, step.correlation?.first, value, expiresAt)
-                                return Transition(state, listOf(park), events)
-                            }
-                        }
-                    } catch (e: RuntimeException) {
-                        if (e is IllegalTransitionException) throw e
-                        state = state.copy(status = InstanceStatus.FAILED)
-                        events += EngineEvent("incident", step.id, payload = mapOf("message" to (e.message ?: e.toString())), at = now())
-                        return Transition(state, emptyList(), events)
-                    }
-                }
+            when (val hop = hop(def, run, target)) {
+                is Hop.Done -> return hop.transition
+                is Hop.Next -> target = hop.target
             }
         }
-        state = state.copy(status = InstanceStatus.FAILED)
-        events += EngineEvent("incident", state.currentStep, payload = mapOf("message" to "more than $MAX_INLINE_HOPS decisions in a row; loop?"), at = now())
-        return Transition(state, emptyList(), events)
+        return tooManyHops(run)
+    }
+
+    private fun hop(def: Definition, run: Run, target: Target): Hop = when (target) {
+        is Target.ToEnd -> end(run, target)
+        is Target.ToStep -> enterStep(def, run, def.step(target.id))
+    }
+
+    private fun end(run: Run, t: Target.ToEnd): Hop {
+        run.state = run.state.copy(status = InstanceStatus.COMPLETED, currentStep = null, endStatus = t.status)
+        run.events += EngineEvent("instance-ended", null, payload = mapOf("status" to t.status), at = now())
+        return run.done(listOf(Effect.Ended(t.status)))
+    }
+
+    private fun enterStep(def: Definition, run: Run, step: Step): Hop {
+        run.state = run.state.copy(currentStep = step.id)
+        run.events += EngineEvent("step-entered", step.id, at = now())
+        return try {
+            handle(def, run, step)
+        } catch (e: RuntimeException) {
+            incident(run, step, e)
+        }
+    }
+
+    private fun handle(def: Definition, run: Run, step: Step): Hop = when (step) {
+        is Step.Decision -> decide(def, run, step)
+        is Step.ServiceTask -> park(run, InstanceStatus.RUNNING, Effect.RunService(step.id))
+        is Step.UserTask -> park(run, InstanceStatus.WAITING, Effect.CreateUserTask(step.id, assign(step.assignee, Vars(run.state.vars))))
+        is Step.EventWait -> park(run, InstanceStatus.WAITING, parkForEvent(run.state, step))
+    }
+
+    private fun park(run: Run, status: InstanceStatus, effect: Effect): Hop {
+        run.state = run.state.copy(status = status)
+        return run.done(listOf(effect))
+    }
+
+    private fun parkForEvent(state: InstanceState, step: Step.EventWait): Effect {
+        val value = step.correlation?.let { Vars(state.vars).str(it.second) }
+        val expiresAt = step.timeout?.let { now().plusMillis(it.inWholeMilliseconds) }
+        return Effect.ParkForEvent(step.id, step.event, step.correlation?.first, value, expiresAt)
+    }
+
+    private fun decide(def: Definition, run: Run, step: Step.Decision): Hop {
+        val outcome = step.evaluate(Vars(run.state.vars))
+        run.state = run.state.copy(vars = run.state.vars + (step.id to record(emptyMap(), outcome, ENGINE)))
+        run.events += EngineEvent("step-completed", step.id, outcome, ENGINE, at = now())
+        return Hop.Next(def.resolve(step.id, outcome))
+    }
+
+    private fun incident(run: Run, step: Step, e: RuntimeException): Hop {
+        if (e is IllegalTransitionException) throw e
+        run.state = run.state.copy(status = InstanceStatus.FAILED)
+        run.events += EngineEvent("incident", step.id, payload = mapOf("message" to (e.message ?: e.toString())), at = now())
+        return run.done(emptyList())
+    }
+
+    private fun tooManyHops(run: Run): Transition {
+        run.state = run.state.copy(status = InstanceStatus.FAILED)
+        run.events += EngineEvent("incident", run.state.currentStep, payload = mapOf("message" to "more than $MAX_INLINE_HOPS decisions in a row; loop?"), at = now())
+        return Transition(run.state, emptyList(), run.events)
     }
 
     private fun assign(assignee: Assignee, vars: Vars): Assignment = when (assignee) {

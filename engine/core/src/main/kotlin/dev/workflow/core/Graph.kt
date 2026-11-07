@@ -38,34 +38,44 @@ data class GraphEdge(val from: String, val to: String, val outcome: String?, val
 /** A named branch, drawn as a group. [parent] is the enclosing path for nested branches. */
 data class GraphPath(val name: String, val parent: String?, val branchedFrom: String, val nodes: List<String>)
 
-fun Definition.toGraph(): WorkflowGraph {
-    val nodes = mutableListOf(GraphNode(START, NodeKind.START, "start", null))
-    val edges = mutableListOf(GraphEdge(START, first.id, null, null))
-    val ends = linkedSetOf<String>()
-    val paths = mutableListOf<GraphPath>()
+fun Definition.toGraph(): WorkflowGraph = GraphBuilder(this).build()
 
-    fun targetId(t: Target) = when (t) {
+private class GraphBuilder(private val def: Definition) {
+    private val nodes = mutableListOf(GraphNode(START, NodeKind.START, "start", null))
+    private val edges = mutableListOf(GraphEdge(START, def.first.id, null, null))
+    private val ends = linkedSetOf<String>()
+    private val paths = mutableListOf<GraphPath>()
+
+    fun build(): WorkflowGraph {
+        def.allSteps.forEach { add(it) }
+        ends.forEach { nodes += GraphNode(endId(it), NodeKind.END, it, null) }
+        return WorkflowGraph(def.name, def.version, nodes, edges, paths)
+    }
+
+    private fun add(step: Step) {
+        nodes += GraphNode(step.id, step.kind(), step.label, step.path, step.meta())
+        step.outcomes.forEach { addOutcome(step, it) }
+    }
+
+    private fun addOutcome(step: Step, outcome: String) {
+        val single = step.outcomes.size == 1
+        edges += GraphEdge(step.id, targetId(def.resolve(step.id, outcome)), if (single) null else outcome, label(step, outcome, single))
+        (step.routes.getValue(outcome) as? Route.Path)?.let { paths += GraphPath(it.name, step.path, step.id, it.steps.map { s -> s.id }) }
+    }
+
+    private fun label(step: Step, outcome: String, single: Boolean): String? {
+        val description = (step as? Step.Decision)?.descriptions?.get(outcome)
+        return when {
+            single -> null
+            description != null -> "$outcome: $description"
+            else -> outcome
+        }
+    }
+
+    private fun targetId(t: Target) = when (t) {
         is Target.ToStep -> t.id
         is Target.ToEnd -> endId(t.status).also { ends += t.status }
     }
-
-    for (step in allSteps) {
-        nodes += GraphNode(step.id, step.kind(), step.label, step.path, step.meta())
-        val single = step.outcomes.size == 1
-        for (outcome in step.outcomes) {
-            val description = (step as? Step.Decision)?.descriptions?.get(outcome)
-            val label = when {
-                single -> null
-                description != null -> "$outcome: $description"
-                else -> outcome
-            }
-            edges += GraphEdge(step.id, targetId(resolve(step.id, outcome)), if (single) null else outcome, label)
-            val route = step.routes.getValue(outcome)
-            if (route is Route.Path) paths += GraphPath(route.name, step.path, step.id, route.steps.map { it.id })
-        }
-    }
-    ends.forEach { nodes += GraphNode(endId(it), NodeKind.END, it, null) }
-    return WorkflowGraph(name, version, nodes, edges, paths)
 }
 
 const val START = "start"
@@ -80,29 +90,37 @@ private fun Step.kind() = when (this) {
 }
 
 private fun Step.meta(): Map<String, Any?> = when (this) {
-    is Step.UserTask -> buildMap {
-        put("scopedTo", scope.name.lowercase())
-        reassignableBy?.let { put("reassignableBy", it.name) }
-        when (val a = assignee) {
-            is Assignee.Role -> {
-                put("role", a.name)
-                if (a.scope.isNotEmpty()) put("scope", a.scope)
-                if (a.scopeFrom.isNotEmpty()) put("scopeFrom", a.scopeFrom)
-            }
-            is Assignee.User -> put("user", a.name)
-            is Assignee.UserFrom -> put("userFrom", a.path)
-        }
-        if (form.isNotEmpty()) put("form", form.map { mapOf("name" to it.name, "type" to it.type.name, "required" to it.required) })
-    }
-    is Step.ServiceTask -> buildMap {
-        handler?.let { put("handler", it.simpleName) }
-        http?.let { put("http", "${it.method} ${it.url}") }
-        put("retries", retries)
-    }
-    is Step.EventWait -> buildMap {
-        put("event", event)
-        correlation?.let { put("correlateBy", mapOf(it.first to it.second)) }
-        timeout?.let { put("timeout", it.toIsoString()) }
-    }
+    is Step.UserTask -> userMeta()
+    is Step.ServiceTask -> serviceMeta()
+    is Step.EventWait -> eventMeta()
     is Step.Decision -> if (descriptions.isEmpty()) emptyMap() else mapOf("describe" to descriptions)
+}
+
+private fun Step.UserTask.userMeta(): Map<String, Any?> = buildMap {
+    put("scopedTo", scope.name.lowercase())
+    reassignableBy?.let { put("reassignableBy", it.name) }
+    putAll(assigneeMeta(assignee))
+    if (form.isNotEmpty()) put("form", form.map { mapOf("name" to it.name, "type" to it.type.name, "required" to it.required) })
+}
+
+private fun assigneeMeta(a: Assignee): Map<String, Any?> = when (a) {
+    is Assignee.Role -> buildMap {
+        put("role", a.name)
+        if (a.scope.isNotEmpty()) put("scope", a.scope)
+        if (a.scopeFrom.isNotEmpty()) put("scopeFrom", a.scopeFrom)
+    }
+    is Assignee.User -> mapOf("user" to a.name)
+    is Assignee.UserFrom -> mapOf("userFrom" to a.path)
+}
+
+private fun Step.ServiceTask.serviceMeta(): Map<String, Any?> = buildMap {
+    handler?.let { put("handler", it.simpleName) }
+    http?.let { put("http", "${it.method} ${it.url}") }
+    put("retries", retries)
+}
+
+private fun Step.EventWait.eventMeta(): Map<String, Any?> = buildMap {
+    put("event", event)
+    correlation?.let { put("correlateBy", mapOf(it.first to it.second)) }
+    timeout?.let { put("timeout", it.toIsoString()) }
 }

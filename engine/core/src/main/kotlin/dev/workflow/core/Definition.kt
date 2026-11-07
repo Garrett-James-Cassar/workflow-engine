@@ -56,75 +56,14 @@ class Definition private constructor(
         /** End status of a workflow that runs off the end of its main flow. */
         const val COMPLETED = "completed"
 
-        private val ID = Regex("[A-Za-z0-9][A-Za-z0-9_-]*")
-
         internal fun build(name: String, version: Int, steps: List<Step>, sample: Map<String, Any?>): Definition {
-            val errors = mutableListOf<String>()
-            if (!ID.matches(name)) errors += "workflow name '$name' must match ${ID.pattern}"
-            if (steps.isEmpty()) throw WorkflowDefinitionException(errors + "workflow '$name' has no steps")
-
-            val locations = linkedMapOf<String, Location>()
-            val pathNames = mutableSetOf<String>()
-
-            fun index(sequence: List<Step>, branchedFrom: String?) {
-                sequence.forEachIndexed { i, step ->
-                    if (!ID.matches(step.id)) errors += "step id '${step.id}' must match ${ID.pattern}"
-                    if (step.id in locations) errors += "duplicate step id '${step.id}'"
-                    else locations[step.id] = Location(step, sequence, i, branchedFrom)
-                    step.routes.values.filterIsInstance<Route.Path>().forEach { path ->
-                        if (!pathNames.add(path.name)) errors += "duplicate path name '${path.name}'"
-                        if (path.steps.isEmpty()) errors += "path '${path.name}' (from '${step.id}') has no steps"
-                        else index(path.steps, step.id)
-                    }
-                }
-            }
-            index(steps, null)
-
-            for (loc in locations.values) {
-                val step = loc.step
-                for ((outcome, route) in step.routes) {
-                    if (route is Route.Goto && route.step !in locations) {
-                        errors += "step '${step.id}' outcome $outcome: goto unknown step '${route.step}'"
-                    }
-                    if (route is Route.End && !ID.matches(route.status)) {
-                        errors += "step '${step.id}' outcome $outcome: end status '${route.status}' must match ${ID.pattern}"
-                    }
-                }
-                when (step) {
-                    is Step.ServiceTask -> {
-                        if (step.handler == null && step.http == null) {
-                            errors += "service task '${step.id}' has no handler<…>() or http { }"
-                        }
-                        if (step.handler != null && step.http != null) {
-                            errors += "service task '${step.id}' has both a handler and http { }; pick one"
-                        }
-                        if (step.retries < 0) errors += "service task '${step.id}' retries must be >= 0"
-                    }
-                    is Step.EventWait -> {
-                        val hasTimeoutOutcome = TIMED_OUT in step.outcomes
-                        if (hasTimeoutOutcome && step.timeout == null) {
-                            errors += "event wait '${step.id}' routes TIMED_OUT but has no timeout(…)"
-                        }
-                        if (!hasTimeoutOutcome && step.timeout != null) {
-                            errors += "event wait '${step.id}' has a timeout; declare it with ReceivedOrTimedOut::class and route TIMED_OUT"
-                        }
-                    }
-                    is Step.UserTask, is Step.Decision -> Unit
-                }
-            }
-
-            if (errors.isNotEmpty()) throw WorkflowDefinitionException(errors)
-
+            val locations = DefinitionValidator(name, steps).validate()
             val definition = Definition(name, version, steps, sample, locations)
-            val reachable = definition.reachableSteps()
-            val unreachable = locations.keys - reachable
-            if (unreachable.isNotEmpty()) {
-                throw WorkflowDefinitionException(unreachable.map { "step '$it' is unreachable" })
-            }
+            val unreachable = locations.keys - definition.reachableSteps()
+            if (unreachable.isNotEmpty()) throw WorkflowDefinitionException(unreachable.map { "step '$it' is unreachable" })
             return definition
         }
 
-        private const val TIMED_OUT = "TIMED_OUT"
     }
 
     private fun reachableSteps(): Set<String> {
