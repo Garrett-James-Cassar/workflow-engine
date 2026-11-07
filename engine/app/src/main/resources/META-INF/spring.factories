@@ -1,2 +1,2 @@
-org.springframework.boot.EnvironmentPostProcessor=dev.workflow.app.observability.OtelEnvironment
-org.springframework.context.ApplicationListener=dev.workflow.app.observability.ProcessPhaseListener
+org.springframework.boot.EnvironmentPostProcessor=dev.workflow.app.config.OtelEnvironment
+org.springframework.context.ApplicationListener=dev.workflow.app.config.ProcessPhaseListener

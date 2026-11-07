@@ -15,15 +15,15 @@ import com.tngtech.archunit.library.dependencies.SlicesRuleDefinition.slices
 
 /** Role -> package patterns (ArchUnit syntax, e.g. "dev.workflow.app.api.."). Fill from fleet-layers.json. */
 private val ROLES = mapOf(
-    "Domain" to listOf("dev.workflow.core..", "dev.workflow.app.workflow.."),
+    "Domain" to listOf("dev.workflow.core..", "dev.workflow.app.domain..", "dev.workflow.app.workflow..", "dev.workflow.app.samples..", "dev.workflow.app.telemetry.."),
     "Ports" to listOf("dev.workflow.app.ports.."),
-    "Services" to listOf("dev.workflow.app.runtime..", "dev.workflow.app.rbac.."),
-    "Controllers" to listOf("dev.workflow.app.api.."),
+    "Services" to listOf("dev.workflow.app.runtime..", "dev.workflow.app.security.."),
+    "Controllers" to listOf("dev.workflow.app.api"),
     "Dtos" to listOf("dev.workflow.app.api.dtos.."),
     "Mappers" to listOf("dev.workflow.app.mappers.."),
     "Repositories" to listOf("dev.workflow.app.persistence.."),
     "Clients" to listOf("dev.workflow.app.clients.."),
-    "Adapters" to listOf("dev.workflow.app.registry..", "dev.workflow.app.diagrams..", "dev.workflow.app.samples.."),
+    "Adapters" to listOf("dev.workflow.app.adapters.."),
 )
 /** Composition root: the only place implementations are wired to ports (Spring @Configuration / Application). */
 private val COMPOSITION = listOf("dev.workflow.app", "dev.workflow.app.config..")

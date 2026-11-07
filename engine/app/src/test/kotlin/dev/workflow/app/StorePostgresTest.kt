@@ -1,5 +1,6 @@
 package dev.workflow.app
 
+import dev.workflow.app.domain.NewWait
 import dev.workflow.app.persistence.Store
 import dev.workflow.core.Assignment
 import dev.workflow.core.InstanceState
@@ -67,8 +68,8 @@ class StorePostgresTest {
     fun `only waits past their expiry are returned as expired`() {
         val run = newInstance(emptyMap())
         val uuid = UUID.fromString(run.id)
-        store.insertWait(uuid, "confirmation-matched", "confirmation-matched", "tradeRef", "T-1", Instant.parse("2026-11-06T09:00:00Z"))
-        store.insertWait(uuid, "signed", "signed", "envelopeId", "ENV-1", Instant.parse("2026-11-20T09:00:00Z"))
+        store.insertWait(NewWait(uuid, "confirmation-matched", "confirmation-matched", "tradeRef", "T-1", Instant.parse("2026-11-06T09:00:00Z")))
+        store.insertWait(NewWait(uuid, "signed", "signed", "envelopeId", "ENV-1", Instant.parse("2026-11-20T09:00:00Z")))
         val expired = store.expiredWaits(Instant.parse("2026-11-07T00:00:00Z"))
         assertEquals(listOf("confirmation-matched"), expired.filter { it.instanceId == uuid }.map { it.step })
         assertNull(store.instance(UUID.randomUUID()))

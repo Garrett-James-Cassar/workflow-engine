@@ -1,0 +1,11 @@
+{
+  "$comment": "Fleet duplication gate (arch.9), from fleet/standards/arch/jscpd.json with format kotlin. Run: npx jscpd --config .jscpd.json",
+  "threshold": 3,
+  "minTokens": 50,
+  "format": ["kotlin"],
+  "path": ["engine/app/src/main", "engine/core/src/main"],
+  "ignore": ["**/build/**", "**/node_modules/**", "**/generated/**", "**/static/**", "**/*Test.kt"],
+  "reporters": ["console"],
+  "absolute": false,
+  "gitignore": true
+}

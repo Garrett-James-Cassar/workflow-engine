@@ -1,5 +1,7 @@
 package dev.workflow.app
 
+import dev.workflow.app.telemetry.EndpointContext
+
 import com.sun.net.httpserver.HttpServer
 import io.micrometer.core.instrument.MeterRegistry
 import io.opentelemetry.sdk.testing.exporter.InMemorySpanExporter
@@ -75,7 +77,7 @@ class TracingTest : ApiTest() {
         return spans.finishedSpanItems.filter { it.traceId == id }
     }
 
-    private fun originOf(baggage: String?) = dev.workflow.app.observability.EndpointContext.originIn(baggage)
+    private fun originOf(baggage: String?) = dev.workflow.app.telemetry.EndpointContext.originIn(baggage)
 
     private fun SpanData.attr(key: String): String? = attributes.asMap().entries.firstOrNull { it.key.key == key }?.value?.toString()
 

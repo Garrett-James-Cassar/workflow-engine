@@ -2,9 +2,13 @@
 
 - `engine/core` must stay pure Kotlin (no Spring, no I/O). `Engine` is a pure transition function; the app applies its effects.
 - Every step yields an enum outcome. Routing is `on { when (it) { … } }`, and the compiler's exhaustiveness check is the feature: never add `else` branches to sample workflows.
-- New workflow: put the DSL `object : Workflow(...)` in `engine/app/.../app/workflow/` and list it in `Workflows.kt`; linked handler code lives in `app/samples`, then run `./gradlew diagrams` (DiagramsUpToDateTest fails otherwise). A behaviour change needs a version bump.
+- New workflow: put the DSL `object : Workflow(...)` in `engine/app/.../app/workflow/` and list it in `adapters/Workflows.kt`; linked handler code lives in `app/samples`, then run `./gradlew diagrams` (DiagramsUpToDateTest fails otherwise). A behaviour change needs a version bump.
 - Tests: core uses kotlin.test; compile-fail cases live in `CompileFailTest` (in-process kotlinc). App e2e uses Testcontainers Postgres plus a `MutableClock`. Prefix test names with the milestone (`E5 …`).
 - Gate: `make ci` (`./gradlew check`).
+
+## Architecture (fleet ARCHITECTURE-RULES.md)
+- Role map in `fleet-layers.json`, described in `ARCHITECTURE.md`. Controllers (`app/api`) call services (`app/runtime`, `app/security`) and mappers only; services see ports (`app/ports`) and `app/domain`; `persistence`, `clients` and `adapters` implement the ports; `config` is the composition root.
+- Enforced in `./gradlew check`: `ArchitectureTest` (ArchUnit), `detektEdge` and `detektCore` (limits in `config/detekt/*.yml`; never raise one or suppress a finding), and `duplication` (jscpd under 3%). A new class must land in a role package.
 
 ## API versioning
 - Every business route is served under `/api/v1` (`api/ApiVersion.kt` mounts it once, for the controllers in `dev.workflow.app.api`). `/health`, `/docs`, `/openapi.json` and the `/demo/*` helpers stay at the root; OpenAPI lists `servers: [{url: /api/v1}]`.

@@ -1,7 +1,7 @@
 package dev.workflow.app
 
-import dev.workflow.app.diagrams.allWorkflows
-import dev.workflow.app.diagrams.diagramFiles
+import dev.workflow.app.config.allWorkflows
+import dev.workflow.app.config.diagramFiles
 import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals

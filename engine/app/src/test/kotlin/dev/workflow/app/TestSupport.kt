@@ -1,6 +1,6 @@
 package dev.workflow.app
 
-import dev.workflow.app.registry.WorkflowCatalog
+import dev.workflow.app.ports.WorkflowCatalog
 import dev.workflow.core.Done
 import dev.workflow.core.ServiceContext
 import dev.workflow.core.ServiceHandler

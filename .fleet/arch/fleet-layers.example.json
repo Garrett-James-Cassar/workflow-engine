@@ -1,0 +1,45 @@
+{
+  "$comment": "Copy to the repo root as fleet-layers.json. Map EXISTING folders to roles (no renames). Paths are repo-relative directory prefixes; composition lists files. Example below is notifications-hub.",
+  "roles": {
+    "domain": [
+      "packages/domain/src"
+    ],
+    "ports": [
+      "packages/application/src/ports"
+    ],
+    "services": [
+      "packages/application/src/use-cases",
+      "packages/application/src/_lib",
+      "packages/application/src/substitute"
+    ],
+    "controllers": [
+      "apps/api/src/routes"
+    ],
+    "dtos": [
+      "packages/contracts/src"
+    ],
+    "mappers": [],
+    "repositories": [
+      "packages/adapters/src/repositories"
+    ],
+    "clients": [
+      "packages/adapters/src/rules-engine"
+    ],
+    "adapters": [
+      "packages/adapters/src/channels",
+      "packages/adapters/src/ids"
+    ]
+  },
+  "composition": [
+    "apps/api/src/server.ts",
+    "apps/api/src/context.ts"
+  ],
+  "ignore": [
+    "**/*.test.ts",
+    "**/*.e2e.ts",
+    "**/_testing/**",
+    "apps/web/**",
+    "packages/fitness/**",
+    "**/e2e/**"
+  ]
+}

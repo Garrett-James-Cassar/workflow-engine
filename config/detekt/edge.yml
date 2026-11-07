@@ -1,0 +1,22 @@
+# Fleet architecture limits for EDGE roles (controllers, clients, adapters, repositories, mappers):
+# standards/arch/jvm/README.md. Limits are never raised. Only the size/complexity rules are on.
+complexity:
+  CyclomaticComplexMethod:
+    active: true
+    allowedComplexity: 3
+    ignoreSingleWhenExpression: false
+    ignoreSimpleWhenEntries: false
+  LongMethod:
+    active: true
+    allowedLines: 6
+  NestedBlockDepth:
+    active: true
+    allowedDepth: 1
+  LongParameterList:
+    active: true
+    allowedFunctionParameters: 3
+    allowedConstructorParameters: 6
+    ignoreDataClasses: true
+  LargeClass:
+    active: true
+    allowedLines: 200

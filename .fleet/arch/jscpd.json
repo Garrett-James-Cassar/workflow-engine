@@ -1,0 +1,10 @@
+{
+  "$comment": "Fleet duplication gate (arch.9). Copy to the repo root as .jscpd.json; run: npx jscpd --config .jscpd.json",
+  "threshold": 3,
+  "minTokens": 50,
+  "format": ["typescript", "tsx", "javascript"],
+  "ignore": ["**/node_modules/**", "**/dist/**", "**/*.test.ts", "**/*.e2e.ts", "**/cypress/**", "**/generated/**", "**/mocks/**", "**/_testing/**"],
+  "reporters": ["console"],
+  "absolute": false,
+  "gitignore": true
+}

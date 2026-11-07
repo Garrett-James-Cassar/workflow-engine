@@ -5,6 +5,7 @@ plugins {
     kotlin("plugin.spring")
     id("org.springframework.boot")
     jacoco
+    id("dev.detekt")
 }
 
 kotlin {
@@ -45,7 +46,6 @@ dependencies {
 // which `check` (the end-of-task full gate) depends on.
 tasks.test {
     useJUnitPlatform { excludeTags("postgres") }
-    exclude("**/architecture/**")
     jvmArgs("-Xshare:off")
     systemProperty("docsDir", rootDir.resolve("docs/workflows").path)
 }
@@ -60,20 +60,34 @@ tasks.register<Test>("postgresTest") {
     systemProperty("docsDir", rootDir.resolve("docs/workflows").path)
 }
 
-// arch.1 / arch.3 / arch.7 / arch.8 (ArchUnit, fleet JVM preset): REPORT-ONLY until the engine's
-// current violations are fixed (see fleet-layers.json). Run with `./gradlew :engine:app:archReport`.
-// Not part of `check` yet, so the gate stays green; switch it on by depending check on it.
-tasks.register<Test>("archReport") {
+// arch.2: size and complexity per role (standards/arch/jvm/README.md), two detekt tasks with their own limits.
+// Edge roles: api (controllers, web filters), persistence, clients, mappers, adapters. Core roles: runtime, rbac, security.
+// DTOs (api/dtos) carry no logic and are excluded from both. Enforcing: part of `check`.
+val appPackages = "src/main/kotlin/dev/workflow/app"
+fun registerDetekt(name: String, configFile: String, packages: List<String>) = tasks.register<dev.detekt.gradle.Detekt>(name) {
     group = "verification"
-    description = "ArchUnit layer and dependency rules (ARCHITECTURE-RULES.md), report-only"
-    testClassesDirs = sourceSets.test.get().output.classesDirs
-    classpath = sourceSets.test.get().runtimeClasspath
-    useJUnitPlatform()
-    include("**/architecture/**")
-    ignoreFailures = true
+    description = "Fleet architecture limits ($name)"
+    setSource(files(packages.map { if (it.startsWith("/")) "$rootDir$it" else "$appPackages/$it" }))
+    config.setFrom(file("$rootDir/config/detekt/$configFile"))
+    buildUponDefaultConfig = false
+    exclude("**/api/dtos/**")
+    reports { html.required = true; checkstyle.required = true }
+}
+registerDetekt("detektEdge", "edge.yml", listOf("api", "persistence", "clients", "mappers", "adapters"))
+registerDetekt("detektCore", "core.yml", listOf("runtime", "security", "domain", "telemetry", "config/web", "samples", "workflow", "/engine/core/src/main/kotlin"))
+
+// arch.1 / arch.3 / arch.7 / arch.8: the ArchUnit rules (src/test/.../architecture/ArchitectureTest.kt, role map in
+// fleet-layers.json) are ordinary tests, so `test` and therefore `check` enforce them.
+
+// arch.9: duplication under 3% (jscpd, config in .jscpd.json, format kotlin). Fails the build above the threshold.
+tasks.register<Exec>("duplication") {
+    group = "verification"
+    description = "jscpd duplication gate (arch.9), threshold 3%"
+    workingDir = rootDir
+    commandLine("npx", "--yes", "jscpd@4.0.5", "--config", ".jscpd.json")
 }
 
-tasks.named("check") { dependsOn("postgresTest") }
+tasks.named("check") { dependsOn("postgresTest", "detektEdge", "detektCore", "duplication") }
 
 springBoot { mainClass = "dev.workflow.app.WorkflowEngineApplicationKt" }
 
@@ -85,7 +99,7 @@ tasks.register<JavaExec>("diagrams") {
     group = "documentation"
     description = "Writes Mermaid and graph JSON for every workflow to docs/workflows"
     classpath = sourceSets.main.get().runtimeClasspath
-    mainClass = "dev.workflow.app.diagrams.DiagramsKt"
+    mainClass = "dev.workflow.app.config.DiagramsKt"
     workingDir = rootDir
     args("docs/workflows")
 }

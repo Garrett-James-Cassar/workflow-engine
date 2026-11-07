@@ -20,7 +20,7 @@
   </appender>
   <!-- Every record goes through here: it adds labels.endpoint, event.action and labels.origin (the process phase
        when no request or job is in flight) before stdout and OTLP see it. -->
-  <appender name="LABELLED" class="dev.workflow.app.observability.LabelledAppender">
+  <appender name="LABELLED" class="dev.workflow.app.config.LabelledAppender">
     <appender-ref ref="CONSOLE"/>
     <appender-ref ref="OTEL"/>
   </appender>

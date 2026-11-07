@@ -1,5 +1,9 @@
 package dev.workflow.app.workflow
 
+import dev.workflow.app.samples.BookTrade
+import dev.workflow.app.samples.ChaseCounterparty
+import dev.workflow.app.samples.ReleaseToSettlement
+
 import dev.workflow.app.workflow.Booking.BOOKED
 import dev.workflow.app.workflow.Booking.DUPLICATE
 import dev.workflow.app.workflow.Booking.REJECTED

@@ -1,6 +1,6 @@
 package dev.workflow.app
 
-import dev.workflow.app.observability.Job
+import dev.workflow.app.telemetry.Job
 import dev.workflow.app.security.Authenticated
 import dev.workflow.app.security.Permissions
 import dev.workflow.app.security.Public

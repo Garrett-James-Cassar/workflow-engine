@@ -29,7 +29,7 @@ logging:
         version: ${APP_VERSION:dev}
         environment: ${APP_ENV:dev}
     json:
-      customizer: dev.workflow.app.observability.EventDatasetCustomizer
+      customizer: dev.workflow.app.config.EventDatasetCustomizer
       exclude:
         - traceId
         - spanId

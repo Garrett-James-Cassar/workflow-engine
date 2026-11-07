@@ -1,5 +1,9 @@
 package dev.workflow.app.workflow
 
+import dev.workflow.app.samples.NotifyRequester
+import dev.workflow.app.samples.SendForSignature
+import dev.workflow.app.samples.StampDocument
+
 import dev.workflow.app.workflow.Amend.RESUBMIT
 import dev.workflow.app.workflow.Amend.WITHDRAW
 import dev.workflow.app.workflow.LegalReview.APPROVE

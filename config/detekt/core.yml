@@ -1,0 +1,24 @@
+# Fleet architecture limits for CORE roles (services, domain): standards/arch/jvm/README.md.
+complexity:
+  CyclomaticComplexMethod:
+    active: true
+    allowedComplexity: 10
+    ignoreSingleWhenExpression: false
+    ignoreSimpleWhenEntries: false
+  CognitiveComplexMethod:
+    active: true
+    allowedComplexity: 15
+  LongMethod:
+    active: true
+    allowedLines: 20
+  NestedBlockDepth:
+    active: true
+    allowedDepth: 3
+  LongParameterList:
+    active: true
+    allowedFunctionParameters: 4
+    allowedConstructorParameters: 6
+    ignoreDataClasses: true
+  LargeClass:
+    active: true
+    allowedLines: 200

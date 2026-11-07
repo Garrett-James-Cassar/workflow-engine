@@ -1,7 +1,7 @@
 package dev.workflow.app.security
 
-import dev.workflow.app.rbac.RbacPort
-import dev.workflow.app.runtime.ForbiddenException
+import dev.workflow.app.domain.ForbiddenException
+import dev.workflow.app.ports.RbacPort
 import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.stereotype.Component
 import tools.jackson.databind.json.JsonMapper
@@ -11,7 +11,7 @@ import java.util.Base64
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 
-/** The request attribute holding the signed-in login, set by [IdentityInterceptor]. */
+/** The request attribute holding the signed-in login, set by the identity interceptor. */
 object Identity {
     const val LOGIN = "workflow.login"
     const val DEV_HEADER = "X-User"
@@ -54,46 +54,6 @@ class Hs256Verifier(secret: String, private val json: JsonMapper, private val cl
         if (claims.path("exp").asLong() <= clock.instant().epochSecond) return null
         return claims.path("app_metadata").path("login").asText().takeIf { it.isNotBlank() }
     }
-}
-
-/** Identity: who is calling. Every path that is not public needs a login, or the caller gets 401. */
-@Component
-class IdentityInterceptor(
-    private val auth: AuthProperties,
-    private val json: JsonMapper,
-    clock: Clock,
-) : org.springframework.web.servlet.HandlerInterceptor {
-    private val verifier: Hs256Verifier? = if (auth.authMode == AuthMode.LIVE) Hs256Verifier(auth.jwtSecret, json, clock) else null
-
-    override fun preHandle(
-        request: jakarta.servlet.http.HttpServletRequest,
-        response: jakarta.servlet.http.HttpServletResponse,
-        handler: Any,
-    ): Boolean {
-        if (isPublic(request.requestURI)) return true
-        val login = when (auth.authMode) {
-            AuthMode.DEV -> request.getHeader(Identity.DEV_HEADER)?.trim()?.takeIf { it.isNotEmpty() }
-            AuthMode.LIVE -> bearer(request)?.let { verifier?.loginOf(it) } // X-User is never read in live mode
-        }
-        if (login == null) {
-            val message = if (auth.authMode == AuthMode.DEV) "The X-User header names who is acting." else "Sign in: send a valid Bearer token."
-            response.status = 401
-            response.contentType = "application/problem+json"
-            response.writer.write(json.writeValueAsString(mapOf("type" to "about:blank", "title" to "Not signed in", "status" to 401, "detail" to message)))
-            return false
-        }
-        request.setAttribute(Identity.LOGIN, login)
-        return true
-    }
-
-    private fun bearer(request: jakarta.servlet.http.HttpServletRequest): String? =
-        request.getHeader("Authorization")?.takeIf { it.startsWith("Bearer ", ignoreCase = true) }?.substring(7)?.trim()
-
-    private fun isPublic(path: String): Boolean =
-        path == "/" || path == "/index.html" || path == "/health" || path == "/app.js" || path == "/app.css" || path.startsWith("/vendor/") || path.startsWith("/console-demo/") || path == "/demo/status" ||
-            path == "/openapi.json" || path.startsWith("/docs") || path.startsWith("/swagger-ui") || path.startsWith("/v3/api-docs") ||
-            // The demo providers stand in for third parties the engine calls (its own http tasks); live, they are real services.
-            path.startsWith("/demo/screening") || path.startsWith("/demo/clause-store/") || path.startsWith("/demo/booking-system")
 }
 
 /** Checks a permission before work is done. A denial is a 403 that carries rbac's reason. */

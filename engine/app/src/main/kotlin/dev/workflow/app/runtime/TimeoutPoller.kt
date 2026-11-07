@@ -1,7 +1,9 @@
 package dev.workflow.app.runtime
 
-import dev.workflow.app.observability.Job
-import dev.workflow.app.observability.JobRunner
+import dev.workflow.app.domain.ConflictException
+
+import dev.workflow.app.telemetry.Job
+import dev.workflow.app.telemetry.JobRunner
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
