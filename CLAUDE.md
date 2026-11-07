@@ -6,6 +6,11 @@
 - Tests: core uses kotlin.test; compile-fail cases live in `CompileFailTest` (in-process kotlinc). App e2e uses Testcontainers Postgres plus a `MutableClock`. Prefix test names with the milestone (`E5 …`).
 - Gate: `make ci` (`./gradlew check`).
 
+## API versioning
+- Every business route is served under `/api/v1` (`api/ApiVersion.kt` mounts it once, for the controllers in `dev.workflow.app.api`). `/health`, `/docs`, `/openapi.json` and the `/demo/*` helpers stay at the root; OpenAPI lists `servers: [{url: /api/v1}]`.
+- The old unversioned paths still answer as deprecated aliases (`Deprecation`, `Sunset` 90 days out, `Link: …; rel="successor-version"`), until the fleet callers have moved; then delete `DeprecatedAliasFilter`.
+- The console's single base setting is `API` in `static/app.js`; the studio's is `VITE_API_BASE_URL` plus `/api/v1`.
+
 ## Observability
 - Logs are ECS JSON on stdout (`logging.structured` in `application.yaml`, `logback-spring.xml`); no `println` in production code (`NoStrayOutputTest`). Tracing is Boot's OpenTelemetry support: OTLP export (traces, metrics, logs) is off unless `OTEL_EXPORTER_OTLP_ENDPOINT` is set.
 - Every route declares a human label next to its permission: `@Requires(Permissions.X, label = "Start run")` (verb-first, sentence case, UI-SPEC words); `@Public` routes use their route. Every `@Scheduled` job carries `@Job(label, action)`. `RouteInventoryTest` fails otherwise. The label, `event.action` and `labels.origin` are on every log line and span (`observability/Endpoints.kt`).

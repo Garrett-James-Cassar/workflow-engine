@@ -67,7 +67,7 @@ abstract class ApiTest {
     protected fun doc(notional: Long = 75_000_000, counterparty: String = "ACME") = Mother.doc(notional, counterparty)
 
     protected fun start(vars: Map<String, Any?>, name: String = "confirmation-approval"): Res =
-        call("POST", "/definitions/$name/instances", "a.ops", mapOf("vars" to vars)).also { assertEquals(201, it.status, "${it.body}") }
+        call("POST", "/api/v1/definitions/$name/instances", "a.ops", mapOf("vars" to vars)).also { assertEquals(201, it.status, "${it.body}") }
 
     protected fun openTask(instance: Res): String {
         @Suppress("UNCHECKED_CAST")
@@ -76,7 +76,7 @@ abstract class ApiTest {
     }
 
     protected fun complete(instance: Res, user: String, outcome: String, form: Map<String, Any?> = emptyMap()): Res =
-        call("POST", "/tasks/${openTask(instance)}/complete", user, mapOf("outcome" to outcome, "form" to form))
+        call("POST", "/api/v1/tasks/${openTask(instance)}/complete", user, mapOf("outcome" to outcome, "form" to form))
 
     @Suppress("UNCHECKED_CAST")
     protected fun Res.vars(path: String): Any? =

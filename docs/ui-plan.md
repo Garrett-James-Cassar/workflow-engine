@@ -129,21 +129,21 @@ All paths are under `/api/v1`, all times are ISO 8601 UTC, and every error is `a
 
 | Operation | Contract | Real API today | Gap |
 |---|---|---|---|
-| list workflows | `GET /workflows` → `{items,total}`, `offset,limit,sort,order,name` | `GET /definitions` (array, no paging) | GAP: prefix, paging, sort, filter |
-| workflow | `GET /workflows/{name}?version=` | `GET /definitions/{name}` | GAP: prefix |
+| list workflows | `GET /workflows` → `{items,total}`, `offset,limit,sort,order,name` | `GET /definitions` (array, no paging) | GAP: paging, sort, filter |
+| workflow | `GET /workflows/{name}?version=` | `GET /definitions/{name}` | ok: /api/v1 now served |
 | diagram | `GET /workflows/{name}/diagram?version=` (text/plain Mermaid) | `GET /definitions/{name}/export?format=mermaid` | GAP: path |
-| start run | `POST /workflows/{name}/instances` | `POST /definitions/{name}/instances` | GAP: prefix |
+| start run | `POST /workflows/{name}/instances` | `POST /definitions/{name}/instances` | ok: /api/v1 now served |
 | list runs | `GET /instances` → `{items,total}`, `status` (multi), `workflow`, `step`, sort, order | `GET /instances?limit=` (array, no `total`) | GAP: paging, sort, filters, `total` |
 | run fields | `startedAt`, `updatedAt` on every run | not exposed | GAP: timestamps |
 | stats | `GET /instances/stats` | none | GAP: new endpoint |
-| run | `GET /instances/{id}` | same, unversioned | GAP: prefix |
-| events | `GET /instances/{id}/events` | same | GAP: prefix |
-| retry | `POST /instances/{id}/retry` | same | GAP: prefix |
-| restart | `POST /instances/{id}/restart` | same | GAP: prefix |
+| run | `GET /instances/{id}` | same, unversioned | ok: /api/v1 now served |
+| events | `GET /instances/{id}/events` | same | ok: /api/v1 now served |
+| retry | `POST /instances/{id}/retry` | same | ok: /api/v1 now served |
+| restart | `POST /instances/{id}/restart` | same | ok: /api/v1 now served |
 | fire timeout | `POST /instances/{id}/timeouts/{step}` | `POST /timeouts/{instanceId}/{step}` | GAP: path |
-| tasks | `GET /tasks?mine=` → `{items,total}`, paging | `GET /tasks` (array) | GAP: prefix, paging |
+| tasks | `GET /tasks?mine=` → `{items,total}`, paging | `GET /tasks` (array) | GAP: paging |
 | complete | `POST /tasks/{id}/complete` | same | GAP: prefix; 403 `reason` becomes problem+json `detail` |
-| reassign | `POST /tasks/{id}/reassign` | same | GAP: prefix |
+| reassign | `POST /tasks/{id}/reassign` | same | ok: /api/v1 now served |
 | waits | `GET /waits` → `{items,total}` | none (waits only inside a run) | GAP: new endpoint |
 | send event | `POST /events/{name}` | same | GAP: prefix; 404 becomes problem+json |
 | incidents | `GET /incidents` → `{items,total}` | none (derive from failed runs + `incident` events) | GAP: new endpoint |

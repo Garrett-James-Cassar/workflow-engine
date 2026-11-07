@@ -109,6 +109,10 @@ class ApiError extends Error {
   }
 }
 
+/** The one API base setting (API.md): every business call goes under the major version. /demo helpers stay at the root. */
+const API = '/api/v1';
+const url = path => (path.startsWith('/demo') ? path : API + path);
+
 const VIEWER = 'r.viewer';
 const asPersona = (method, path) => method !== 'GET' || path.startsWith('/tasks?mine=true');
 
@@ -117,7 +121,7 @@ async function api(method, path, body, asUser) {
   if (body !== undefined) headers['Content-Type'] = 'application/json';
   const user = (asUser ?? (asPersona(method, path) ? persona.value : VIEWER)).trim();
   if (user) headers['X-User'] = user;
-  const res = await fetch(path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
+  const res = await fetch(url(path), { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
   const text = await res.text();
   let data = null;
   try { data = text ? JSON.parse(text) : null; } catch { data = text; }
@@ -127,7 +131,7 @@ async function api(method, path, body, asUser) {
 
 /** A text read (Mermaid source) as the viewer; throws like api() on an error. */
 async function apiText(path) {
-  const res = await fetch(path, { headers: { 'X-User': VIEWER } });
+  const res = await fetch(url(path), { headers: { 'X-User': VIEWER } });
   if (!res.ok) throw new ApiError(res.status, await res.json().catch(() => null));
   return res.text();
 }
@@ -137,7 +141,7 @@ function openExport(path, type) {
   return async e => {
     e.preventDefault();
     try {
-      const res = await fetch(path, { headers: { 'X-User': VIEWER } });
+      const res = await fetch(url(path), { headers: { 'X-User': VIEWER } });
       if (!res.ok) throw new ApiError(res.status, await res.json().catch(() => null));
       let body = await res.text();
       // The picture page loads Mermaid by a site-relative path, which a blob page can't resolve.
@@ -320,7 +324,7 @@ async function definitionsPage() {
         { label: 'Name', value: d => h('a', { href: `#/definitions/${d.name}` }, d.name) },
         { label: 'Version', value: d => 'v' + d.latestVersion },
         { label: 'Steps', value: d => d.steps },
-        { label: 'Picture', value: d => h('a', { href: `/definitions/${d.name}/export?format=html`, onclick: e => { e.stopPropagation(); openExport(`/definitions/${d.name}/export?format=html`, 'text/html')(e); } }, 'Open picture') },
+        { label: 'Picture', value: d => h('a', { href: url(`/definitions/${d.name}/export?format=html`), onclick: e => { e.stopPropagation(); openExport(`/definitions/${d.name}/export?format=html`, 'text/html')(e); } }, 'Open picture') },
       ], defs, {
         cy: 'definitions', rowCy: d => `definition-${d.name}`,
         onRow: d => { location.hash = `#/definitions/${d.name}`; },
@@ -359,9 +363,9 @@ async function definitionPage(name) {
       crumbs: h('span', {}, h('a', { href: '#/definitions' }, 'Definitions'), ' / ', name),
       title: name, lede: `Version ${def.version}. ${steps.length} steps.`,
       actions: [
-        h('a', { class: 'btn outline', href: `/definitions/${name}/export?format=html`, onclick: openExport(`/definitions/${name}/export?format=html`, 'text/html') }, 'Open picture'),
-        h('a', { class: 'btn outline', href: `/definitions/${name}/export?format=mermaid`, onclick: openExport(`/definitions/${name}/export?format=mermaid`, 'text/plain') }, 'Mermaid source'),
-        h('a', { class: 'btn outline', href: `/definitions/${name}/graph`, onclick: openExport(`/definitions/${name}/graph`, 'application/json') }, 'Graph JSON'),
+        h('a', { class: 'btn outline', href: url(`/definitions/${name}/export?format=html`), onclick: openExport(`/definitions/${name}/export?format=html`, 'text/html') }, 'Open picture'),
+        h('a', { class: 'btn outline', href: url(`/definitions/${name}/export?format=mermaid`), onclick: openExport(`/definitions/${name}/export?format=mermaid`, 'text/plain') }, 'Mermaid source'),
+        h('a', { class: 'btn outline', href: url(`/definitions/${name}/graph`), onclick: openExport(`/definitions/${name}/graph`, 'application/json') }, 'Graph JSON'),
       ],
     }),
     h('section', { class: 'main-col' }, h('h2', {}, 'Diagram'), await diagram(mmd)),

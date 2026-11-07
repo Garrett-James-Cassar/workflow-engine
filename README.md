@@ -10,7 +10,7 @@ Every step produces an **outcome** (an enum), and `on { when (it) { … } }` rou
 |---|---|---|
 | `userTask` | Waits for an eligible user, assigned by `role(...)`, `user(...)` or `userFrom("vars.path")` | Your enum, e.g. `APPROVE, REJECT, COUNTER`; or `Done` |
 | `serviceTask` | Runs linked Kotlin code (`handler<H>()`) or a built-in `http { }` call | Whatever the handler returns; or `Done` |
-| `eventWait` | Parks until `POST /events/{name}` arrives with a matching correlation | `RECEIVED`, plus `TIMED_OUT` with `timeout(...)` |
+| `eventWait` | Parks until `POST /api/v1/events/{name}` arrives with a matching correlation | `RECEIVED`, plus `TIMED_OUT` with `timeout(...)` |
 | `decision` | Pure branch on vars | Your enum |
 
 Routes:
@@ -19,7 +19,7 @@ Routes:
 - `end("status")`
 - `path("name") { steps }`: rejoins after the branching step when it runs off its end.
 
-Technical failures, such as a handler that keeps throwing, are not outcomes. They become an **incident**, which you clear with `POST /instances/{id}/retry`.
+Technical failures, such as a handler that keeps throwing, are not outcomes. They become an **incident**, which you clear with `POST /api/v1/instances/{id}/retry`.
 
 ### The compiler enforces routing
 - A `when` missing an outcome does not compile.
@@ -117,14 +117,14 @@ Every user task is either **team-scoped** (any member of a role can take it, for
 ### Restarting a workflow at a step
 Support staff with the **`workflow-support`** role (`w.support`, Riley Chen) can move any workflow back to any user task. Open on the instance page, the **Restart at a step** panel lists the user tasks, and **Restart here** moves the workflow there. Open tasks and waits are cancelled, the cancelled rows stay in the history, and vars are kept. The restart is recorded as `restarted`, with the step it came from. A finished workflow can be reopened the same way. Anyone without the role is refused with the reason.
 
-The API: `POST /instances/{id}/restart` with `{"step": "amend-draft"}`. It only accepts user tasks.
+The API: `POST /api/v1/instances/{id}/restart` with `{"step": "amend-draft"}`. It only accepts user tasks.
 
 ### Reassigning a task
 Any open user task has a **Reassign this task** panel under its buttons. It moves the task to a named user or to a team, and it's a separate permission from completing the task. By default only the **`ops`** role may reassign (`ops.admin` in the dev grants). Anyone else who tries is refused with the reason. Each reassignment is recorded in the timeline as `task-reassigned`, with who held it before and after.
 
 Reassigning moves the open task and nothing else: the workflow's position, vars and history are unchanged. A finished task can't be reassigned.
 
-The API: `POST /tasks/{id}/reassign` with `{"to": "j.smith"}` for a user, or `{"to": "legal", "toTeam": true}` for a team.
+The API: `POST /api/v1/tasks/{id}/reassign` with `{"to": "j.smith"}` for a user, or `{"to": "legal", "toTeam": true}` for a team.
 
 ### Driving an instance
 The instance page is where you test a workflow:
@@ -178,13 +178,13 @@ Each walkthrough starts from **Demos → Start with sample data** for that workf
 
 Everything the console does is a plain REST call, listed in Swagger at **http://localhost:47831/docs**. For example:
 ```sh
-curl -s -XPOST localhost:47831/definitions/confirmation-approval/instances -H 'X-User: a.ops' \
+curl -s -XPOST localhost:47831/api/v1/definitions/confirmation-approval/instances -H 'X-User: a.ops' \
   -H 'Content-Type: application/json' -d '{"vars":{"doc":{"id":"D-1","requester":"a.ops","counterparty":"ACME","notional":75000000}}}'
-curl -s 'localhost:47831/tasks?mine=true' -H 'X-User: l.jones'
-curl -s -XPOST localhost:47831/tasks/<taskId>/complete -H 'X-User: l.jones' -H 'Content-Type: application/json' \
+curl -s 'localhost:47831/api/v1/tasks?mine=true' -H 'X-User: l.jones'
+curl -s -XPOST localhost:47831/api/v1/tasks/<taskId>/complete -H 'X-User: l.jones' -H 'Content-Type: application/json' \
   -d '{"outcome":"REJECT","form":{"comment":"fix clause 4"}}'
 ```
-`curl localhost:47831/definitions/<name>/export` gives the Mermaid source; a browser gets the drawn picture.
+`curl localhost:47831/api/v1/definitions/<name>/export` gives the Mermaid source; a browser gets the drawn picture.
 
 ## Writing a workflow
 
@@ -269,13 +269,13 @@ flowchart LR
 
 | Endpoint | |
 |---|---|
-| `GET /definitions`, `/definitions/{n}`, `/definitions/{n}/graph`, `/definitions/{n}/export?format=html\|mermaid\|graph` | definitions and diagrams (a browser gets the drawn picture) |
-| `POST /definitions/{n}/instances {vars}` | start |
-| `GET /instances`, `/instances/{id}`, `/instances/{id}/events`; `POST /instances/{id}/retry` | instances, history, incidents |
-| `GET /tasks?mine=true` (`X-User`); `POST /tasks/{id}/complete {outcome, form}` | inbox and decisions (403 includes the RBAC reason) |
-| `POST /events/{name} {correlation, payload}` | receive endpoint for event waits |
-| `POST /timeouts/{instance}/{step}` | timeout callback; an in-process poller also fires these |
-| `GET /rbac/grants`, `GET`/`POST /demo/...` | dev users, and the fake third parties the samples call |
+| `GET /api/v1/definitions`, `/api/v1/definitions/{n}`, `/api/v1/definitions/{n}/graph`, `/api/v1/definitions/{n}/export?format=html\|mermaid\|graph` | definitions and diagrams (a browser gets the drawn picture) |
+| `POST /api/v1/definitions/{n}/api/v1/instances {vars}` | start |
+| `GET /api/v1/instances`, `/api/v1/instances/{id}`, `/api/v1/instances/{id}/api/v1/events`; `POST /api/v1/instances/{id}/retry` | instances, history, incidents |
+| `GET /api/v1/tasks?mine=true` (`X-User`); `POST /api/v1/tasks/{id}/complete {outcome, form}` | inbox and decisions (403 includes the RBAC reason) |
+| `POST /api/v1/events/{name} {correlation, payload}` | receive endpoint for event waits |
+| `POST /api/v1/timeouts/{instance}/{step}` | timeout callback; an in-process poller also fires these |
+| `GET /api/v1/rbac/grants`, `GET`/`POST /demo/...` | dev users, and the fake third parties the samples call |
 
 ## Workflow studio (apps/web)
 

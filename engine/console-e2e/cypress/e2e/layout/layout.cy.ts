@@ -12,7 +12,7 @@ const routes: [string, string, string][] = [
 describe('layout', () => {
   // The support file resets the data before every test, so one run is created for the Instances list.
   beforeEach(() => {
-    cy.request({ method: 'POST', url: '/definitions/confirmation-approval/instances', headers: { 'X-User': 'a.ops' }, body: { vars: { doc: { id: 'D-1', requester: 'a.ops', counterparty: 'ACME', notional: 75000000 } } } });
+    cy.request({ method: 'POST', url: '/api/v1/definitions/confirmation-approval/instances', headers: { 'X-User': 'a.ops' }, body: { vars: { doc: { id: 'D-1', requester: 'a.ops', counterparty: 'ACME', notional: 75000000 } } } });
   });
 
   sizes.forEach(([w, h]) => {

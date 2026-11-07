@@ -38,14 +38,14 @@ class AuthorizationTest : ApiTest() {
 
     @Test
     fun `no identity gets 401 on every protected read`() {
-        for (path in listOf("/instances", "/tasks", "/rbac/people", "/definitions", "/instances/00000000-0000-4000-8000-000000000001")) {
+        for (path in listOf("/api/v1/instances", "/api/v1/tasks", "/api/v1/rbac/people", "/api/v1/definitions", "/api/v1/instances/00000000-0000-4000-8000-000000000001")) {
             assertEquals(401, call("GET", path, user = "").status, path)
         }
     }
 
     @Test
     fun `a denied person gets 403 with the reason on instances, tasks and the people list`() {
-        for (path in listOf("/instances", "/tasks", "/rbac/people")) {
+        for (path in listOf("/api/v1/instances", "/api/v1/tasks", "/api/v1/rbac/people")) {
             val res = call("GET", path, user = denied)
             assertEquals(403, res.status, path)
             val reason = res.map["reason"] as String?
@@ -56,7 +56,7 @@ class AuthorizationTest : ApiTest() {
 
     @Test
     fun `a denied person cannot start a run, and the refusal says which role allows it`() {
-        val res = call("POST", "/definitions/confirmation-approval/instances", denied, mapOf("vars" to doc()))
+        val res = call("POST", "/api/v1/definitions/confirmation-approval/instances", denied, mapOf("vars" to doc()))
         assertEquals(403, res.status)
         assertTrue((res.map["reason"] as String).contains("instances.start"), "${res.map["reason"]}")
     }
@@ -64,8 +64,8 @@ class AuthorizationTest : ApiTest() {
     @Test
     fun `a person who holds a read in one scope sees only the tasks in that scope`() {
         val eu = start(doc(), "counterparty-onboarding").also { }
-        assertEquals(200, call("GET", "/tasks", "k.comply").status)
-        val listed = call("GET", "/tasks", "k.comply").list
+        assertEquals(200, call("GET", "/api/v1/tasks", "k.comply").status)
+        val listed = call("GET", "/api/v1/tasks", "k.comply").list
         assertTrue(listed.all { (it["assignee"] as Map<*, *>)["scope"].let { s -> s == emptyMap<String, String>() || (s as Map<*, *>)["region"] == "EU" } })
         assertNotNull(eu.map["id"])
     }
@@ -77,13 +77,13 @@ class AuthorizationTest : ApiTest() {
         val acmeId = acme.map["id"] as String
         val globexId = globex.map["id"] as String
 
-        val own = call("GET", "/tasks?instance=$acmeId", "c.acme")
+        val own = call("GET", "/api/v1/tasks?instance=$acmeId", "c.acme")
         assertEquals(200, own.status)
         assertEquals("negotiate", own.list.single()["step"])
 
-        val other = call("GET", "/tasks?instance=$globexId", "c.acme")
+        val other = call("GET", "/api/v1/tasks?instance=$globexId", "c.acme")
         assertEquals(200, other.status, "no 403 leak: the listing just omits it")
         assertEquals(emptyList(), other.list)
-        assertEquals(emptyList(), call("GET", "/tasks?mine=true&instance=$globexId", "c.acme").list)
+        assertEquals(emptyList(), call("GET", "/api/v1/tasks?mine=true&instance=$globexId", "c.acme").list)
     }
 }

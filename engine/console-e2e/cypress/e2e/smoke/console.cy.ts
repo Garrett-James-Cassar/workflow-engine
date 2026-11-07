@@ -10,7 +10,7 @@ const pages: [string, string, string][] = [
 describe('console smoke', () => {
   pages.forEach(([name, url, ready]) => {
     it(`${name} loads and is accessible`, () => {
-      if (name === 'instances') cy.request({ method: 'POST', url: '/definitions/confirmation-approval/instances', headers: { 'X-User': 'a.ops' }, body: { vars: { doc: { id: 'D-1', requester: 'a.ops', counterparty: 'ACME', notional: 75000000 } } } });
+      if (name === 'instances') cy.request({ method: 'POST', url: '/api/v1/definitions/confirmation-approval/instances', headers: { 'X-User': 'a.ops' }, body: { vars: { doc: { id: 'D-1', requester: 'a.ops', counterparty: 'ACME', notional: 75000000 } } } });
       cy.visit(url);
       cy.cy(ready).should('exist');
       cy.a11y();

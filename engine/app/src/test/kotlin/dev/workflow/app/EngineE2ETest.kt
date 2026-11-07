@@ -29,9 +29,9 @@ class EngineE2ETest : ApiTest() {
 
         // Task inbox is RBAC-resolved.
         // A requester holds no tasks.read, so the task listing is refused outright (deny by default).
-        assertEquals(403, call("GET", "/tasks?mine=true&instance=$id", "a.ops").status)
-        assertEquals("legal-review", call("GET", "/tasks?mine=true&instance=$id", "l.jones").list.single()["step"])
-        assertEquals(listOf("APPROVE", "REJECT", "COUNTER"), call("GET", "/tasks?instance=$id").list.single()["outcomes"])
+        assertEquals(403, call("GET", "/api/v1/tasks?mine=true&instance=$id", "a.ops").status)
+        assertEquals("legal-review", call("GET", "/api/v1/tasks?mine=true&instance=$id", "l.jones").list.single()["step"])
+        assertEquals(listOf("APPROVE", "REJECT", "COUNTER"), call("GET", "/api/v1/tasks?instance=$id").list.single()["outcomes"])
 
         // Not legal: 403 with the RBAC reason.
         val forbidden = complete(i, "a.ops", "APPROVE")
@@ -62,19 +62,19 @@ class EngineE2ETest : ApiTest() {
         assertEquals("signed", i.map["currentStep"])
         val envelope = i.vars("send-for-signature.envelopeId") as String
 
-        assertEquals(404, call("POST", "/events/signed", body = mapOf("correlation" to mapOf("envelopeId" to "ENV-other"))).status)
-        val woke = call("POST", "/events/signed", body = mapOf("correlation" to mapOf("envelopeId" to envelope), "payload" to mapOf("signer" to "c.acme")))
+        assertEquals(404, call("POST", "/api/v1/events/signed", body = mapOf("correlation" to mapOf("envelopeId" to "ENV-other"))).status)
+        val woke = call("POST", "/api/v1/events/signed", body = mapOf("correlation" to mapOf("envelopeId" to envelope), "payload" to mapOf("signer" to "c.acme")))
         assertEquals(202, woke.status)
         assertEquals(listOf(id), woke.map["woke"])
 
-        i = call("GET", "/instances/$id")
+        i = call("GET", "/api/v1/instances/$id")
         assertEquals("completed", i.map["status"])
         assertEquals("completed", i.map["endStatus"])
         assertEquals("c.acme", i.vars("signed.signer"))
         assertNotNull(i.vars("stamp.stampedAt"))
 
         // The event log tells the story, with actors.
-        val completed = call("GET", "/instances/$id/events").list.filter { it["type"] == "step-completed" }
+        val completed = call("GET", "/api/v1/instances/$id/events").list.filter { it["type"] == "step-completed" }
             .map { "${it["step"]}:${it["outcome"]}:${it["actor"]}" }
         assertEquals(
             listOf(
@@ -127,9 +127,9 @@ class EngineE2ETest : ApiTest() {
         clock.advanceDays(8)
         assertTrue(poller.fireDue() >= 1)
 
-        i = call("GET", "/instances/$id")
+        i = call("GET", "/api/v1/instances/$id")
         assertEquals("expired", i.map["endStatus"])
-        assertEquals("timer", call("GET", "/instances/$id/events").list.last { it["type"] == "step-completed" }["actor"])
+        assertEquals("timer", call("GET", "/api/v1/instances/$id/events").list.last { it["type"] == "step-completed" }["actor"])
     }
 
     @Test
@@ -181,27 +181,27 @@ class EngineE2ETest : ApiTest() {
         val i = start(emptyMap(), name = "flaky")
         val id = i.map["id"] as String
         assertEquals("failed", i.map["status"])
-        val incident = call("GET", "/instances/$id/events").list.last()
+        val incident = call("GET", "/api/v1/instances/$id/events").list.last()
         assertEquals("incident", incident["type"])
         assertTrue(((incident["payload"] as Map<*, *>)["message"] as String).contains("after 2 attempt(s)"))
 
         FlakyHandler.failing = false
-        val retried = call("POST", "/instances/$id/retry", "i.handler")
+        val retried = call("POST", "/api/v1/instances/$id/retry", "i.handler")
         assertEquals("completed", retried.map["status"], "${retried.body}")
     }
 
     @Test
     fun `E1 definitions, graph and mermaid export are served`() {
         assertEquals(200, call("GET", "/health").status)
-        val names = call("GET", "/definitions").list.map { it["name"] }
+        val names = call("GET", "/api/v1/definitions").list.map { it["name"] }
         assertTrue("confirmation-approval" in names)
-        val graph = call("GET", "/definitions/confirmation-approval/graph").map
+        val graph = call("GET", "/api/v1/definitions/confirmation-approval/graph").map
         @Suppress("UNCHECKED_CAST")
         val kinds = (graph["nodes"] as List<Map<String, Any?>>).associate { it["id"] to it["kind"] }
         assertEquals("user-task", kinds["legal-review"])
         assertEquals("event-wait", kinds["signed"])
-        val mmd = call("GET", "/definitions/confirmation-approval/export?format=mermaid").body as String
+        val mmd = call("GET", "/api/v1/definitions/confirmation-approval/export?format=mermaid").body as String
         assertTrue(mmd.contains("flowchart LR"))
-        assertEquals(404, call("GET", "/definitions/nope").status)
+        assertEquals(404, call("GET", "/api/v1/definitions/nope").status)
     }
 }

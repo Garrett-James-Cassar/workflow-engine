@@ -32,7 +32,7 @@ class EveryLineLabelledTest {
                 "--spring.datasource.username=sa", "--spring.datasource.password=", "--spring.flyway.locations=classpath:db/migration-h2",
             )
         val port = ctx.environment.getProperty("local.server.port")
-        val request = HttpRequest.newBuilder(URI.create("http://localhost:$port/definitions")).header("X-User", "e.admin").GET().build()
+        val request = HttpRequest.newBuilder(URI.create("http://localhost:$port/api/v1/definitions")).header("X-User", "e.admin").GET().build()
         assertEquals(200, HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString()).statusCode())
         ctx.getBean(TimeoutPoller::class.java).fireDue()
         ctx.close()

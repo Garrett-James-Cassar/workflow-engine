@@ -8,7 +8,7 @@ import kotlin.test.assertTrue
 class RestartE2ETest : ApiTest() {
 
     private fun restart(instance: Res, user: String, step: String): Res =
-        call("POST", "/instances/${instance.map["id"]}/restart", user, mapOf("step" to step))
+        call("POST", "/api/v1/instances/${instance.map["id"]}/restart", user, mapOf("step" to step))
 
     @Test
     fun `E5 only the workflow-support role can restart a workflow`() {
@@ -16,7 +16,7 @@ class RestartE2ETest : ApiTest() {
         val refused = restart(i, "a.ops", "amend-draft")
         assertEquals(403, refused.status)
         assertTrue((refused.map["reason"] as String).contains("workflow-support"), "${refused.map["reason"]}")
-        assertEquals("legal-review", call("GET", "/instances/${i.map["id"]}").map["currentStep"], "nothing moved")
+        assertEquals("legal-review", call("GET", "/api/v1/instances/${i.map["id"]}").map["currentStep"], "nothing moved")
     }
 
     @Test
@@ -32,11 +32,11 @@ class RestartE2ETest : ApiTest() {
         val task = (moved.map["openTasks"] as List<*>).single() as Map<*, *>
         assertEquals("amend-draft", task["step"])
         assertEquals("a.ops", (task["assignee"] as Map<*, *>)["name"], "assignee comes from vars, as usual")
-        assertEquals("a.ops", call("GET", "/instances/$id").vars("doc.requester"), "vars are kept")
+        assertEquals("a.ops", call("GET", "/api/v1/instances/$id").vars("doc.requester"), "vars are kept")
 
-        assertEquals(409, call("POST", "/tasks/$oldTask/complete", "l.jones", mapOf("outcome" to "APPROVE")).status,
+        assertEquals(409, call("POST", "/api/v1/tasks/$oldTask/complete", "l.jones", mapOf("outcome" to "APPROVE")).status,
             "the old legal task was cancelled")
-        val restarted = call("GET", "/instances/$id/events").list.single { it["type"] == "restarted" }
+        val restarted = call("GET", "/api/v1/instances/$id/events").list.single { it["type"] == "restarted" }
         assertEquals("w.support", restarted["actor"])
         assertEquals("legal-review", (restarted["payload"] as Map<*, *>)["from"])
     }

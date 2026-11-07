@@ -40,8 +40,8 @@ class AccessLogTest : ApiTest() {
 
     @Test
     fun `an access line is ECS JSON with the required fields`(out: CapturedOutput) {
-        assertEquals(200, get("/definitions", mapOf("X-User" to "e.admin")).statusCode())
-        val line = assertNotNull(access(out, "/definitions"), "no access line in stdout")
+        assertEquals(200, get("/api/v1/definitions", mapOf("X-User" to "e.admin")).statusCode())
+        val line = assertNotNull(access(out, "/api/v1/definitions"), "no access line in stdout")
         listOf("@timestamp", "log.level", "message", "service.name", "service.environment", "event.dataset").forEach {
             assertTrue(line.at(it) != null, "missing $it in $line")
         }
@@ -58,25 +58,25 @@ class AccessLogTest : ApiTest() {
 
     @Test
     fun `application lines are in the app dataset`(out: CapturedOutput) {
-        get("/definitions", mapOf("X-User" to "e.admin"))
+        get("/api/v1/definitions", mapOf("X-User" to "e.admin"))
         val app = lines(out).filter { it.at("event.dataset") != "workflow-engine.access" }
         assertTrue(app.isNotEmpty() && app.all { it.at("event.dataset") == "workflow-engine.app" })
     }
 
     @Test
     fun `the query string, the bearer token and the cookie never reach the logs`(out: CapturedOutput) {
-        get("/definitions?secret=hunter2", mapOf("X-User" to "e.admin", "Authorization" to "Bearer x.y.z", "Cookie" to "sid=abc123"))
-        assertNotNull(access(out, "/definitions"))
+        get("/api/v1/definitions?secret=hunter2", mapOf("X-User" to "e.admin", "Authorization" to "Bearer x.y.z", "Cookie" to "sid=abc123"))
+        assertNotNull(access(out, "/api/v1/definitions"))
         listOf("x.y.z", "hunter2", "abc123", "Bearer").forEach { assertFalse(out.out.contains(it), "$it was logged") }
     }
 
     @Test
     fun `levels follow the status and health stays quiet`(out: CapturedOutput) {
         get("/health")
-        get("/definitions") // 401: no identity
-        get("/definitions/no-such-workflow", mapOf("X-User" to "e.admin")) // 404
+        get("/api/v1/definitions") // 401: no identity
+        get("/api/v1/definitions/no-such-workflow", mapOf("X-User" to "e.admin")) // 404
         assertTrue(lines(out).none { it.at("url.path") == "/health" }, "/health must not log at info")
-        assertEquals("WARN", access(out, "/definitions")!!.at("log.level").toString().uppercase())
-        assertEquals("WARN", access(out, "/definitions/no-such-workflow")!!.at("log.level").toString().uppercase())
+        assertEquals("WARN", access(out, "/api/v1/definitions")!!.at("log.level").toString().uppercase())
+        assertEquals("WARN", access(out, "/api/v1/definitions/no-such-workflow")!!.at("log.level").toString().uppercase())
     }
 }

@@ -9,7 +9,7 @@ import kotlin.test.assertTrue
 class SamplesE2ETest : ApiTest() {
     private fun base() = "http://localhost:${env.getProperty("local.server.port")}"
 
-    private fun status(id: Any?) = call("GET", "/instances/$id")
+    private fun status(id: Any?) = call("GET", "/api/v1/instances/$id")
 
     // ---- counterparty-onboarding ----
 
@@ -17,7 +17,7 @@ class SamplesE2ETest : ApiTest() {
 
     private fun screeningResult(i: Res, risk: String): Res {
         val caseId = i.vars("request-screening.body.caseId") as String
-        val r = call("POST", "/events/screening-result", body = mapOf("correlation" to mapOf("caseId" to caseId), "payload" to mapOf("risk" to risk, "hits" to 2)))
+        val r = call("POST", "/api/v1/events/screening-result", body = mapOf("correlation" to mapOf("caseId" to caseId), "payload" to mapOf("risk" to risk, "hits" to 2)))
         assertEquals(202, r.status, "${r.body}")
         return status(i.map["id"])
     }
@@ -71,7 +71,7 @@ class SamplesE2ETest : ApiTest() {
             val i = book(ref = "T-3")
             assertEquals("failed", i.map["status"])
             DemoBookingSystem.up.set(true)
-            assertEquals("confirmation-matched", call("POST", "/instances/${i.map["id"]}/retry", "i.handler").map["currentStep"])
+            assertEquals("confirmation-matched", call("POST", "/api/v1/instances/${i.map["id"]}/retry", "i.handler").map["currentStep"])
         } finally {
             DemoBookingSystem.up.set(true)
         }
@@ -81,13 +81,13 @@ class SamplesE2ETest : ApiTest() {
     fun `trade-booking - timeout escalates, wait again re-arms, match completes`() {
         var i = book(ref = "T-4")
         val id = i.map["id"]
-        i = call("POST", "/timeouts/$id/confirmation-matched")
+        i = call("POST", "/api/v1/timeouts/$id/confirmation-matched")
         i = status(id)
         assertEquals("chase-decision", i.map["currentStep"])
         assertEquals("ACME", i.vars("chase-counterparty.chased"))
         i = complete(i, "m.office", "WAIT_AGAIN")
         assertEquals("confirmation-matched", i.map["currentStep"])
-        assertEquals(202, call("POST", "/events/confirmation-matched", body = mapOf("correlation" to mapOf("tradeRef" to "T-4"))).status)
+        assertEquals(202, call("POST", "/api/v1/events/confirmation-matched", body = mapOf("correlation" to mapOf("tradeRef" to "T-4"))).status)
         i = status(id)
         assertEquals("completed", i.map["endStatus"])
         assertEquals("S-T-4", i.vars("release-to-settlement.settlementRef"))

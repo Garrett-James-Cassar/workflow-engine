@@ -82,7 +82,7 @@ class TracingTest : ApiTest() {
     @Test
     fun `an inbound traceparent continues the trace and every log line in the request holds its ids and labels`(out: CapturedOutput) {
         FlakyHandler.failing = true
-        val res = post("/definitions/flaky/instances", mapOf("traceparent" to inbound), mapOf("vars" to emptyMap<String, Any>()))
+        val res = post("/api/v1/definitions/flaky/instances", mapOf("traceparent" to inbound), mapOf("vars" to emptyMap<String, Any>()))
         assertEquals(201, res.statusCode())
         assertTrue(res.headers().firstValue("traceparent").orElse("").startsWith("00-$traceId-"), "the response echoes the same trace")
 
@@ -129,12 +129,12 @@ class TracingTest : ApiTest() {
         }
         try {
             val vars = mapOf("vars" to mapOf("target" to mapOf("url" to "http://127.0.0.1:${server.address.port}/callout"), "payload" to mapOf("id" to "D-1")))
-            assertEquals(201, post("/definitions/http-callout/instances", mapOf("traceparent" to inbound, "baggage" to "fleet.origin=forge%3A%20Publish%20rule"), vars).statusCode())
+            assertEquals(201, post("/api/v1/definitions/http-callout/instances", mapOf("traceparent" to inbound, "baggage" to "fleet.origin=forge%3A%20Publish%20rule"), vars).statusCode())
             assertTrue(seen["traceparent"]!!.startsWith("00-$traceId-"), "outbound traceparent: ${seen["traceparent"]}")
             assertEquals("forge: Publish rule", originOf(seen["baggage"]), "an inbound origin is kept unchanged: ${seen["baggage"]}")
 
             val other = "00-0af7651916cd43dd8448eb211c80319c-00f067aa0ba902b7-01"
-            assertEquals(201, post("/definitions/http-callout/instances", mapOf("traceparent" to other), vars).statusCode())
+            assertEquals(201, post("/api/v1/definitions/http-callout/instances", mapOf("traceparent" to other), vars).statusCode())
             assertEquals("workflow-engine: Start run", originOf(seen["baggage"]), "without one, this app's own origin is sent: ${seen["baggage"]}")
             val client = meters.find("http.client.request.duration").timer()
             assertNotNull(client, "RED client histogram")

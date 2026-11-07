@@ -24,7 +24,7 @@ class ReassignE2ETest : ApiTest() {
     fun `E5 only the reassign role can move a task`() {
         val i = start(doc())
         val taskId = openTask(i)
-        val refused = call("POST", "/tasks/$taskId/reassign", "l.jones", mapOf("to" to "d.head"))
+        val refused = call("POST", "/api/v1/tasks/$taskId/reassign", "l.jones", mapOf("to" to "d.head"))
         assertEquals(403, refused.status)
         assertTrue((refused.map["reason"] as String).contains("'ops'"), "${refused.map["reason"]}")
     }
@@ -35,16 +35,16 @@ class ReassignE2ETest : ApiTest() {
         val id = i.map["id"] as String
         val taskId = openTask(i)
 
-        val moved = call("POST", "/tasks/$taskId/reassign", "ops.admin", mapOf("to" to "j.smith", "toTeam" to false))
+        val moved = call("POST", "/api/v1/tasks/$taskId/reassign", "ops.admin", mapOf("to" to "j.smith", "toTeam" to false))
         assertEquals(200, moved.status, "${moved.body}")
         val task = (moved.map["openTasks"] as List<*>).single() as Map<*, *>
         assertEquals("user", task["scopedTo"])
         assertEquals("j.smith", (task["assignee"] as Map<*, *>)["name"])
 
         assertEquals(403, complete(i, "l.jones", "APPROVE").status, "legal lost the task")
-        assertEquals(200, call("POST", "/tasks/$taskId/complete", "j.smith", mapOf("outcome" to "APPROVE")).status)
+        assertEquals(200, call("POST", "/api/v1/tasks/$taskId/complete", "j.smith", mapOf("outcome" to "APPROVE")).status)
 
-        val history = call("GET", "/instances/$id/events").list.single { it["type"] == "task-reassigned" }
+        val history = call("GET", "/api/v1/instances/$id/events").list.single { it["type"] == "task-reassigned" }
         assertEquals("ops.admin", history["actor"])
         val payload = history["payload"] as Map<*, *>
         assertEquals("ROLE", ((payload["from"] as Map<*, *>)["type"] as String).uppercase())
@@ -56,7 +56,7 @@ class ReassignE2ETest : ApiTest() {
         val i = start(doc(counterparty = "ACME"))
         val taskId = openTask(complete(i, "l.jones", "COUNTER"))
         val moved = call(
-            "POST", "/tasks/$taskId/reassign", "ops.admin",
+            "POST", "/api/v1/tasks/$taskId/reassign", "ops.admin",
             mapOf("to" to "compliance", "toTeam" to true, "scope" to mapOf("region" to "EU")),
         )
         assertEquals(200, moved.status, "${moved.body}")
@@ -70,6 +70,6 @@ class ReassignE2ETest : ApiTest() {
         val i = start(doc())
         val taskId = openTask(i)
         complete(i, "l.jones", "APPROVE")
-        assertEquals(409, call("POST", "/tasks/$taskId/reassign", "ops.admin", mapOf("to" to "d.head")).status)
+        assertEquals(409, call("POST", "/api/v1/tasks/$taskId/reassign", "ops.admin", mapOf("to" to "d.head")).status)
     }
 }

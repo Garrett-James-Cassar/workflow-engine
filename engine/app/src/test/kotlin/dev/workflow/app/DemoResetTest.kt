@@ -10,10 +10,10 @@ class DemoResetTest : ApiTest() {
     @Test
     fun `reset clears every run and brings the booking system back up`() {
         start(doc())
-        assertTrue(call("GET", "/instances").list.isNotEmpty())
+        assertTrue(call("GET", "/api/v1/instances").list.isNotEmpty())
         DemoBookingSystem.up.set(false)
         assertEquals(200, call("POST", "/demo/reset", ADMIN).status)
-        assertEquals(emptyList(), call("GET", "/instances").list)
+        assertEquals(emptyList(), call("GET", "/api/v1/instances").list)
         assertEquals(true, DemoBookingSystem.up.get())
     }
 
