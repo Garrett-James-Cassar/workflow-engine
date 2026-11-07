@@ -1,4 +1,4 @@
-.PHONY: up down stop dev demo restart test ci diagrams hooks web web-demo web-install web-gen-check web-typecheck web-lint web-test web-build web-demo-build web-cy web-smoke web-demo-check web-live-check web-ci share share-studio share-studio-local cy-live console-install console-build console-bundle-check console-typecheck console-cy console-smoke console-demo-check console-ci
+.PHONY: up down stop dev demo restart test ci check-placement diagrams hooks web web-demo web-install web-gen-check web-typecheck web-lint web-test web-build web-demo-build web-cy web-smoke web-demo-check web-live-check web-ci share share-studio share-studio-local cy-live console-install console-build console-bundle-check console-typecheck console-cy console-smoke console-demo-check console-ci
 
 PORT ?= 47831
 export PORT
@@ -50,7 +50,10 @@ test: ## unit + compile-fail + e2e (Testcontainers; needs Docker)
 hooks: ## install the git hooks (lefthook: pre-commit backend+secrets, pre-push smoke)
 	lefthook install
 
-ci: test web-ci ## Gradle check + the web gate
+check-placement: ## arch.8: every class sits in a role package (ArchUnit everyClassHasARole, with the layering rules); also part of `./gradlew check`
+	./gradlew :engine:app:test --tests 'dev.workflow.app.architecture.ArchitectureTest'
+
+ci: test web-ci ## Gradle check (tests, ArchUnit, detekt, jscpd) + the web gate
 
 diagrams: ## regenerate docs/workflows from the DSL
 	./gradlew :engine:app:diagrams
