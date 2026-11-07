@@ -1,5 +1,6 @@
 package dev.workflow.app.runtime
 
+import dev.workflow.app.observability.UseCaseSpans
 import dev.workflow.app.persistence.Store
 import dev.workflow.app.persistence.TaskRow
 import dev.workflow.app.persistence.WaitRow
@@ -41,10 +42,11 @@ class InstanceService(
     private val authorizer: Authorizer,
     private val tx: TransactionTemplate,
     private val clock: Clock,
+    private val spans: UseCaseSpans,
 ) {
-    fun start(name: String, vars: Map<String, Any?>, login: String): InstanceState {
+    fun start(name: String, vars: Map<String, Any?>, login: String): InstanceState = spans.run("workflow.instance.start", "workflow" to name) {
         authorizer.require(login, Permissions.INSTANCES_START)
-        return inTx {
+        inTx {
             val def = registry.latest(name)
             val id = UUID.randomUUID()
             val t = engine.start(def, id.toString(), vars, login)
@@ -73,9 +75,9 @@ class InstanceService(
      * Restart an instance at any user task. Needs the workflow-support role. Open tasks and waits are
      * cancelled, and the instance re-enters [stepId] with its vars and history kept.
      */
-    fun restartAt(instanceId: UUID, user: String, stepId: String): InstanceState {
+    fun restartAt(instanceId: UUID, user: String, stepId: String): InstanceState = spans.run("workflow.instance.restart", "step" to stepId) {
         authorizer.require(user, Permissions.INSTANCES_RESTART)
-        return inTx { restartLocked(instanceId, user, stepId) }
+        inTx { restartLocked(instanceId, user, stepId) }
     }
 
     private fun restartLocked(instanceId: UUID, user: String, stepId: String): InstanceState {
@@ -88,10 +90,10 @@ class InstanceService(
         return apply(def, engine.restartAt(def, state, stepId, user))
     }
 
-    fun reassignTask(taskId: UUID, user: String, to: Assignment): InstanceState {
+    fun reassignTask(taskId: UUID, user: String, to: Assignment): InstanceState = spans.run("workflow.task.reassign") {
         val task = store.task(taskId) ?: throw NotFoundException("no task $taskId")
         authorizer.require(user, Permissions.TASKS_REASSIGN, task.assignment.scope)
-        return inTx { reassignLocked(taskId, task, user, to) }
+        inTx { reassignLocked(taskId, task, user, to) }
     }
 
     private fun reassignLocked(taskId: UUID, task: TaskRow, user: String, to: Assignment): InstanceState {
@@ -125,13 +127,13 @@ class InstanceService(
         return state
     }
 
-    fun completeTask(taskId: UUID, user: String, outcome: String, form: Map<String, Any?>): InstanceState {
+    fun completeTask(taskId: UUID, user: String, outcome: String, form: Map<String, Any?>): InstanceState = spans.run("workflow.task.complete") {
         val task = store.task(taskId) ?: throw NotFoundException("no task $taskId")
         val decision = eligibility(task, user)
         if (!decision.allowed) throw ForbiddenException("'$user' may not complete task $taskId", decision.reason)
         // A team task needs the completing permission in the task's scope; a person's own task needs none.
         if (task.assignment.type == Assignment.Type.ROLE) authorizer.require(user, Permissions.TASKS_COMPLETE, task.assignment.scope)
-        return inTx { completeLocked(taskId, task, user, outcome, form) }
+        inTx { completeLocked(taskId, task, user, outcome, form) }
     }
 
     private fun completeLocked(taskId: UUID, task: TaskRow, user: String, outcome: String, form: Map<String, Any?>): InstanceState {
@@ -148,10 +150,10 @@ class InstanceService(
     }
 
     /** Wake every instance parked on [event] whose correlation matches. Returns the woken instance ids. */
-    fun receiveEvent(event: String, correlation: Map<String, String>, payload: Map<String, Any?>, login: String): List<UUID> {
+    fun receiveEvent(event: String, correlation: Map<String, String>, payload: Map<String, Any?>, login: String): List<UUID> = spans.run("workflow.event.receive", "event" to event) {
         authorizer.require(login, Permissions.EVENTS_SEND)
         val matching = store.openWaits(event).filter { it.correlationKey == null || correlation[it.correlationKey] == it.correlationValue }
-        return matching.mapNotNull { wait ->
+        matching.mapNotNull { wait ->
             inTx {
                 val state = lock(wait.instanceId)
                 // Re-check under the lock: another request may have consumed the wait.
@@ -169,9 +171,9 @@ class InstanceService(
      * Fire an event wait's timeout: its TIMED_OUT outcome. [login] is the caller on the HTTP route; null is
      * the in-process poller, which is the system and needs no permission.
      */
-    fun fireTimeout(instanceId: UUID, step: String, login: String? = null): InstanceState {
+    fun fireTimeout(instanceId: UUID, step: String, login: String? = null): InstanceState = spans.run("workflow.timeout.fire", "step" to step) {
         login?.let { authorizer.require(it, Permissions.INSTANCES_FIRE_TIMEOUT) }
-        return inTx { fireTimeoutLocked(instanceId, step) }
+        inTx { fireTimeoutLocked(instanceId, step) }
     }
 
     private fun fireTimeoutLocked(instanceId: UUID, step: String): InstanceState {
@@ -185,9 +187,9 @@ class InstanceService(
 
     fun expiredWaits(): List<WaitRow> = store.expiredWaits(clock.instant())
 
-    fun retry(instanceId: UUID, login: String?): InstanceState {
+    fun retry(instanceId: UUID, login: String?): InstanceState = spans.run("workflow.instance.retry") {
         login?.let { authorizer.require(it, Permissions.INSTANCES_RETRY) }
-        return inTx {
+        inTx {
             val state = lock(instanceId)
             val def = definitionOf(state)
             apply(def, engine.retry(def, state, login))

@@ -1,5 +1,7 @@
 package dev.workflow.app.runtime
 
+import dev.workflow.app.observability.Job
+import dev.workflow.app.observability.JobRunner
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
@@ -9,11 +11,12 @@ import org.springframework.stereotype.Component
  * `POST /timeouts/{instance}/{step}` is the same action for an external scheduler.
  */
 @Component
-class TimeoutPoller(private val instances: InstanceService) {
+class TimeoutPoller(private val instances: InstanceService, private val jobs: JobRunner) {
     private val log = LoggerFactory.getLogger(javaClass)
 
     @Scheduled(fixedDelayString = "\${workflow.timeouts.poll-interval:5s}")
-    fun fireDue(): Int {
+    @Job(label = "Fire due timeouts", action = "timeouts.fire")
+    fun fireDue(): Int = jobs.run(JOB) {
         var fired = 0
         for (wait in instances.expiredWaits()) {
             try {
@@ -25,6 +28,10 @@ class TimeoutPoller(private val instances: InstanceService) {
                 log.error("timeout for {} at '{}' failed", wait.instanceId, wait.step, e)
             }
         }
-        return fired
+        fired
+    }
+
+    private companion object {
+        val JOB: Job = TimeoutPoller::class.java.getMethod("fireDue").getAnnotation(Job::class.java)
     }
 }

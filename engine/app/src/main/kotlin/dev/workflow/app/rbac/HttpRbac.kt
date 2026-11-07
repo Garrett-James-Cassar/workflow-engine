@@ -7,8 +7,10 @@ import org.springframework.web.client.RestClientException
  * The rbac service over HTTP (`POST /check`, `GET /users/{login}/permissions`). Used when `RBAC_URL` is
  * set. An unreachable rbac fails closed: the caller gets [RbacUnavailableException], never an allow.
  */
-class HttpRbac(baseUrl: String, private val app: String = APP) : RbacPort {
-    private val client = RestClient.builder().baseUrl(baseUrl.trimEnd('/')).build()
+class HttpRbac(baseUrl: String, builder: RestClient.Builder, private val app: String = APP) : RbacPort {
+    // The builder is Boot's, so calls are observed: a client span, http.client.request.duration, and
+    // the W3C traceparent on every request to rbac.
+    private val client = builder.baseUrl(baseUrl.trimEnd('/')).build()
 
     private data class CheckBody(val login: String, val app: String? = null, val permission: String? = null, val role: String? = null, val scope: Map<String, String>)
     private data class CheckReply(val allowed: Boolean, val reason: String)

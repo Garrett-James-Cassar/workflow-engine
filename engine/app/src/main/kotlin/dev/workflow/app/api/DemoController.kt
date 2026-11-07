@@ -24,7 +24,7 @@ class DemoController(private val store: Store, private val dataSource: javax.sql
         return mapOf("enabled" to true)
     }
 
-    @Requires(Permissions.DEMO_RESET)
+    @Requires(Permissions.DEMO_RESET, label = "Reset demo data")
     @PostMapping("/demo/reset")
     fun reset(): Map<String, Any> {
         gate.check()

@@ -11,7 +11,7 @@
     "mappers": [],
     "repositories": ["dev.workflow.app.persistence"],
     "clients": [],
-    "adapters": ["dev.workflow.app.registry", "dev.workflow.app.diagrams", "dev.workflow.app.samples"],
+    "adapters": ["dev.workflow.app.observability", "dev.workflow.app.registry", "dev.workflow.app.diagrams", "dev.workflow.app.samples"],
     "composition": ["dev.workflow.app"]
   },
   "composition_files": ["dev.workflow.app.WorkflowEngineApplication"]

@@ -8,13 +8,15 @@ import dev.workflow.core.Vars
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.ApplicationContext
+import org.springframework.http.HttpMethod
+import org.springframework.http.MediaType
+import org.springframework.http.client.JdkClientHttpRequestFactory
 import org.springframework.stereotype.Component
+import org.springframework.web.client.RestClient
 import tools.jackson.databind.json.JsonMapper
 import tools.jackson.module.kotlin.readValue
 import java.net.URI
 import java.net.http.HttpClient
-import java.net.http.HttpRequest
-import java.net.http.HttpResponse
 import java.time.Duration
 
 sealed interface ServiceOutcome {
@@ -30,10 +32,15 @@ class ServiceRunner(
     private val json: JsonMapper,
     @Value("\${workflow.http.allowed-hosts:}") allowedHosts: String,
     @Value("\${workflow.service.backoff:200ms}") private val backoff: Duration,
+    builder: RestClient.Builder,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
     private val allowed = allowedHosts.split(',').map { it.trim().lowercase() }.filter { it.isNotEmpty() }.toSet()
-    private val http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build()
+    // Boot's builder, so the built-in http call is observed: client span, duration metric, traceparent out.
+    private val http = builder.requestFactory(
+        JdkClientHttpRequestFactory(HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build())
+            .also { it.setReadTimeout(Duration.ofSeconds(30)) },
+    ).build()
 
     fun run(step: Step.ServiceTask, ctx: ServiceContext): ServiceOutcome {
         var lastError: Exception? = null
@@ -47,6 +54,7 @@ class ServiceRunner(
             }
         }
         val message = "service task '${step.id}' failed after ${step.retries + 1} attempt(s): ${lastError?.message ?: lastError}"
+        log.error("service task '{}' failed after {} attempt(s); the run stops on an incident", step.id, step.retries + 1, lastError)
         return ServiceOutcome.Failed(message)
     }
 
@@ -68,20 +76,18 @@ class ServiceRunner(
             throw IllegalStateException("host '$host' is not in workflow.http.allowed-hosts")
         }
         val body = spec.bodyFrom?.let { json.writeValueAsString(vars[it]) }
-        val request = HttpRequest.newBuilder(uri)
-            .timeout(Duration.ofSeconds(30))
-            .method(spec.method.name, body?.let { HttpRequest.BodyPublishers.ofString(it) } ?: HttpRequest.BodyPublishers.noBody())
-            .apply {
-                if (body != null) header("Content-Type", "application/json")
-                spec.headers.forEach { (k, v) -> header(k, vars.fill(v)) }
+        val response = http.method(HttpMethod.valueOf(spec.method.name)).uri(uri)
+            .headers { h ->
+                if (body != null) h.contentType = MediaType.APPLICATION_JSON
+                spec.headers.forEach { (k, v) -> h.add(k, vars.fill(v)) }
             }
-            .build()
-        val response = http.send(request, HttpResponse.BodyHandlers.ofString())
-        if (response.statusCode() !in 200..299) {
-            throw IllegalStateException("${spec.method} $uri returned ${response.statusCode()}")
+            .let { r -> if (body != null) r.body(body) else r }
+            .exchange { _, res -> res.statusCode.value() to String(res.body.readAllBytes(), Charsets.UTF_8) }
+        if (response.first !in 200..299) {
+            throw IllegalStateException("${spec.method} $uri returned ${response.first}")
         }
-        val text = response.body()
+        val text = response.second
         val parsed: Any? = if (text.isBlank()) null else runCatching { json.readValue<Any?>(text) }.getOrDefault(text)
-        return mapOf("status" to response.statusCode(), "body" to parsed)
+        return mapOf("status" to response.first, "body" to parsed)
     }
 }

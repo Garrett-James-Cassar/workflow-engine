@@ -21,7 +21,10 @@ dependencies {
     implementation("org.flywaydb:flyway-database-postgresql")
     implementation("tools.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
+    implementation("org.springframework.boot:spring-boot-starter-opentelemetry")
+    implementation("org.springframework.boot:spring-boot-starter-restclient")
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.1")
+    implementation("io.opentelemetry.instrumentation:opentelemetry-jdbc:2.28.1-alpha")
     runtimeOnly("org.postgresql:postgresql")
 
     testImplementation(platform(SpringBootPlugin.BOM_COORDINATES))
@@ -31,6 +34,7 @@ dependencies {
     testImplementation("org.testcontainers:testcontainers-junit-jupiter")
     testImplementation("org.testcontainers:testcontainers-postgresql")
     testImplementation("com.h2database:h2")
+    testImplementation("io.opentelemetry:opentelemetry-sdk-testing")
     testImplementation("com.tngtech.archunit:archunit-junit5:1.5.1")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }

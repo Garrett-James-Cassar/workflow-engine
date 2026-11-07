@@ -49,21 +49,21 @@ class HealthController {
 @RestController
 class DefinitionController(private val registry: WorkflowRegistry) {
 
-    @Requires(Permissions.WORKFLOWS_READ)
+    @Requires(Permissions.WORKFLOWS_READ, label = "List workflows")
     @GetMapping("/definitions")
     fun list() = registry.names().map { name ->
         val latest = registry.latest(name)
         DefinitionSummary(name, latest.version, registry.versions(name), latest.allSteps.size)
     }
 
-    @Requires(Permissions.WORKFLOWS_READ)
+    @Requires(Permissions.WORKFLOWS_READ, label = "Show workflow")
     @GetMapping("/definitions/{name}")
     fun get(@PathVariable name: String, @RequestParam(required = false) version: Int?): DefinitionView {
         val def = version?.let { registry.get(name, it) } ?: registry.latest(name)
         return DefinitionView(def.name, def.version, def.sample, GraphView.of(def.toGraph()))
     }
 
-    @Requires(Permissions.WORKFLOWS_READ)
+    @Requires(Permissions.WORKFLOWS_READ, label = "Show workflow graph")
     @GetMapping("/definitions/{name}/graph")
     fun graph(@PathVariable name: String, @RequestParam(required = false) version: Int?): GraphView =
         GraphView.of((version?.let { registry.get(name, it) } ?: registry.latest(name)).toGraph())
@@ -73,7 +73,7 @@ class DefinitionController(private val registry: WorkflowRegistry) {
      * the Mermaid picture with SVG/PNG downloads; `format=mermaid` (the default otherwise) returns
      * the Mermaid source; `format=graph` the graph JSON.
      */
-    @Requires(Permissions.WORKFLOWS_READ)
+    @Requires(Permissions.WORKFLOWS_READ, label = "Export workflow")
     @GetMapping("/definitions/{name}/export")
     fun export(
         @PathVariable name: String,
@@ -101,7 +101,7 @@ class InstanceController(
     private val store: Store,
 ) {
 
-    @Requires(Permissions.INSTANCES_START)
+    @Requires(Permissions.INSTANCES_START, label = "Start run")
     @PostMapping("/definitions/{name}/instances")
     @ResponseStatus(HttpStatus.CREATED)
     fun start(
@@ -110,15 +110,15 @@ class InstanceController(
         @RequestAttribute(Identity.LOGIN) login: String,
     ): InstanceView = view(instances.start(name, body?.vars ?: emptyMap(), login))
 
-    @Requires(Permissions.INSTANCES_READ)
+    @Requires(Permissions.INSTANCES_READ, label = "List runs")
     @GetMapping("/instances")
     fun list(@RequestParam(defaultValue = "50") limit: Int) = store.instances(limit.coerceIn(1, 500)).map { view(it) }
 
-    @Requires(Permissions.INSTANCES_READ)
+    @Requires(Permissions.INSTANCES_READ, label = "Show run")
     @GetMapping("/instances/{id}")
     fun get(@PathVariable id: UUID): InstanceView = view(instances.get(id))
 
-    @Requires(Permissions.INSTANCES_READ)
+    @Requires(Permissions.INSTANCES_READ, label = "List run events")
     @GetMapping("/instances/{id}/events")
     fun events(@PathVariable id: UUID): List<EventView> {
         instances.get(id)
@@ -126,7 +126,7 @@ class InstanceController(
     }
 
     /** Support restart at a user task. Needs the workflow-support role. */
-    @Requires(Permissions.INSTANCES_RESTART)
+    @Requires(Permissions.INSTANCES_RESTART, label = "Restart at step")
     @PostMapping("/instances/{id}/restart")
     fun restart(
         @PathVariable id: UUID,
@@ -135,7 +135,7 @@ class InstanceController(
     ): InstanceView = view(instances.restartAt(id, login, body.step))
 
     /** Re-run the step an incident stopped at. */
-    @Requires(Permissions.INSTANCES_RETRY)
+    @Requires(Permissions.INSTANCES_RETRY, label = "Retry step")
     @PostMapping("/instances/{id}/retry")
     fun retry(@PathVariable id: UUID, @RequestAttribute(Identity.LOGIN) login: String): InstanceView =
         view(instances.retry(id, login))
@@ -160,7 +160,7 @@ class TaskController(
 ) {
 
     /** Open tasks. With `mine=true`, only those the `X-User` may complete (by username or RBAC role). */
-    @Requires(Permissions.TASKS_READ, ScopeFrom.LIST)
+    @Requires(Permissions.TASKS_READ, ScopeFrom.LIST, label = "List tasks")
     @GetMapping("/tasks")
     fun list(
         @RequestParam(defaultValue = "false") mine: Boolean,
@@ -179,7 +179,7 @@ class TaskController(
     }
 
     /** Move an open task to a user or a team. Needs the task's reassign permission (ops by default). */
-    @Requires(Permissions.TASKS_REASSIGN, ScopeFrom.TASK)
+    @Requires(Permissions.TASKS_REASSIGN, ScopeFrom.TASK, label = "Reassign task")
     @PostMapping("/tasks/{id}/reassign")
     fun reassign(
         @PathVariable id: UUID,
@@ -197,7 +197,7 @@ class TaskController(
         return InstanceView.of(state, store.openTasks(instanceId).map { TaskView.of(it, def) }, store.openWaitsFor(instanceId).map { WaitView.of(it) })
     }
 
-    @Requires(Permissions.TASKS_COMPLETE, ScopeFrom.TASK)
+    @Requires(Permissions.TASKS_COMPLETE, ScopeFrom.TASK, label = "Complete task")
     @PostMapping("/tasks/{id}/complete")
     fun complete(
         @PathVariable id: UUID,
@@ -215,7 +215,7 @@ class TaskController(
 class EventController(private val instances: InstanceService) {
 
     /** Receive endpoint for event waits, e.g. an e-signature webhook. 404 when nothing is waiting. */
-    @Requires(Permissions.EVENTS_SEND)
+    @Requires(Permissions.EVENTS_SEND, label = "Send event")
     @PostMapping("/events/{name}")
     fun receive(
         @PathVariable name: String,
@@ -231,7 +231,7 @@ class EventController(private val instances: InstanceService) {
     }
 
     /** Timeout callback for an external scheduler; the in-process poller does the same. */
-    @Requires(Permissions.INSTANCES_FIRE_TIMEOUT)
+    @Requires(Permissions.INSTANCES_FIRE_TIMEOUT, label = "Fire timeout")
     @PostMapping("/timeouts/{instanceId}/{step}")
     fun timeout(
         @PathVariable instanceId: UUID,
@@ -243,7 +243,7 @@ class EventController(private val instances: InstanceService) {
 /** The caller's own permissions for this app, for the UI's `can()`. Any signed-in person may ask. */
 @RestController
 class MeController(private val rbac: RbacPort) {
-    @Authenticated
+    @Authenticated(label = "Show my access", action = "me.read")
     @GetMapping("/me")
     fun me(@RequestAttribute(Identity.LOGIN) login: String): Map<String, Any?> = mapOf(
         "login" to login,
@@ -255,7 +255,7 @@ class MeController(private val rbac: RbacPort) {
 /** Dev convenience for the console and the persona switch: who the console can act as. Dev only, in practice. */
 @RestController
 class RbacController(private val rbac: RbacPort) {
-    @Requires(Permissions.PEOPLE_READ)
+    @Requires(Permissions.PEOPLE_READ, label = "List people")
     @GetMapping("/rbac/people")
     fun people(): List<Map<String, Any>> = rbac.people().map { mapOf("user" to it.login, "name" to it.name, "teams" to it.teams, "grants" to it.grants.map { g -> mapOf("role" to g.role, "scope" to g.scope) }) }
 }

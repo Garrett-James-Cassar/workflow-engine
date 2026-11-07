@@ -8,19 +8,21 @@ package dev.workflow.app.security
 enum class ScopeFrom { NONE, TASK, LIST }
 
 /**
- * Declares the permission a route needs (deny by default: a route without one fails
+ * Declares the permission a route needs and its [label]: a short, verb-first, sentence-case name in the
+ * words of UI-SPEC.md ("Start run"). Every log line written while the route runs carries the label
+ * (OBSERVABILITY.md, endpoint labels) (deny by default: a route without one fails
  * `RouteAuthorizationTest`). The service layer makes the check before doing work.
  */
 @Retention(AnnotationRetention.RUNTIME)
 @Target(AnnotationTarget.FUNCTION)
-annotation class Requires(val permission: String, val scope: ScopeFrom = ScopeFrom.NONE)
+annotation class Requires(val permission: String, val scope: ScopeFrom = ScopeFrom.NONE, val label: String)
 
-/** Any signed-in person, with no permission needed (the caller's own `/me`). */
+/** Any signed-in person, with no permission needed (the caller's own `/me`). [action] stands where a permission name would. */
 @Retention(AnnotationRetention.RUNTIME)
 @Target(AnnotationTarget.FUNCTION)
-annotation class Authenticated
+annotation class Authenticated(val label: String, val action: String)
 
-/** Open to everyone: health and API docs only. */
+/** Open to everyone: health, API docs and the demo providers. Unlabelled: logs name the route, such as `GET /health`. */
 @Retention(AnnotationRetention.RUNTIME)
 @Target(AnnotationTarget.FUNCTION)
 annotation class Public
