@@ -75,7 +75,7 @@ class AccessLogFilter(private val tracer: ObjectProvider<Tracer>) : OncePerReque
 class EventDatasetCustomizer : StructuredLoggingJsonMembersCustomizer<ILoggingEvent> {
     override fun customize(members: JsonWriter.Members<ILoggingEvent>) {
         members.add("event.dataset") { e: ILoggingEvent -> if (e.loggerName == ACCESS_LOGGER) null else APP_DATASET }.whenNotNull()
-        members.add("trace.id") { e: ILoggingEvent -> e.mdcPropertyMap["traceId"] }.whenNotNull()
-        members.add("span.id") { e: ILoggingEvent -> e.mdcPropertyMap["spanId"] }.whenNotNull()
+        members.add("trace") { e: ILoggingEvent -> e.mdcPropertyMap["traceId"]?.let { mapOf("id" to it) } }.whenNotNull()
+        members.add("span") { e: ILoggingEvent -> e.mdcPropertyMap["spanId"]?.let { mapOf("id" to it) } }.whenNotNull()
     }
 }
