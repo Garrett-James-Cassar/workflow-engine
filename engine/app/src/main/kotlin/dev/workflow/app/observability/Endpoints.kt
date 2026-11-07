@@ -33,9 +33,9 @@ annotation class Job(val label: String, val action: String)
  */
 object EndpointContext {
     const val APP = "workflow-engine"
-    const val ENDPOINT = "fleet.endpoint"
-    const val ACTION = "fleet.action"
-    const val ORIGIN = "fleet.origin"
+    const val ENDPOINT = "labels.endpoint"
+    const val ACTION = "event.action"
+    const val ORIGIN = "labels.origin"
     const val BAGGAGE = "baggage"
     const val ORIGIN_KEY = "fleet.origin"
     private const val MAX_ORIGIN = 200

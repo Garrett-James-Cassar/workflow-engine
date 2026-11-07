@@ -61,32 +61,21 @@ class AccessLogFilter(private val tracer: ObjectProvider<Tracer>) : OncePerReque
             .addKeyValue("http.response.status_code", status)
             .addKeyValue("event.dataset", ACCESS_LOGGER)
             .addKeyValue("event.duration", nanos)
-            .also { b -> MDC.get(EndpointContext.ACTION)?.let { b.addKeyValue("event.action", it) } }
             .also { b -> (request.getAttribute(Identity.LOGIN) as String?)?.let { b.addKeyValue("user.name", it) } }
             .log("Request completed")
     }
 }
 
 /**
- * ECS fields Boot's formatter does not fill by itself, all read from the MDC: `event.dataset` and `event.action`
- * (request lines set their own, so they get none here), `labels.endpoint` and `labels.origin` (the endpoint label
- * and the endpoint that started the chain), and `trace.id` / `span.id` from the active span (Micrometer Tracing
- * puts them in the MDC as traceId and spanId). A line written outside a span or a request has none of them.
+ * ECS fields Boot's formatter does not fill by itself. `event.dataset` for app lines (the access line sets its own);
+ * `trace.id` / `span.id` from the active span (Micrometer Tracing puts them in the MDC as traceId and spanId).
+ * `labels.endpoint`, `labels.origin` and `event.action` need no code here: LabelledAppender puts them in every
+ * record's MDC under those names and Boot's formatter nests the dotted keys.
  */
 class EventDatasetCustomizer : StructuredLoggingJsonMembersCustomizer<ILoggingEvent> {
     override fun customize(members: JsonWriter.Members<ILoggingEvent>) {
-        members.add("event") { e: ILoggingEvent -> if (e.loggerName == ACCESS_LOGGER) null else appEvent(e) }.whenNotNull()
-        members.add("labels") { e: ILoggingEvent -> labels(e) }.whenNotNull()
-        members.add("trace") { e: ILoggingEvent -> e.mdcPropertyMap["traceId"]?.let { mapOf("id" to it) } }.whenNotNull()
-        members.add("span") { e: ILoggingEvent -> e.mdcPropertyMap["spanId"]?.let { mapOf("id" to it) } }.whenNotNull()
+        members.add("event.dataset") { e: ILoggingEvent -> if (e.loggerName == ACCESS_LOGGER) null else APP_DATASET }.whenNotNull()
+        members.add("trace.id") { e: ILoggingEvent -> e.mdcPropertyMap["traceId"] }.whenNotNull()
+        members.add("span.id") { e: ILoggingEvent -> e.mdcPropertyMap["spanId"] }.whenNotNull()
     }
-
-    private fun appEvent(e: ILoggingEvent): Map<String, String> =
-        listOfNotNull("dataset" to APP_DATASET, e.mdcPropertyMap[EndpointContext.ACTION]?.let { "action" to it }).toMap()
-
-    private fun labels(e: ILoggingEvent): Map<String, String>? =
-        listOfNotNull(
-            e.mdcPropertyMap[EndpointContext.ENDPOINT]?.let { "endpoint" to it },
-            e.mdcPropertyMap[EndpointContext.ORIGIN]?.let { "origin" to it },
-        ).toMap().takeIf { it.isNotEmpty() }
 }
