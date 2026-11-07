@@ -10,6 +10,11 @@
 - Role map in `fleet-layers.json`, described in `ARCHITECTURE.md`. Controllers (`app/api`) call services (`app/runtime`, `app/security`) and mappers only; services see ports (`app/ports`) and `app/domain`; `persistence`, `clients` and `adapters` implement the ports; `config` is the composition root.
 - Enforced in `./gradlew check`: `ArchitectureTest` (ArchUnit), `detektEdge` and `detektCore` (limits in `config/detekt/*.yml`; never raise one or suppress a finding), and `duplication` (jscpd under 3%). A new class must land in a role package.
 
+## Input limits (fleet SECURITY.md)
+- Every route has a request schema: Bean Validation on bodies (`@Valid`), path and query (`@Name`, `@Min`/`@Max`, `@Pattern`); no hand-written input checks in handlers. Jackson rejects unknown fields (`fail-on-unknown-properties`). Rejections are 400 problem+json with `errors[]` of paths (`config/web/ValidationProblems.kt`), never values; `BodyGuardFilter` answers 413 (1 MB) and 415. `InputValidationTest` fails if a route has no schema.
+- Rate limits (Bucket4j, `config/web/RateLimitInterceptor.kt`), per user else IP: read 300, write 60, heavy 20 per minute (`RATE_LIMIT_*_PER_MIN`). Mark an expensive route `@Requires(..., heavy = true)`. `RATE_LIMIT_ENABLED=false` only in tests (`ApiTest`).
+- Responses are validated against the DTO constraints in dev auth mode (500 on a mismatch), logged at error in live.
+
 ## API versioning
 - Every business route is served under `/api/v1` (`api/ApiVersion.kt` mounts it once, for the controllers in `dev.workflow.app.api`). `/health`, `/docs`, `/openapi.json` and the `/demo/*` helpers stay at the root; OpenAPI lists `servers: [{url: /api/v1}]`.
 - The old unversioned paths still answer as deprecated aliases (`Deprecation`, `Sunset` 90 days out, `Link: …; rel="successor-version"`), until the fleet callers have moved; then delete `DeprecatedAliasFilter`.

@@ -22,7 +22,7 @@ class DemoController(private val gate: DemoGate) {
         return mapOf("enabled" to true)
     }
 
-    @Requires(Permissions.DEMO_RESET, label = "Reset demo data")
+    @Requires(Permissions.DEMO_RESET, label = "Reset demo data", heavy = true)
     @PostMapping("/demo/reset")
     fun reset(): Map<String, Any> {
         gate.reset()

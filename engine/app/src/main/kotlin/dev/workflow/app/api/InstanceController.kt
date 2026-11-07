@@ -1,7 +1,12 @@
 package dev.workflow.app.api
 
 import dev.workflow.app.api.dtos.EventView
+import dev.workflow.app.api.dtos.Name
+import jakarta.validation.Valid
+import jakarta.validation.constraints.Max
+import jakarta.validation.constraints.Min
 import dev.workflow.app.api.dtos.InstanceView
+import dev.workflow.app.api.dtos.Limits
 import dev.workflow.app.api.dtos.RestartRequest
 import dev.workflow.app.api.dtos.StartRequest
 import dev.workflow.app.mappers.EventMapper
@@ -25,19 +30,19 @@ import java.util.UUID
 @RestController
 class InstanceController(private val instances: InstanceService, private val queries: RunQueries) {
 
-    @Requires(Permissions.INSTANCES_START, label = "Start run")
+    @Requires(Permissions.INSTANCES_START, label = "Start run", heavy = true)
     @PostMapping("/definitions/{name}/instances")
     @ResponseStatus(HttpStatus.CREATED)
     fun start(
-        @PathVariable name: String,
-        @RequestBody(required = false) body: StartRequest?,
+        @PathVariable @Name name: String,
+        @Valid @RequestBody(required = false) body: StartRequest?,
         @RequestAttribute(Identity.LOGIN) login: String,
     ): InstanceView = view(instances.start(name, body?.vars.orEmpty(), login))
 
     @Requires(Permissions.INSTANCES_READ, label = "List runs")
     @GetMapping("/instances")
-    fun list(@RequestParam(defaultValue = "50") limit: Int): List<InstanceView> =
-        queries.recent(limit.coerceIn(1, 500)).map(InstanceMapper::view)
+    fun list(@RequestParam(defaultValue = "50") @Min(1) @Max(Limits.MAX_PAGE) limit: Int): List<InstanceView> =
+        queries.recent(limit).map(InstanceMapper::view)
 
     @Requires(Permissions.INSTANCES_READ, label = "Show run")
     @GetMapping("/instances/{id}")
@@ -48,16 +53,16 @@ class InstanceController(private val instances: InstanceService, private val que
     fun events(@PathVariable id: UUID): List<EventView> = queries.events(id).map(EventMapper::view)
 
     /** Support restart at a user task. Needs the workflow-support role. */
-    @Requires(Permissions.INSTANCES_RESTART, label = "Restart at step")
+    @Requires(Permissions.INSTANCES_RESTART, label = "Restart at step", heavy = true)
     @PostMapping("/instances/{id}/restart")
     fun restart(
         @PathVariable id: UUID,
-        @RequestBody body: RestartRequest,
+        @Valid @RequestBody body: RestartRequest,
         @RequestAttribute(Identity.LOGIN) login: String,
     ): InstanceView = view(instances.restartAt(id, login, body.step))
 
     /** Re-run the step an incident stopped at. */
-    @Requires(Permissions.INSTANCES_RETRY, label = "Retry step")
+    @Requires(Permissions.INSTANCES_RETRY, label = "Retry step", heavy = true)
     @PostMapping("/instances/{id}/retry")
     fun retry(@PathVariable id: UUID, @RequestAttribute(Identity.LOGIN) login: String): InstanceView =
         view(instances.retry(id, login))

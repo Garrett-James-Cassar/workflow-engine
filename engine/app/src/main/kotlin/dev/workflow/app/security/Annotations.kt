@@ -11,11 +11,12 @@ enum class ScopeFrom { NONE, TASK, LIST }
  * Declares the permission a route needs and its [label]: a short, verb-first, sentence-case name in the
  * words of UI-SPEC.md ("Start run"). Every log line written while the route runs carries the label
  * (OBSERVABILITY.md, endpoint labels) (deny by default: a route without one fails
- * `RouteAuthorizationTest`). The service layer makes the check before doing work.
+ * `RouteAuthorizationTest`). The service layer makes the check before doing work. [heavy] puts the route in the
+ * expensive rate-limit class (runs the engine, calls out or resets data); reads and writes are classed by method.
  */
 @Retention(AnnotationRetention.RUNTIME)
 @Target(AnnotationTarget.FUNCTION)
-annotation class Requires(val permission: String, val scope: ScopeFrom = ScopeFrom.NONE, val label: String)
+annotation class Requires(val permission: String, val scope: ScopeFrom = ScopeFrom.NONE, val label: String, val heavy: Boolean = false)
 
 /** Any signed-in person, with no permission needed (the caller's own `/me`). [action] stands where a permission name would. */
 @Retention(AnnotationRetention.RUNTIME)

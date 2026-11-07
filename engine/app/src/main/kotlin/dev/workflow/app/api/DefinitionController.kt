@@ -15,6 +15,11 @@ import dev.workflow.core.toGraph
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
+import dev.workflow.app.api.dtos.Limits
+import dev.workflow.app.api.dtos.Name
+import jakarta.validation.Valid
+import jakarta.validation.constraints.Max
+import jakarta.validation.constraints.Min
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestHeader
@@ -37,12 +42,12 @@ class DefinitionController(private val definitions: DefinitionService) {
 
     @Requires(Permissions.WORKFLOWS_READ, label = "Show workflow")
     @GetMapping("/definitions/{name}")
-    fun get(@PathVariable name: String, @RequestParam(required = false) version: Int?): DefinitionView =
+    fun get(@PathVariable @Name name: String, @RequestParam(required = false) @Min(1) @Max(Limits.MAX_VERSION) version: Int?): DefinitionView =
         DefinitionMapper.view(definitions.definition(name, version))
 
     @Requires(Permissions.WORKFLOWS_READ, label = "Show workflow graph")
     @GetMapping("/definitions/{name}/graph")
-    fun graph(@PathVariable name: String, @RequestParam(required = false) version: Int?): GraphView =
+    fun graph(@PathVariable @Name name: String, @RequestParam(required = false) @Min(1) @Max(Limits.MAX_VERSION) version: Int?): GraphView =
         GraphMapper.view(definitions.definition(name, version).toGraph())
 
     /**
@@ -53,8 +58,8 @@ class DefinitionController(private val definitions: DefinitionService) {
     @Requires(Permissions.WORKFLOWS_READ, label = "Export workflow")
     @GetMapping("/definitions/{name}/export")
     fun export(
-        @PathVariable name: String,
-        query: ExportQuery,
+        @PathVariable @Name name: String,
+        @Valid query: ExportQuery,
         @RequestHeader(HttpHeaders.ACCEPT, required = false) accept: String?,
     ): ResponseEntity<Any> =
         ExportMapper.render(definitions.definition(name, query.version), query.format, accept)

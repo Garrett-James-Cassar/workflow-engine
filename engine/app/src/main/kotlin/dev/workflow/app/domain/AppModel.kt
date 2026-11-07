@@ -1,5 +1,6 @@
 package dev.workflow.app.domain
 
+import tools.jackson.databind.DeserializationFeature
 import tools.jackson.databind.json.JsonMapper
 import tools.jackson.module.kotlin.readValue
 
@@ -18,6 +19,8 @@ data class AppModel(
     companion object {
         const val RESOURCE = "rbac/workflow-engine.json"
 
-        fun load(json: JsonMapper, text: String): AppModel = json.readValue(text)
+        /** The persona file is the fleet's shared file: it may carry fields this app does not read, so it is read leniently. */
+        fun load(json: JsonMapper, text: String): AppModel =
+            json.rebuild().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES).build().readValue(text)
     }
 }

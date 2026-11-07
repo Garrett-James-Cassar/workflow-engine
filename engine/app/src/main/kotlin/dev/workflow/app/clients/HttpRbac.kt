@@ -1,5 +1,6 @@
 package dev.workflow.app.clients
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import dev.workflow.app.adapters.LocalRbac
 import dev.workflow.app.domain.PermissionGrant
 import dev.workflow.app.domain.PersonInfo
@@ -22,8 +23,11 @@ class HttpRbac(baseUrl: String, builder: RestClient.Builder, private val app: St
     private val client = builder.baseUrl(baseUrl.trimEnd('/')).build()
 
     private data class CheckBody(val login: String, val app: String? = null, val permission: String? = null, val role: String? = null, val scope: Map<String, String>)
+    @JsonIgnoreProperties(ignoreUnknown = true)
     private data class CheckReply(val allowed: Boolean, val reason: String)
+    @JsonIgnoreProperties(ignoreUnknown = true)
     private data class PermissionRow(val permission: String, val scope: Map<String, String>)
+    @JsonIgnoreProperties(ignoreUnknown = true)
     private data class PermissionsReply(val permissions: List<PermissionRow>)
 
     private fun <T> call(block: () -> T): T = try {

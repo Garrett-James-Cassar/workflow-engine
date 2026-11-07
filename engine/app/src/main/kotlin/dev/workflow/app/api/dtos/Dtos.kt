@@ -1,22 +1,54 @@
 package dev.workflow.app.api.dtos
 
+import com.fasterxml.jackson.annotation.JsonInclude
+import jakarta.validation.constraints.Max
+import jakarta.validation.constraints.Min
+import jakarta.validation.constraints.NotBlank
+import jakarta.validation.constraints.Pattern
+import jakarta.validation.constraints.Size
 import java.time.Instant
 import java.util.UUID
 
-data class StartRequest(val vars: Map<String, Any?> = emptyMap())
+/** Request schemas (SECURITY.md): unknown fields are rejected (Jackson), lengths and counts are capped here. */
+data class StartRequest(@field:Size(max = Limits.MAP_ITEMS) val vars: Map<String, Any?> = emptyMap())
 
 /** Reassign an open task to a user (`toTeam` false) or a team (`toTeam` true, e.g. "legal"). */
-data class ReassignRequest(val to: String, val toTeam: Boolean = false, val scope: Map<String, String> = emptyMap())
+data class ReassignRequest(
+    @field:Name val to: String,
+    val toTeam: Boolean = false,
+    @field:Size(max = Limits.SCOPE_ITEMS) val scope: Map<String, String> = emptyMap(),
+)
 
-data class RestartRequest(val step: String)
+data class RestartRequest(@field:Name val step: String)
 
-data class CompleteTaskRequest(val outcome: String, val form: Map<String, Any?> = emptyMap())
+data class CompleteTaskRequest(
+    @field:Name val outcome: String,
+    @field:Size(max = Limits.MAP_ITEMS) val form: Map<String, Any?> = emptyMap(),
+)
 
-data class EventRequest(val correlation: Map<String, String> = emptyMap(), val payload: Map<String, Any?> = emptyMap())
+data class EventRequest(
+    @field:Size(max = Limits.SCOPE_ITEMS) val correlation: Map<String, String> = emptyMap(),
+    @field:Size(max = Limits.MAP_ITEMS) val payload: Map<String, Any?> = emptyMap(),
+)
 
-data class EventAccepted(val woke: List<UUID>)
+/** Schema limits shared by the request DTOs and the controller parameters. */
+object Limits {
+    const val NAME = 100
+    const val ID = "^[A-Za-z0-9._:-]+$"
+    const val MAP_ITEMS = 200
+    const val SCOPE_ITEMS = 20
+    const val MAX_PAGE = 500L
+    const val MAX_VERSION = 100_000L
+}
 
-data class DefinitionSummary(val name: String, val latestVersion: Int, val versions: List<Int>, val steps: Int)
+data class EventAccepted(@field:Size(max = 10_000) val woke: List<UUID>)
+
+data class DefinitionSummary(
+    @field:NotBlank val name: String,
+    @field:Min(1) val latestVersion: Int,
+    val versions: List<Int>,
+    @field:Min(0) val steps: Int,
+)
 
 data class DefinitionView(
     val name: String,
@@ -96,9 +128,16 @@ data class ErrorView(
     val status: Int = 0,
     val detail: String = error,
     val type: String = "about:blank",
+    @field:JsonInclude(JsonInclude.Include.NON_NULL) val errors: List<FieldProblem>? = null,
 )
 
-data class ExportQuery(val version: Int? = null, val format: String? = null)
+/** One rejected input: where (a path such as `payload.name`) and why, never the value. */
+data class FieldProblem(val path: String, val message: String)
+
+data class ExportQuery(
+    @field:Min(1) @field:Max(Limits.MAX_VERSION) val version: Int? = null,
+    @field:Pattern(regexp = "^(html|mermaid|graph)$") val format: String? = null,
+)
 
 /** A rendered export: its media type and the body to send. */
 data class Rendered(val mediaType: String, val body: Any)

@@ -1,6 +1,7 @@
 package dev.workflow.app.api
 
 import dev.workflow.app.api.dtos.CompleteTaskRequest
+import jakarta.validation.Valid
 import dev.workflow.app.api.dtos.InstanceView
 import dev.workflow.app.api.dtos.ReassignRequest
 import dev.workflow.app.api.dtos.TaskView
@@ -39,7 +40,7 @@ class TaskController(private val tasks: TaskService, private val queries: RunQue
     @PostMapping("/tasks/{id}/reassign")
     fun reassign(
         @PathVariable id: UUID,
-        @RequestBody body: ReassignRequest,
+        @Valid @RequestBody body: ReassignRequest,
         @RequestAttribute(Identity.LOGIN) login: String,
     ): InstanceView = view(tasks.reassignTask(id, login, TaskMapper.assignment(body)))
 
@@ -47,7 +48,7 @@ class TaskController(private val tasks: TaskService, private val queries: RunQue
     @PostMapping("/tasks/{id}/complete")
     fun complete(
         @PathVariable id: UUID,
-        @RequestBody body: CompleteTaskRequest,
+        @Valid @RequestBody body: CompleteTaskRequest,
         @RequestAttribute(Identity.LOGIN) login: String,
     ): InstanceView = view(tasks.completeTask(id, login, body.outcome, body.form))
 

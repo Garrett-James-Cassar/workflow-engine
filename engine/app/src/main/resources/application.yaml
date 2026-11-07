@@ -4,6 +4,10 @@ server:
 spring:
   application:
     name: workflow-engine
+  jackson:
+    deserialization:
+      # SECURITY.md: a body with a field the schema does not name is rejected (400).
+      fail-on-unknown-properties: true
   datasource:
     # JDBC form, e.g. jdbc:postgresql://127.0.0.1:55434/workflow
     url: ${DATABASE_URL:jdbc:postgresql://127.0.0.1:55434/workflow}
@@ -52,6 +56,15 @@ management:
         base-time-unit: seconds
 
 workflow:
+  limits:
+    # Body cap in bytes (413 over it). The Content-Type must be JSON (415).
+    max-body-bytes: ${MAX_BODY_BYTES:1048576}
+  rate-limit:
+    # SECURITY.md: per user (else client IP) per minute. Disabled only in the test and NFR profiles.
+    enabled: ${RATE_LIMIT_ENABLED:true}
+    read-per-min: ${RATE_LIMIT_READ_PER_MIN:300}
+    write-per-min: ${RATE_LIMIT_WRITE_PER_MIN:60}
+    heavy-per-min: ${RATE_LIMIT_HEAVY_PER_MIN:20}
   http:
     # Hosts the built-in http { } service task may call. Empty means none.
     allowed-hosts: ${WORKFLOW_HTTP_ALLOWED_HOSTS:localhost,127.0.0.1}

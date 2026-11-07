@@ -2,6 +2,8 @@ package dev.workflow.app.api
 
 import dev.workflow.app.api.dtos.EventAccepted
 import dev.workflow.app.api.dtos.EventRequest
+import dev.workflow.app.api.dtos.Name
+import jakarta.validation.Valid
 import dev.workflow.app.runtime.InstanceService
 import dev.workflow.app.security.Identity
 import dev.workflow.app.security.Permissions
@@ -19,21 +21,21 @@ import java.util.UUID
 class EventController(private val instances: InstanceService) {
 
     /** Receive endpoint for event waits, e.g. an e-signature webhook. 404 when nothing is waiting. */
-    @Requires(Permissions.EVENTS_SEND, label = "Send event")
+    @Requires(Permissions.EVENTS_SEND, label = "Send event", heavy = true)
     @PostMapping("/events/{name}")
     @ResponseStatus(HttpStatus.ACCEPTED)
     fun receive(
-        @PathVariable name: String,
-        @RequestBody(required = false) body: EventRequest?,
+        @PathVariable @Name name: String,
+        @Valid @RequestBody(required = false) body: EventRequest?,
         @RequestAttribute(Identity.LOGIN) login: String,
     ) = EventAccepted(instances.deliverEvent(name, body?.correlation.orEmpty(), body?.payload.orEmpty(), login))
 
     /** Timeout callback for an external scheduler; the in-process poller does the same. */
-    @Requires(Permissions.INSTANCES_FIRE_TIMEOUT, label = "Fire timeout")
+    @Requires(Permissions.INSTANCES_FIRE_TIMEOUT, label = "Fire timeout", heavy = true)
     @PostMapping("/timeouts/{instanceId}/{step}")
     fun timeout(
         @PathVariable instanceId: UUID,
-        @PathVariable step: String,
+        @PathVariable @Name step: String,
         @RequestAttribute(Identity.LOGIN) login: String,
     ) = mapOf("status" to instances.fireTimeout(instanceId, step, login).status.name.lowercase())
 }

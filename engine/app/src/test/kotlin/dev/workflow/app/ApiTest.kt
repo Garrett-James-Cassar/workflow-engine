@@ -25,6 +25,7 @@ import kotlin.test.assertTrue
     properties = [
         "workflow.timeouts.poll-interval=1h",
         "workflow.service.backoff=1ms",
+        "workflow.rate-limit.enabled=false", // the limiter is disabled in tests; RateLimitTest turns it on
         "spring.datasource.url=jdbc:h2:mem:workflow-test;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH",
         "spring.datasource.username=sa",
         "spring.datasource.password=",
@@ -58,6 +59,35 @@ abstract class ApiTest {
         val res = http.send(req, HttpResponse.BodyHandlers.ofString())
         val parsed: Any? = if (res.body().isBlank()) null else runCatching { json.readValue<Any?>(res.body()) }.getOrDefault(res.body())
         return Res(res.statusCode(), parsed)
+    }
+
+    /** A response as the wire shows it: status, headers (lower-case names) and text. */
+    data class Raw(val status: Int, val headers: Map<String, String>, val text: String) {
+        @Suppress("UNCHECKED_CAST")
+        val map get() = tools.jackson.databind.json.JsonMapper.builder().build().readValue(text, Map::class.java) as Map<String, Any?>
+    }
+
+    /** Sends the exact bytes and content type given (no JSON encoding), for the rejection tests. */
+    protected fun raw(
+        method: String,
+        path: String,
+        user: String? = ADMIN,
+        body: String? = null,
+        contentType: String? = "application/json",
+        chunked: Boolean = false,
+    ): Raw {
+        val publisher = when {
+            body == null -> HttpRequest.BodyPublishers.noBody()
+            chunked -> HttpRequest.BodyPublishers.ofInputStream { body.byteInputStream() }
+            else -> HttpRequest.BodyPublishers.ofString(body)
+        }
+        val req = HttpRequest.newBuilder(URI.create("http://localhost:${env.getProperty("local.server.port")}$path"))
+            .method(method, publisher)
+            .apply { if (contentType != null) header("Content-Type", contentType) }
+            .apply { if (!user.isNullOrEmpty()) header("X-User", user) }
+            .build()
+        val res = http.send(req, HttpResponse.BodyHandlers.ofString())
+        return Raw(res.statusCode(), res.headers().map().mapValues { it.value.first() }.mapKeys { it.key.lowercase() }, res.body())
     }
 
     protected companion object {

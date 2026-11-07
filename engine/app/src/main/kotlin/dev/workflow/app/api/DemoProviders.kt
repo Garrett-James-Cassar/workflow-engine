@@ -3,6 +3,9 @@ package dev.workflow.app.api
 import dev.workflow.app.security.Public
 
 import dev.workflow.app.samples.DemoBookingSystem
+import dev.workflow.app.api.dtos.Limits
+import jakarta.validation.constraints.Size
+import jakarta.validation.constraints.Pattern
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
@@ -24,13 +27,13 @@ class DemoProviders {
     /** Sanctions/KYC screening: accepts a case and replies later via `POST /events/screening-result`. */
     @dev.workflow.app.security.Public
     @PostMapping("/screening")
-    fun screening(@RequestBody body: Map<String, Any?>) =
+    fun screening(@RequestBody @Size(max = Limits.MAP_ITEMS) body: Map<String, Any?>) =
         mapOf("caseId" to "CASE-" + UUID.randomUUID().toString().take(8), "received" to body["name"])
 
     /** Clause library: publish a change and get the new version. */
     @dev.workflow.app.security.Public
     @PostMapping("/clause-store/publish")
-    fun publish(@RequestBody body: Map<String, Any?>) =
+    fun publish(@RequestBody @Size(max = Limits.MAP_ITEMS) body: Map<String, Any?>) =
         mapOf("clause" to body["clauseId"], "version" to publishedVersions.incrementAndGet())
 
     @dev.workflow.app.security.Public
@@ -40,7 +43,7 @@ class DemoProviders {
     /** Switch the fake booking system off/on to drive incidents and retries. */
     @dev.workflow.app.security.Public
     @PostMapping("/booking-system/{state}")
-    fun bookingSystem(@PathVariable state: String): Map<String, Any> {
+    fun bookingSystem(@PathVariable @Pattern(regexp = "^(up|down)$") state: String): Map<String, Any> {
         DemoBookingSystem.up.set(state == "up")
         return mapOf("up" to DemoBookingSystem.up.get())
     }
