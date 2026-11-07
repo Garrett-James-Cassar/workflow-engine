@@ -6,6 +6,10 @@
 - Tests: core uses kotlin.test; compile-fail cases live in `CompileFailTest` (in-process kotlinc). App e2e uses Testcontainers Postgres plus a `MutableClock`. Prefix test names with the milestone (`E5 …`).
 - Gate: `make ci` (`./gradlew check`).
 
+## Observability
+- Logs are ECS JSON on stdout (`logging.structured` in `application.yaml`, `logback-spring.xml`); no `println` in production code (`NoStrayOutputTest`). Tracing is Boot's OpenTelemetry support: OTLP export (traces, metrics, logs) is off unless `OTEL_EXPORTER_OTLP_ENDPOINT` is set.
+- Every route declares a human label next to its permission: `@Requires(Permissions.X, label = "Start run")` (verb-first, sentence case, UI-SPEC words); `@Public` routes use their route. Every `@Scheduled` job carries `@Job(label, action)`. `RouteInventoryTest` fails otherwise. The label, `event.action` and `labels.origin` are on every log line and span (`observability/Endpoints.kt`).
+
 ## Trunk-based development
 - Work directly on `main`. No feature branches, no worktrees, no PRs.
 - Make small commits. Run the fast gate (`./gradlew :engine:app:test :engine:core:test && pnpm -C apps/web lint && pnpm -C apps/web test`) before each commit.

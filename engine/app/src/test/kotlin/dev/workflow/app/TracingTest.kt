@@ -110,7 +110,9 @@ class TracingTest : ApiTest() {
         assertEquals("workflow-engine: Start run", server.attr("fleet.origin"))
         assertTrue(exported.any { it.name == "workflow.instance.start" }, "one manual span per use case: ${exported.map { it.name }}")
         assertTrue(exported.any { it.attr("db.system") != null || it.attr("db.system.name") != null }, "DB spans: ${exported.map { it.name }}")
-        assertTrue(meters.find("http.server.request.duration").timer() != null, "RED server histogram")
+        val serverTimer = meters.find("http.server.request.duration").timer()
+        assertNotNull(serverTimer, "RED server histogram")
+        listOf("http.request.method", "http.response.status_code", "http.route").forEach { assertNotNull(serverTimer.id.getTag(it), "semconv tag $it on ${serverTimer.id.tags}") }
     }
 
     @Test
@@ -134,7 +136,9 @@ class TracingTest : ApiTest() {
             val other = "00-0af7651916cd43dd8448eb211c80319c-00f067aa0ba902b7-01"
             assertEquals(201, post("/definitions/http-callout/instances", mapOf("traceparent" to other), vars).statusCode())
             assertEquals("workflow-engine: Start run", originOf(seen["baggage"]), "without one, this app's own origin is sent: ${seen["baggage"]}")
-            assertTrue(meters.find("http.client.request.duration").timer() != null, "RED client histogram")
+            val client = meters.find("http.client.request.duration").timer()
+            assertNotNull(client, "RED client histogram")
+            listOf("http.request.method", "http.response.status_code", "server.address").forEach { assertNotNull(client.id.getTag(it), "semconv tag $it on ${client.id.tags}") }
         } finally {
             server.stop(0)
         }

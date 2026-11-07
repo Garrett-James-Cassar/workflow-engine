@@ -25,6 +25,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-restclient")
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.1")
     implementation("io.opentelemetry.instrumentation:opentelemetry-jdbc:2.28.1-alpha")
+    implementation("io.opentelemetry.instrumentation:opentelemetry-logback-appender-1.0:2.28.1-alpha")
     runtimeOnly("org.postgresql:postgresql")
 
     testImplementation(platform(SpringBootPlugin.BOM_COORDINATES))

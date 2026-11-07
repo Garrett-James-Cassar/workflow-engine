@@ -30,7 +30,10 @@ logging:
         environment: ${APP_ENV:dev}
     json:
       customizer: dev.workflow.app.observability.EventDatasetCustomizer
-      exclude: traceId,spanId,fleetEndpoint,fleetAction,fleetOrigin
+      exclude:
+        - traceId
+        - spanId
+        - fleet
 
 # OBSERVABILITY.md section 2. OTLP export is off unless OTEL_EXPORTER_OTLP_ENDPOINT is set (OtelEnvironment);
 # with it set, Boot maps the standard OTEL_* variables. Metric names follow the OTel HTTP semantic conventions.
@@ -39,14 +42,6 @@ management:
     tracing:
       # parentbased_always_on in dev and demo; live sets OTEL_TRACES_SAMPLER=parentbased_traceidratio (+ _ARG), which Boot maps.
       sampler: parent-based-always-on
-  observations:
-    http:
-      server:
-        requests:
-          name: http.server.request.duration
-      client:
-        requests:
-          name: http.client.request.duration
   metrics:
     distribution:
       percentiles-histogram:
