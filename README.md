@@ -267,15 +267,7 @@ flowchart LR
 
 ## API
 
-| Endpoint | |
-|---|---|
-| `GET /api/v1/definitions`, `/api/v1/definitions/{n}`, `/api/v1/definitions/{n}/graph`, `/api/v1/definitions/{n}/export?format=html\|mermaid\|graph` | definitions and diagrams (a browser gets the drawn picture) |
-| `POST /api/v1/definitions/{n}/api/v1/instances {vars}` | start |
-| `GET /api/v1/instances`, `/api/v1/instances/{id}`, `/api/v1/instances/{id}/api/v1/events`; `POST /api/v1/instances/{id}/retry` | instances, history, incidents |
-| `GET /api/v1/tasks?mine=true` (`X-User`); `POST /api/v1/tasks/{id}/complete {outcome, form}` | inbox and decisions (403 includes the RBAC reason) |
-| `POST /api/v1/events/{name} {correlation, payload}` | receive endpoint for event waits |
-| `POST /api/v1/timeouts/{instance}/{step}` | timeout callback; an in-process poller also fires these |
-| `GET /api/v1/rbac/grants`, `GET`/`POST /demo/...` | dev users, and the fake third parties the samples call |
+Routes, schemas and examples live in one place: the running app's `/docs` (Swagger UI) and `/openapi.json`. Business routes are under `/api/v1`; `/health`, `/docs`, `/openapi.json` and `/demo/*` are at the root. Where each route's code lives is in the "Where things live" table of [CLAUDE.md](CLAUDE.md).
 
 ## Workflow studio (apps/web)
 
@@ -283,6 +275,4 @@ A React studio for the engine, written against its own contract (`apps/web/contr
 
 ## Layout
 
-- `engine/core`: the DSL, validation, `WorkflowGraph`, `MermaidExporter` and the pure `Engine`. No I/O, no Spring.
-- `engine/app`: Spring Boot, with Postgres persistence (append-only `events`), the REST API, the service runner, the RBAC stub and the samples.
-- `docs/workflows`: generated `.mmd` and `.graph.json` files. A test fails if they are stale.
+Roles, packages and rules: [ARCHITECTURE.md](ARCHITECTURE.md). Where a route or screen lives: [CLAUDE.md](CLAUDE.md). `docs/workflows` holds the generated `.mmd` and `.graph.json` files (a test fails if they are stale).

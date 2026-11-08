@@ -1,69 +1,45 @@
 # Working in workflow-engine
 
-- `engine/core` must stay pure Kotlin (no Spring, no I/O). `Engine` is a pure transition function; the app applies its effects.
-- Every step yields an enum outcome. Routing is `on { when (it) { … } }`, and the compiler's exhaustiveness check is the feature: never add `else` branches to sample workflows.
-- New workflow: put the DSL `object : Workflow(...)` in `engine/app/.../app/workflow/` and list it in `adapters/Workflows.kt`; linked handler code lives in `app/samples`, then run `./gradlew diagrams` (DiagramsUpToDateTest fails otherwise). A behaviour change needs a version bump.
-- Tests: core uses kotlin.test; compile-fail cases live in `CompileFailTest` (in-process kotlinc). App e2e uses Testcontainers Postgres plus a `MutableClock`. Prefix test names with the milestone (`E5 …`).
-- Gate: `make ci` (`./gradlew check`).
+Kotlin 25/Spring Boot 4.1 + Gradle; React studio in `apps/web` (pnpm). Routes: `/docs`, `/openapi.json` (not copied anywhere else).
 
-## Architecture (fleet ARCHITECTURE-RULES.md)
-- Role map in `fleet-layers.json`, described in `ARCHITECTURE.md`. Controllers (`app/api`) call services (`app/runtime`, `app/security`) and mappers only; services see ports (`app/ports`) and `app/domain`; `persistence`, `clients` and `adapters` implement the ports; `config` is the composition root.
-- Enforced in `./gradlew check`: `ArchitectureTest` (ArchUnit), `detektEdge` and `detektCore` (limits in `config/detekt/*.yml`; never raise one or suppress a finding), and `duplication` (jscpd under 3%). A new class must land in a role package.
+## Invariants
+- `engine/core` is pure Kotlin (no Spring, no I/O); `Engine` is a pure transition function, the app applies its effects.
+- Every step yields an enum outcome; route with `on { when (it) { … } }`. Never add `else` branches to sample workflows.
+- New workflow: DSL `object : Workflow(...)` in `engine/app/.../app/workflow/`, list it in `adapters/Workflows.kt`, handlers in `app/samples`, then `./gradlew diagrams` (DiagramsUpToDateTest). Behaviour change = version bump.
+- Tests: core kotlin.test; compile-fail cases in `CompileFailTest`; app e2e on H2 + `MutableClock` (`ApiTest` base, one shared context); Postgres in `postgresTest`. Name tests with the milestone (`E5 …`).
 
-## Input limits (fleet SECURITY.md)
-- Every route has a request schema: Bean Validation on bodies (`@Valid`), path and query (`@Name`, `@Min`/`@Max`, `@Pattern`); no hand-written input checks in handlers. Jackson rejects unknown fields (`fail-on-unknown-properties`). Rejections are 400 problem+json with `errors[]` of paths (`config/web/ValidationProblems.kt`), never values; `BodyGuardFilter` answers 413 (1 MB) and 415. `InputValidationTest` fails if a route has no schema.
-- Rate limits (Bucket4j, `config/web/RateLimitInterceptor.kt`), per user else IP: read 300, write 60, heavy 20 per minute (`RATE_LIMIT_*_PER_MIN`). Mark an expensive route `@Requires(..., heavy = true)`. `RATE_LIMIT_ENABLED=false` only in tests (`ApiTest`).
-- Responses are validated against the DTO constraints in dev auth mode (500 on a mismatch), logged at error in live.
+## Ports, env, gate tiers
+- Engine **47831** (`PORT`), Postgres **55434** (`DATABASE_URL`, `DB_USER`, `DB_PASSWORD`), studio **5183**, demo build **15183**, rbac 47861 (`RBAC_URL`, optional). Also `AUTH_MODE`, `RATE_LIMIT_{ENABLED,READ_PER_MIN,WRITE_PER_MIN,HEAVY_PER_MIN}`, `MAX_BODY_BYTES`, `WORKFLOW_HTTP_ALLOWED_HOSTS`, `TIMEOUT_POLL_INTERVAL`, `OTEL_EXPORTER_OTLP_ENDPOINT`. `make dev` runs it; `make stop` stops it.
+- `make fast` (pre-commit; lint, typecheck, ArchUnit, detekt, H2 tests; no browser) · `make push-gate` (+ mocked smoke) · `make ci` (everything; once at the end of a task).
+- Standards, one line each: [trunk-based, fast feedback](/Users/garrett.cassar/Projects/fleet/standards/FEEDBACK.md) · [arch rules](/Users/garrett.cassar/Projects/fleet/standards/ARCHITECTURE-RULES.md) (map: `fleet-layers.json`, `ARCHITECTURE.md`) · [security](/Users/garrett.cassar/Projects/fleet/standards/SECURITY.md) · [UI style](/Users/garrett.cassar/Projects/fleet/standards/ui/STYLE.md).
+- How this app applies them (API versioning, input limits, observability, console Demo, studio decisions): [docs/conventions.md](docs/conventions.md).
 
-## API versioning
-- Every business route is served under `/api/v1` (`api/ApiVersion.kt` mounts it once, for the controllers in `dev.workflow.app.api`). `/health`, `/docs`, `/openapi.json` and the `/demo/*` helpers stay at the root; OpenAPI lists `servers: [{url: /api/v1}]`.
-- The old unversioned paths still answer as deprecated aliases (`Deprecation`, `Sunset` 90 days out, `Link: …; rel="successor-version"`), until the fleet callers have moved; then delete `DeprecatedAliasFilter`.
-- The console's single base setting is `API` in `static/app.js`; the studio's is `VITE_API_BASE_URL` plus `/api/v1`.
+## Where things live (`engine/app/src/main/kotlin/dev/workflow/app` = `app/`)
+| route / screen / concept | files |
+|---|---|
+| `/health`, `/definitions*` (list, graph, export) | `app/api/DefinitionController.kt` · `mappers/Views.kt` (`DefinitionMapper`, `ExportMapper`) · `runtime/Queries.kt` (`DefinitionService`) · `adapters/WorkflowRegistry.kt` |
+| `/definitions/{n}/instances`, `/instances*`, retry, restart | `api/InstanceController.kt` · `runtime/InstanceService.kt`, `Transitions.kt` · `persistence/InstanceRepository.kt` · DTOs `api/dtos/Dtos.kt` |
+| `/tasks*` (list, complete, reassign) | `api/TaskController.kt` · `runtime/TaskService.kt`, `FormValidation.kt` · `persistence/TaskRepository.kt` · `security/TaskAuthorizer.kt` |
+| `/events/{name}`, `/timeouts/…` | `api/EventController.kt` · `InstanceService.deliverEvent/fireTimeout` · `runtime/TimeoutPoller.kt` · `persistence/WaitRepository.kt` |
+| `/me`, `/rbac/people`, permissions | `api/AccessController.kt` · `runtime/Queries.kt` (`AccessService`) · `security/Identity.kt` (`Authorizer`), `Permissions.kt` · `adapters/LocalRbac.kt`, `clients/HttpRbac.kt` |
+| `/demo/*`, console reset | `api/DemoController.kt`, `DemoProviders.kt` · `runtime/DemoGate.kt` · `samples/` |
+| errors, validation, 413/415, rate limit | `api/ErrorHandler.kt` · `config/web/ValidationProblems.kt`, `BodyGuardFilter.kt`, `RateLimitInterceptor.kt`, `ResponseValidation.kt` |
+| `/api/v1` prefix, deprecated aliases | `config/ApiVersionConfig.kt`, `config/web/DeprecatedAliasFilter.kt` |
+| identity, labels, access log | `config/web/IdentityInterceptor.kt`, `EndpointLabelInterceptor.kt`, `AccessLogFilter.kt` · `telemetry/` |
+| DSL, validation, graph, Mermaid, `Engine` | `engine/core/src/main/kotlin/dev/workflow/core/` (`Dsl.kt`, `StepBuilders.kt`, `DefinitionValidator.kt`, `Engine.kt`) |
+| sample workflows | `app/workflow/*.kt` · handlers `app/samples/` · diagrams `docs/workflows/` |
+| console (no build) | `engine/app/src/main/resources/static/app.js`; Demo specs `engine/console-e2e/cypress/e2e/chapters`, player `static/console-demo/` (committed; `make console-build`) |
+| studio screens (workflows, runs, tasks, events, incidents) | `apps/web/src/routes/<name>/` · port `src/api/port.ts` · mock `src/mocks/routes-*.ts` · contract `apps/web/contract/openapi.yaml` · specs `apps/web/cypress/e2e/` · spec text `UI-SPEC.md` |
 
-## Observability
-- Logs are ECS JSON on stdout (`logging.structured` in `application.yaml`, `logback-spring.xml`); no `println` in production code (`NoStrayOutputTest`). Tracing is Boot's OpenTelemetry support: OTLP export (traces, metrics, logs) is off unless `OTEL_EXPORTER_OTLP_ENDPOINT` is set.
-- Every route declares a human label next to its permission: `@Requires(Permissions.X, label = "Start run")` (verb-first, sentence case, UI-SPEC words); `@Public` routes use their route. Every `@Scheduled` job carries `@Job(label, action)`. `RouteInventoryTest` fails otherwise. The label, `event.action` and `labels.origin` are on every log line and span (`observability/Endpoints.kt`).
+## Gotchas
+- macOS `sed -i` is BSD: use Edit or Python. Use absolute paths; the shell cwd resets.
+- Build the code before trusting detekt: it parses but does not compile. Run `./gradlew :engine:app:test` after a refactor.
+- `ApiTest` sets `workflow.rate-limit.enabled=false`; `RateLimitTest` is the one test with the limiter on. A new test needing its own context costs 5–10 s.
+- Cypress next to a busy Gradle times out (10 s): `make ci` runs it after the parallel part. Specs pass alone.
+- The Gradle daemon has a short PATH: `npx` (jscpd) is found via `sh -c` in `engine/app/build.gradle.kts`.
+- Rbac persona file is read leniently; Jackson is strict everywhere else (unknown fields → 400).
 
-## Trunk-based development
-- Work directly on `main`. No feature branches, no worktrees, no PRs.
-- Make small commits. Run the fast gate (`./gradlew :engine:app:test :engine:core:test && pnpm -C apps/web lint && pnpm -C apps/web test`) before each commit.
-- The full gate (`make ci`) runs once at the end of each task.
-- Keep `main` green at all times. If it's red, fixing it comes before anything else.
-- Unfinished features go behind a flag or a demo/mock mode, not on a branch.
-- Push only via the coordinator's `/fleet-push`, never force-push.
-
-## Fleet deviations (UI)
-The console in `engine/app/src/main/resources/static` is a no-build page and **the Demo surface**: it runs against the real engine (dev auth), and its Demo plays real Cypress specs in the viewer's own tab. The React studio in `apps/web` is the mocked test UI against its own contract.
-
-Console Demo (`engine/console-e2e`, a pnpm package beside `apps/web`):
-- The 8 chapters are the specs in `engine/console-e2e/cypress/e2e/chapters`, listed in `src/chapters.ts` (a title must match its `it(...)`). The same files run under real Cypress and in-page (`src/vendor/runtime.ts`, vendored from the studio). Stay inside the command subset that runtime supports.
-- Hooks are `data-cy` attributes in `app.js`. Add one there, then use it from a spec; never select by text or class.
-- The player is built to `static/console-demo/` and **committed**. After changing `src/`, run `make console-build`; `make console-bundle-check` (in `console-ci`) fails if it is stale.
-- The console loads the player only when `GET /demo/status` answers 200 (dev auth, `DEMO_ENABLED` not false); live gets 404. `POST /demo/reset` seeds each chapter.
-- Actions go as the person chosen in the sidebar (`X-User`); pages are read as the auditor `r.viewer`, and the directory as `e.admin`. Only in dev auth.
-- Gate: `make dev`, then `make console-ci` (typecheck, bundle freshness, chapters + smoke + layout, Demo chapters unpaced). CI runs it in the `console` job. `make demo` opens `/?demo`; `make share` tunnels the engine through ngrok (dev auth trusts `X-User`: share only for a demo).
-- Layout is STYLE v1.5: `.page` 12-column grid, `.main-col`/`.side-col` for the Detail archetype, `.page.fill` lists fill the height. `cypress/e2e/layout` proves it at 1920×1080, 1440×900 and 390×844.
-
-Console deviations from STYLE:
-- **Fonts:** it uses the fallback stacks, not self-hosted fontsource fonts. There is no build step to bundle them.
-- **Tables:** they are plain tables, not FleetGrid. They are small dev lists, so the console is grid-exempt.
-- **Icons:** unicode glyphs stand in for lucide icons. Every status still shows a word.
-- **Mermaid:** vendored at `static/vendor/mermaid.min.js` (11.4.1, copied from `apps/web`'s dependency), no CDN. Diagrams render on a light `--paper` panel so the exporter's node fills read the same as on GitHub.
-
-## UI standards (workflow studio, `apps/web`)
-
-`apps/web` is the new React studio (pnpm package beside the Gradle build). It is written against its own contract, `apps/web/contract/openapi.yaml` (the API it wants, under `/api/v1`), never against the engine's current endpoints. Components see only the `ApiPort` interface in `apps/web/src/api`. Pointing it at a real backend means writing one new adapter. UI work in `apps/web` does not change `engine/*` or the static console.
-
-Binding docs: `/Users/garrett.cassar/Projects/fleet/standards/ui/STYLE.md` v1.4 (with `specimen.html`), `INDEPENDENCE.md`, `ports.json`, [`UI-SPEC.md`](UI-SPEC.md) (keep it current: ui.2) and [`docs/ui-plan.md`](docs/ui-plan.md).
-
-Decisions (don't relitigate; raise concerns in `docs/ui-plan.md` §8):
-- React 18 + Vite + TypeScript + Tailwind with STYLE tokens exactly. Web dev port **5183** (`strictPort`); the fleet serves the demo build on **15183**. The demo build is `pnpm -C apps/web build:demo` (`vite build --mode demo`) and needs no backend.
-- Contract first: edit `contract/openapi.yaml`, then `pnpm -C apps/web gen:api`. The mock must pass `src/mocks/contract.test.ts` (part of `make ci`).
-- `VITE_MODE` = `mock` (MSW + seeded Object Mother, paging/sort/filter, 150–400 ms, `?scenario=empty|error|slow`) | `demo` (the mock reset per load, mode banner, Demo button with the 7 chapters) | `live` (`VITE_API_BASE_URL`). The mock routes by following the exported graph's outcome edges through a small table, never a second copy of engine logic.
-- Every data table is a local `FleetGrid` (AG Grid Community, `fleetGridTheme`, `minWidth` on every column). Anything else is grid-exempt in UI-SPEC.md. Statuses are our own words on the five STYLE colours (UI-SPEC "Statuses").
-- Every operation goes through `can(permission)` (true until central RBAC lands: ui.3/4/6 are tbd). The "Acting as" persona sends `X-User`. Histories (runs, incidents) are export-only.
-- Cypress only: `cypress/e2e/{smoke,features,demo}`, `data-cy`, `cy.a11y()` (cypress-axe) in smoke, coverage ≥ 80%, smoke on lefthook pre-push, `cy:live` nightly. The 7 Demo chapters are real specs played in-page. The engine's Preview mode (E8) is not part of this.
-- `make ci` = Gradle `check` plus the web gate (`make web-ci`). `make share` serves the demo build via ngrok (`NGROK_AUTHTOKEN` from env).
-
-### Fleet deviations (apps/web)
-- `src/demo/vendor` is vendored from rules-engine's walkthrough runtime and excluded from lint and complexity gates.
+## Do not touch
+- Detekt limits (`config/detekt/*.yml`), ArchUnit rules, `.jscpd.json` threshold: never raise or suppress; fix the code.
+- `static/console-demo/` and `static/vendor/` by hand (built or vendored); `apps/web/src/api/generated/` (run `gen:api`); `apps/web/src/demo/vendor`.
+- Never push; only the coordinator's `/fleet-push`.
