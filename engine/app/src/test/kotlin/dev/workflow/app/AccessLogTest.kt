@@ -4,7 +4,6 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.boot.test.system.CapturedOutput
 import org.springframework.boot.test.system.OutputCaptureExtension
-import org.springframework.test.context.TestPropertySource
 import tools.jackson.module.kotlin.readValue
 import java.net.URI
 import java.net.http.HttpClient
@@ -17,12 +16,6 @@ import kotlin.test.assertTrue
 
 /** obs.1: ECS JSON on stdout. Its own context (own DB name), so stdout is captured from startup. */
 @ExtendWith(OutputCaptureExtension::class)
-@TestPropertySource(
-    properties = [
-        "spring.datasource.url=jdbc:h2:mem:workflow-obs;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH",
-        "logging.structured.ecs.service.environment=test",
-    ],
-)
 class AccessLogTest : ApiTest() {
     private val client = HttpClient.newHttpClient()
 

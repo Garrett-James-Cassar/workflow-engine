@@ -17,8 +17,6 @@ import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.boot.test.system.CapturedOutput
 import org.springframework.boot.test.system.OutputCaptureExtension
 import org.springframework.context.annotation.Bean
-import org.springframework.context.annotation.Import
-import org.springframework.test.context.TestPropertySource
 import tools.jackson.module.kotlin.readValue
 import java.net.InetSocketAddress
 import java.net.URI
@@ -39,13 +37,6 @@ class SpanCapture {
 
 /** obs.2, obs.4, obs.5 and the endpoint labels, with an in-memory span exporter (no collector needed). */
 @ExtendWith(OutputCaptureExtension::class)
-@Import(SpanCapture::class)
-@TestPropertySource(
-    properties = [
-        "spring.datasource.url=jdbc:h2:mem:workflow-trace;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH",
-        "workflow.http.allowed-hosts=localhost,127.0.0.1",
-    ],
-)
 class TracingTest : ApiTest() {
     @Autowired lateinit var spans: InMemorySpanExporter
     @Autowired lateinit var meters: MeterRegistry

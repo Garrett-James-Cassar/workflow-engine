@@ -20,11 +20,13 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@Import(TestSupport::class)
+@Import(TestSupport::class, SpanCapture::class)
 @TestPropertySource(
     properties = [
         "workflow.timeouts.poll-interval=1h",
         "workflow.service.backoff=1ms",
+        "logging.structured.ecs.service.environment=test",
+        "workflow.http.allowed-hosts=localhost,127.0.0.1",
         "workflow.rate-limit.enabled=false", // the limiter is disabled in tests; RateLimitTest turns it on
         "spring.datasource.url=jdbc:h2:mem:workflow-test;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH",
         "spring.datasource.username=sa",

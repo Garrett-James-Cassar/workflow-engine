@@ -1,19 +1,17 @@
 # Git hooks (fleet standard: lefthook). `make hooks` installs them.
 #
-# pre-commit (t.be.e, ci.a): the backend suite on in-memory H2, web lint + unit, and
-#   gitleaks on the staged changes, in 30 s or less; blocks the commit on failure. No Docker.
-# pre-push (t.e2e.c, ci.a): the web smoke specs (Cypress over the mock profile).
+# pre-commit (t.be.e, ci.a): `make fast` (lint, typecheck, ArchUnit + detekt limits, backend suite on in-memory H2,
+#   web unit; no Docker, no browser) and gitleaks on the staged changes; blocks the commit on failure.
+# pre-push (t.e2e.c, ci.a): `make push-gate` = fast + the mocked web smoke specs.
 #   The full suites run in `make ci` / CI.
 pre-commit:
+  parallel: true
   jobs:
-    - name: backend suite (in-memory)
-      run: ./gradlew --quiet :engine:app:test :engine:core:test
-    - name: web lint + unit
-      run: pnpm -C apps/web lint && pnpm -C apps/web test
+    - name: fast gate
+      run: make fast
     - name: secrets (staged)
       run: gitleaks protect --staged --redact --no-banner
 pre-push:
   jobs:
-    - name: web smoke
-      root: apps/web/
-      run: node scripts/cypress.mjs --smoke
+    - name: push gate
+      run: make push-gate

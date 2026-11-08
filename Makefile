@@ -1,4 +1,4 @@
-.PHONY: up down stop dev demo restart test ci check-placement diagrams hooks web web-demo web-install web-gen-check web-typecheck web-lint web-test web-build web-demo-build web-cy web-smoke web-demo-check web-live-check web-ci share share-studio share-studio-local cy-live console-install console-build console-bundle-check console-typecheck console-cy console-smoke console-demo-check console-ci
+.PHONY: fast fast-be fast-web push-gate gradle-check up down stop dev demo restart test ci check-placement diagrams hooks web web-demo web-install web-gen-check web-typecheck web-lint web-test web-build web-demo-build web-cy web-smoke web-demo-check web-live-check web-ci share share-studio share-studio-local cy-live console-install console-build console-bundle-check console-typecheck console-cy console-smoke console-demo-check console-ci
 
 PORT ?= 47831
 export PORT
@@ -47,13 +47,30 @@ demo: ## the engine with the console Demo: opens http://localhost:$(PORT)/?demo 
 test: ## unit + compile-fail + e2e (Testcontainers; needs Docker)
 	./gradlew check
 
-hooks: ## install the git hooks (lefthook: pre-commit backend+secrets, pre-push smoke)
+hooks: ## install the git hooks (lefthook: pre-commit make fast + secrets, pre-push make push-gate)
 	lefthook install
 
 check-placement: ## arch.8: every class sits in a role package (ArchUnit everyClassHasARole, with the layering rules); also part of `./gradlew check`
 	./gradlew :engine:app:test --tests 'dev.workflow.app.architecture.ArchitectureTest'
 
-ci: test web-ci ## Gradle check (tests, ArchUnit, detekt, jscpd) + the web gate
+# ---- gate tiers (fleet FEEDBACK.md): fast <= 30 s warm, push-gate <= 2 min, ci <= 5 min ----
+fast-be:
+	./gradlew --quiet :engine:app:test :engine:core:test detektEdge detektCore
+
+fast-web:
+	$(WEB) lint && $(WEB) typecheck && $(WEB) test
+
+fast: ## lint, typecheck, fitness (ArchUnit + detekt size limits), unit + backend e2e on H2; no browser, no Docker
+	@$(MAKE) -j2 fast-be fast-web
+
+push-gate: fast ## fast + the mocked Cypress smoke subset (lefthook pre-push)
+	$(WEB) cy:smoke
+
+gradle-check:
+	./gradlew check
+
+ci: ## everything, the Gradle check and the web gate in parallel
+	@$(MAKE) -j2 gradle-check web-ci
 
 diagrams: ## regenerate docs/workflows from the DSL
 	./gradlew :engine:app:diagrams

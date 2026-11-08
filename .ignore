@@ -1,0 +1,17 @@
+# Searches (rg, fd, editors) skip these. FEEDBACK.md list.
+pnpm-lock.yaml
+package-lock.json
+*.lock
+apps/web/src/api/generated/
+apps/web/public/mockServiceWorker.js
+engine/app/src/main/resources/static/vendor/
+engine/app/src/main/resources/static/console-demo/
+apps/web/coverage/
+apps/web/dist/
+test-evidence/
+build/
+.gradle/
+.kotlin/
+node_modules/
+*.bak
+*.min.js
