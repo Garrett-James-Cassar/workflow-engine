@@ -1,4 +1,4 @@
-.PHONY: fast fast-be fast-web push-gate gradle-check up down stop dev demo restart test ci check-placement diagrams hooks web web-demo web-install web-gen-check web-typecheck web-lint web-test web-build web-demo-build web-cy web-smoke web-demo-check web-live-check web-ci share share-studio share-studio-local cy-live console-install console-build console-bundle-check console-typecheck console-cy console-smoke console-demo-check console-ci
+.PHONY: web-static web-browser fast fast-be fast-web push-gate gradle-check up down stop dev demo restart test ci check-placement diagrams hooks web web-demo web-install web-gen-check web-typecheck web-lint web-test web-build web-demo-build web-cy web-smoke web-demo-check web-live-check web-ci share share-studio share-studio-local cy-live console-install console-build console-bundle-check console-typecheck console-cy console-smoke console-demo-check console-ci
 
 PORT ?= 47831
 export PORT
@@ -69,8 +69,11 @@ push-gate: fast ## fast + the mocked Cypress smoke subset (lefthook pre-push)
 gradle-check:
 	./gradlew check
 
-ci: ## everything, the Gradle check and the web gate in parallel
-	@$(MAKE) -j2 gradle-check web-ci
+# Gradle runs beside the web's non-browser steps; the Cypress steps follow alone, because a browser timing out
+# next to a busy Gradle is flake, not signal.
+ci: ## everything: Gradle check || web static steps, then the web browser steps
+	@$(MAKE) -j2 gradle-check web-static
+	@$(MAKE) web-browser
 
 diagrams: ## regenerate docs/workflows from the DSL
 	./gradlew :engine:app:diagrams
@@ -117,7 +120,11 @@ web-demo-check: ## plays every Demo chapter unpaced in the demo build (demo.7)
 web-live-check: ## the live profile with nothing serving the contract shows the error state, no mode banner
 	$(WEB) cy:unreachable
 
-web-ci: web-gen-check web-typecheck web-lint web-test web-build web-cy web-demo-check web-live-check
+web-static: web-gen-check web-typecheck web-lint web-test web-build
+
+web-browser: web-cy web-demo-check web-live-check
+
+web-ci: web-static web-browser
 
 cy-live: ## Cypress against the real engine on :47831 and Postgres on 55434 (opt-in; nightly in e2e-live.yml)
 	$(WEB) cy:live
