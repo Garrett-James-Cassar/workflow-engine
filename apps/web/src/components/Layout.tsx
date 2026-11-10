@@ -16,6 +16,7 @@ export const NAV: NavItem[] = [
   { to: '/tasks', label: 'My tasks', cy: 'nav-tasks' },
   { to: '/events', label: 'Events', cy: 'nav-events' },
   { to: '/incidents', label: 'Incidents', cy: 'nav-incidents' },
+  { to: '/audit', label: 'Audit', cy: 'nav-audit', show: () => can('audit.read') },
   { to: '/configuration', label: 'Configuration', cy: 'nav-configuration', show: () => can('workflows.export') || can('workflows.import') }
 ];
 

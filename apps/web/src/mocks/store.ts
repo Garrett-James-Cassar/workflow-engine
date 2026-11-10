@@ -1,6 +1,6 @@
 // The in-memory backend behind the mock: runs, their tasks, waits and history.
 // Pure data plus small helpers; routes read and mutate it, mother.ts seeds it.
-import type { Incident, Instance, Task, Wait } from '../api/types';
+import type { AuditEntry, Incident, Instance, Task, Wait } from '../api/types';
 import { DEFINITIONS, definition } from './defs';
 import { seed } from './mother';
 import { hex, seeded, type Rand } from './random';
@@ -66,6 +66,20 @@ export class MockStore {
       const ev = [...r.events].reverse().find((e) => e.type === 'incident');
       return ev ? [{ id: `inc-${ev.id}`, instanceId: r.id, definition: r.definition, version: r.version, step: ev.step ?? '', message: String(ev.payload.message ?? ''), at: ev.at, status: 'failed' as const }] : [];
     });
+  }
+
+  /** The audit log the engine would hold: one row per action a person (or the timer) took on a run, newest first. Names only, no values. */
+  audit(): AuditEntry[] {
+    const actions: Record<string, [string, string[]]> = {
+      'instance-started': ['instances.start', ['instance']], 'step-completed': ['tasks.complete', ['status', 'outcome']],
+      'task-reassigned': ['tasks.reassign', ['assignment']], retried: ['instances.retry', ['status', 'currentStep']], restarted: ['instances.restart', ['currentStep', 'status']]
+    };
+    return this.runs.flatMap((r) => r.events.flatMap((e) => {
+      const hit = e.actor ? actions[e.type] : undefined;
+      if (!hit || !e.actor) return [];
+      const timer = e.actor === 'timer';
+      return [{ id: e.id, at: e.at, actor: timer ? 'system:timeout-poller' : e.actor, via: null, action: timer ? 'timeouts.fire' : hit[0], resource: `instance:${r.id}`, outcome: 'ok' as const, changes: hit[1], traceId: null }];
+    })).sort((a, b) => b.at.localeCompare(a.at) || b.id - a.id);
   }
 
   view(run: Run): Instance {

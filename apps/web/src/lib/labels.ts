@@ -56,3 +56,10 @@ export function outcomeWord(outcome: string): string {
 
 /** `ended as withdrawn` */
 export const endedAs = (endStatus: string | null | undefined): string => (endStatus ? `Ended as ${endStatus.replace(/-/g, ' ')}` : '');
+
+/** The outcome of an audited action (the engine's `ok`, `denied`, `failed`). */
+export const AUDIT_OUTCOME: Record<string, StatusLook> = {
+  ok: { word: 'Done', tone: 'success', icon: Check },
+  denied: { word: 'Denied', tone: 'warning', icon: XCircle },
+  failed: { word: 'Failed', tone: 'destructive', icon: XCircle }
+};

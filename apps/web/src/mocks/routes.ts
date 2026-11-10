@@ -3,13 +3,14 @@
 import { hex, seeded } from './random';
 import { matchPath, problem, type MockResponse, type Route } from './http';
 import { portableRoutes } from './portable';
+import { auditRoutes } from './routes-audit';
 import { instanceRoutes } from './routes-instances';
 import { taskRoutes } from './routes-tasks';
 import { workflowRoutes } from './routes-workflows';
 import type { MockStore } from './store';
 
 // Literal paths before templated ones, so /instances/stats never matches /instances/{id}.
-export const ROUTES: Route[] = [...workflowRoutes, ...instanceRoutes, ...taskRoutes, ...portableRoutes]
+export const ROUTES: Route[] = [...workflowRoutes, ...instanceRoutes, ...taskRoutes, ...portableRoutes, ...auditRoutes]
   .sort((a, b) => Number(a.path.includes('{')) - Number(b.path.includes('{')));
 
 const traceRand = seeded(99);

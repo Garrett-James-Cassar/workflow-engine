@@ -2,7 +2,7 @@
 // http-adapter.ts speaks contract/openapi.yaml (live, and mock/demo through
 // MSW). A facade over the real engine is a new adapter, nothing else.
 import type {
-  CompleteTaskRequest, Diagram, EventAccepted, EventRequest, Incident, IncidentExportQuery, IncidentListQuery, Instance,
+  AuditEntry, AuditListQuery, CompleteTaskRequest, Diagram, EventAccepted, EventRequest, Incident, IncidentExportQuery, IncidentListQuery, Instance,
   ImportPlan, ImportResult, InstanceEvent, InstanceExportQuery, InstanceListQuery, InstanceStats, Me, Page, Person, PortableDoc, ReassignRequest,
   StartRequest, Task, TaskListQuery, Wait, WaitListQuery, Workflow, WorkflowListQuery, WorkflowSummary
 } from './types';
@@ -37,6 +37,8 @@ export interface ApiPort {
   sendEvent(name: string, body: EventRequest): Promise<EventAccepted>;
   listIncidents(query: IncidentListQuery): Promise<Page<Incident>>;
   exportIncidents(query: IncidentExportQuery): Promise<PortableDoc[]>;
+  listAudit(query: AuditListQuery): Promise<Page<AuditEntry>>;
+  exportAudit(): Promise<PortableDoc[]>;
   exportWaits(): Promise<PortableDoc[]>;
   people(): Promise<Person[]>;
 }

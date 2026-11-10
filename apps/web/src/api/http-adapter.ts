@@ -53,6 +53,8 @@ export function createHttpAdapter(baseUrl: string, fetchImpl?: typeof fetch): Ap
     sendEvent: (name, body) => unwrap(c.POST('/events/{name}', { params: { path: { name } }, body })),
     listIncidents: (query) => unwrap(c.GET('/incidents', { params: { query } })),
     exportIncidents: (query) => unwrap(c.GET('/incidents/export', { params: { query } })),
+    listAudit: (query) => unwrap(c.GET('/audit', { params: { query } })),
+    exportAudit: () => unwrap(c.GET('/audit/export')),
     exportWaits: () => unwrap(c.GET('/waits/export')),
     people: () => unwrap(c.GET('/people'))
   };

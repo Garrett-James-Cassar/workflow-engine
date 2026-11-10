@@ -31,7 +31,7 @@ const NARROW: Record<string, string[]> = {
 };
 const ADMIN = [
   'workflows.read', 'workflows.export', 'workflows.import', 'instances.read', 'instances.start', 'instances.retry', 'instances.restart', 'instances.fire-timeout', 'instances.export',
-  'tasks.read', 'tasks.complete', 'tasks.reassign', 'tasks.export', 'waits.export', 'events.send', 'events.export', 'incidents.read', 'incidents.retry', 'incidents.export', 'people.read', 'people.export'
+  'tasks.read', 'tasks.complete', 'tasks.reassign', 'tasks.export', 'waits.export', 'events.send', 'events.export', 'incidents.read', 'incidents.retry', 'incidents.export', 'people.read', 'people.export', 'audit.read', 'audit.export'
 ];
 
 export function permissionsOf(user: string): string[] {

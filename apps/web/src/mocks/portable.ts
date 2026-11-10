@@ -1,7 +1,7 @@
 // The mock's half of the portable codec (PORTABLE.md): the same envelope, plan and import rules the
 // engine's `portable` package applies, so the mocked and Demo runs exercise the real flow. The
 // engine reads steps back into its DSL; the mock only checks their shape and their handler refs.
-import type { Incident, Instance, PortableDoc, Wait } from '../api/types';
+import type { AuditEntry, Incident, Instance, PortableDoc, Wait } from '../api/types';
 import type { Definition } from './defs';
 import type { Ctx, MockResponse, Route } from './http';
 import { ok, problem } from './http';
@@ -21,6 +21,7 @@ export function workflowDoc(d: Definition): PortableDoc {
 
 export const instanceDoc = (r: Instance): PortableDoc => doc('instance', r.id, { definition: r.definition, version: r.version, status: r.status, currentStep: r.currentStep ?? null, vars: r.vars, startedAt: r.startedAt });
 export const incidentDoc = (i: Incident): PortableDoc => doc('incident', i.instanceId, { definition: i.definition, version: i.version, step: i.step, message: i.message, at: i.at });
+export const auditDoc = (a: AuditEntry): PortableDoc => doc('audit', String(a.id), { at: a.at, actor: a.actor, via: a.via ?? null, action: a.action, resource: a.resource, outcome: a.outcome, changes: a.changes, traceId: a.traceId ?? null });
 export const waitDoc = (w: Wait): PortableDoc => doc('wait', w.id, { instanceId: w.instanceId, definition: w.definition, version: w.version, step: w.step, event: w.event, correlation: w.correlation, expiresAt: w.expiresAt ?? null });
 
 /** Registered workflows first, then imported ones the registry does not hold, sorted by key (the engine sorts too). */

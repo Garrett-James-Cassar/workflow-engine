@@ -234,6 +234,28 @@ paths:
       responses:
         '200': { description: The documents, content: { application/json: { schema: { $ref: '#/components/schemas/PortableDocuments' } } } }
         default: { $ref: '#/components/responses/Problem' }
+  /audit:
+    get:
+      operationId: listAudit
+      summary: The audit log, newest first. Read only; needs audit.read (Records kind, sec.6)
+      parameters:
+        - { $ref: '#/components/parameters/Offset' }
+        - { $ref: '#/components/parameters/Limit' }
+        - { name: actor, in: query, schema: { type: string } }
+        - { name: action, in: query, schema: { type: string } }
+        - { name: resource, in: query, schema: { type: string } }
+        - { name: from, in: query, schema: { type: string, format: date-time } }
+        - { name: to, in: query, schema: { type: string, format: date-time } }
+      responses:
+        '200': { description: A page of audit rows, content: { application/json: { schema: { $ref: '#/components/schemas/AuditPage' } } } }
+        default: { $ref: '#/components/responses/Problem' }
+  /audit/export:
+    get:
+      operationId: exportAudit
+      summary: Export the audit log as portable documents, export-only (Records kind); needs audit.export
+      responses:
+        '200': { description: The documents, content: { application/json: { schema: { $ref: '#/components/schemas/PortableDocuments' } } } }
+        default: { $ref: '#/components/responses/Problem' }
   /workflows/{key}/export:
     get:
       operationId: exportWorkflow
@@ -561,6 +583,25 @@ components:
       required: [items, total]
       properties:
         items: { type: array, items: { $ref: '#/components/schemas/Incident' } }
+        total: { type: integer, minimum: 0 }
+    AuditEntry:
+      type: object
+      required: [id, at, actor, action, resource, outcome, changes]
+      properties:
+        id: { type: integer }
+        at: { type: string, format: date-time }
+        actor: { type: string }
+        via: { type: [string, 'null'] }
+        action: { type: string }
+        resource: { type: string }
+        outcome: { type: string, enum: [ok, denied, failed] }
+        changes: { type: array, items: { type: string }, description: Names of the fields that changed, never their values }
+        traceId: { type: [string, 'null'] }
+    AuditPage:
+      type: object
+      required: [items, total]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/AuditEntry' } }
         total: { type: integer, minimum: 0 }
     Person:
       type: object

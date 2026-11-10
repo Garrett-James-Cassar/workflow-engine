@@ -7,6 +7,7 @@ const routes: [string, string, string][] = [
   ['my tasks', '/tasks', 'task-card'],
   ['events', '/events', 'waits-grid'],
   ['incidents', '/incidents', 'incidents-grid'],
+  ['audit', '/audit', 'audit-grid'],
   ['configuration', '/configuration', 'page-title']
 ];
 

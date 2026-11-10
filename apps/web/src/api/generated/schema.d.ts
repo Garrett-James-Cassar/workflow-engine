@@ -344,6 +344,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The audit log, newest first. Read only; needs audit.read (Records kind, sec.6) */
+        get: operations["listAudit"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/audit/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export the audit log as portable documents, export-only (Records kind); needs audit.export */
+        get: operations["exportAudit"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/workflows/{key}/export": {
         parameters: {
             query?: never;
@@ -740,6 +774,24 @@ export interface components {
         };
         IncidentPage: {
             items: components["schemas"]["Incident"][];
+            total: number;
+        };
+        AuditEntry: {
+            id: number;
+            /** Format: date-time */
+            at: string;
+            actor: string;
+            via?: string | null;
+            action: string;
+            resource: string;
+            /** @enum {string} */
+            outcome: "ok" | "denied" | "failed";
+            /** @description Names of the fields that changed */
+            changes: string[];
+            traceId?: string | null;
+        };
+        AuditPage: {
+            items: components["schemas"]["AuditEntry"][];
             total: number;
         };
         Person: {
@@ -1308,6 +1360,56 @@ export interface operations {
                 workflow?: string;
                 step?: string;
             };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The documents */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortableDocuments"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    listAudit: {
+        parameters: {
+            query?: {
+                offset?: components["parameters"]["Offset"];
+                limit?: components["parameters"]["Limit"];
+                actor?: string;
+                action?: string;
+                resource?: string;
+                from?: string;
+                to?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of audit rows */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditPage"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    exportAudit: {
+        parameters: {
+            query?: never;
             header?: never;
             path?: never;
             cookie?: never;

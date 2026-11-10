@@ -42,6 +42,8 @@ The studio is written against its own contract, [`apps/web/contract/openapi.yaml
 | `incidents.read` | the Incidents view |
 | `incidents.retry` | Retry step on an incident |
 | `incidents.export` | Export all and a row's Export on incidents; Export CSV |
+| `audit.read` | the Audit view (sidebar entry and `/audit`): time, actor, via, action, resource, outcome, changed field names; filters actor, action, resource; read only, no row menu |
+| `audit.export` | Export all on the Audit view |
 
 **Statuses** (STYLE.md v1.4 §6, Domain statuses). Every one is a Badge with its colour, icon and word. Map by meaning: finished and fine is success, waiting on a person or an event is warning, a failed step is destructive, and inert history is neutral.
 

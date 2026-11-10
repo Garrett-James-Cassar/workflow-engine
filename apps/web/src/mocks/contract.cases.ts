@@ -1,7 +1,7 @@
 // Contract-test cases: one success and the main errors per operation, plus the
 // paging/sort/filter semantics a real backend must honour.
 import assert from 'node:assert/strict';
-import type { ImportPlan, Incident, Instance, Page, PortableDoc, Task, Wait, WorkflowSummary } from '../api/types';
+import type { AuditEntry, ImportPlan, Incident, Instance, Page, PortableDoc, Task, Wait, WorkflowSummary } from '../api/types';
 import { FIXED } from './fixtures';
 import { someoneWho } from './rbac';
 import { currentWorkflows } from './portable';
@@ -93,5 +93,8 @@ export const CASES: Case[] = [
   { name: 'list incidents: newest first, the stuck booking on top', op: '/incidents', method: 'GET', path: fixed('/incidents'), status: 200, check: (b) => { const p = page<Incident>(b); assert.equal(p.items[0].instanceId, FIXED.stuckBooking.id); assert.match(p.items[0].message, /booking system/); } },
   { name: 'list incidents: workflow filter', op: '/incidents', method: 'GET', path: fixed('/incidents'), query: 'workflow=counterparty-onboarding', status: 200, check: (b) => assert.ok(page<Incident>(b).items.every((i) => i.definition === 'counterparty-onboarding')) },
   { name: 'export incidents: a portable document', op: '/incidents/export', method: 'GET', path: fixed('/incidents/export'), status: 200, check: (b, s) => assert.equal((b as PortableDoc[]).length, s.incidents().length) },
+  { name: 'list audit: newest first, each row names who, what and the fields that changed', op: '/audit', method: 'GET', path: fixed('/audit'), status: 200, check: (b) => { const p = page<AuditEntry>(b); assert.ok(p.items.length > 0); assert.ok(p.items.every((a) => a.actor && a.action && a.resource && Array.isArray(a.changes))); assert.deepEqual(p.items.map((a) => a.at), [...p.items.map((a) => a.at)].sort().reverse()); } },
+  { name: 'list audit: actor filter', op: '/audit', method: 'GET', path: fixed('/audit'), query: 'actor=l.jones', status: 200, check: (b) => assert.ok(page<AuditEntry>(b).items.every((a) => a.actor === 'l.jones')) },
+  { name: 'export audit: portable documents, export-only', op: '/audit/export', method: 'GET', path: fixed('/audit/export'), status: 200, check: (b, s) => { assert.equal((b as PortableDoc[]).length, s.audit().length); assert.ok((b as PortableDoc[]).every((d) => d.kind === 'audit')); } },
   { name: 'people: the engine dev personas with their teams', op: '/people', method: 'GET', path: fixed('/people'), status: 200, check: (b) => assert.ok((b as Array<{ user: string; teams: string[] }>).some((p) => p.user === 'l.jones' && p.teams.includes('legal'))) }
 ];

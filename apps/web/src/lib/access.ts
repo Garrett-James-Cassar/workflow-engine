@@ -8,7 +8,8 @@ export type Permission =
   | 'waits.export'
   | 'events.send' | 'events.export'
   | 'incidents.read' | 'incidents.retry' | 'incidents.export'
-  | 'people.read' | 'people.export';
+  | 'people.read' | 'people.export'
+  | 'audit.read' | 'audit.export';
 
 let granted: ReadonlySet<string> | null = null;
 let version = 0;
