@@ -9,4 +9,6 @@ subprojects {
     group = "dev.workflow"
     version = "0.1.0-SNAPSHOT"
     repositories { mavenCentral() }
+    // ci.b: lockfiles (gradle.lockfile) give osv-scanner the exact dependency versions. Refresh with `make lock`.
+    dependencyLocking { lockAllConfigurations() }
 }

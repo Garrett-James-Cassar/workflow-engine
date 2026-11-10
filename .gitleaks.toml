@@ -1,0 +1,23 @@
+# gitleaks config (ci.b): the default rules, minus build output and vendored code.
+title = "workflow-engine"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "build output, dependencies and vendored bundles"
+paths = [
+  '''(^|/)node_modules/''',
+  '''(^|/)build/''',
+  '''(^|/)dist/''',
+  '''(^|/)coverage/''',
+  '''(^|/)\.gradle/''',
+  '''(^|/)\.kotlin/''',
+  '''(^|/)reports/''',
+  '''(^|/)backups/''',
+  '''(^|/)\.idea/''',
+  '''(^|/)test-evidence/''',
+  '''(^|/)static/vendor/''',
+  '''(^|/)static/console-demo/''',
+  '''pnpm-lock\.yaml$''',
+]

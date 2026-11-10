@@ -1,4 +1,4 @@
-.PHONY: backup restore restore-drill seed reseed openapi api-breaking web-static web-browser fast fast-be fast-web push-gate gradle-check up down stop dev demo restart test ci check-placement diagrams hooks web web-demo web-install web-gen-check web-typecheck web-lint web-test web-build web-demo-build web-cy web-smoke web-demo-check web-live-check web-ci share share-studio share-studio-local cy-live console-install console-build console-bundle-check console-typecheck console-cy console-smoke console-demo-check console-ci
+.PHONY: security security-secrets security-deps security-sast security-report lock backup restore restore-drill seed reseed openapi api-breaking web-static web-browser fast fast-be fast-web push-gate gradle-check up down stop dev demo restart test ci check-placement diagrams hooks web web-demo web-install web-gen-check web-typecheck web-lint web-test web-build web-demo-build web-cy web-smoke web-demo-check web-live-check web-ci share share-studio share-studio-local cy-live console-install console-build console-bundle-check console-typecheck console-cy console-smoke console-demo-check console-ci
 
 PORT ?= 47831
 export PORT
@@ -85,9 +85,29 @@ push-gate: fast api-breaking ## fast + the API breaking-change check + the mocke
 gradle-check:
 	./gradlew check
 
+# ---- security (ci.b, ci.c; fleet CICD.md): pinned Docker scanners via scripts/security.py, accepted findings in .security-allow.yml ----
+security: security-secrets security-deps security-sast ## secrets (gitleaks), dependencies (osv-scanner), SAST (Semgrep owasp-top-ten); fails on high/critical
+
+security-secrets:
+	@python3 scripts/security.py secrets
+
+security-deps:
+	@python3 scripts/security.py deps
+
+security-sast:
+	@python3 scripts/security.py sast
+
+security-report: security ## security + trivy (filesystem until an image exists) + ZAP baseline on the engine's console; writes reports/security/
+	@python3 scripts/security.py trivy
+	@python3 scripts/security.py zap
+	@python3 scripts/security.py summary
+
+lock: ## refresh the Gradle lockfiles osv-scanner reads
+	./gradlew :engine:core:dependencies :engine:app:dependencies --write-locks
+
 # Gradle runs beside the web's non-browser steps; the Cypress steps follow alone, because a browser timing out
 # next to a busy Gradle is flake, not signal.
-ci: ## everything: Gradle check || web static steps, then the web browser steps
+ci: security ## everything: security (secrets, dependencies, SAST), then Gradle check || web static steps, then the web browser steps
 	@$(MAKE) -j2 gradle-check web-static
 	@$(MAKE) api-breaking
 	@$(MAKE) web-browser

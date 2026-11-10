@@ -1,0 +1,38 @@
+# Accepted security findings (ci.b). Each entry needs scanner (osv | semgrep), id (advisory id or rule id),
+# reason and expires (YYYY-MM-DD); semgrep entries may add path. An expired entry no longer counts.
+# No blanket ignores.
+
+- scanner: osv
+  id: GHSA-7pqw-9j4j-h8q3
+  reason: "extract-zip (Cypress's Chrome/binary unpacker, apps/web and engine/console-e2e): no fixed release exists; runs only on the developer's or CI machine unzipping Cypress's own download, never on user input or in the shipped app"
+  expires: 2027-02-10
+
+- scanner: osv
+  id: GHSA-jmr9-qjv8-65gv
+  reason: "extract-zip: same as GHSA-7pqw-9j4j-h8q3, no fixed release, dev and CI tooling only"
+  expires: 2027-02-10
+
+- scanner: osv
+  id: GHSA-5gmw-xhrv-c9v3
+  reason: "tinypool 1.x (vitest 2 worker pool): the fix is tinypool 2 with vitest 3.2.6 or later; dev and CI test runner only, takes no external input, not shipped. Upgrade vitest 2 to 3 with the vite 6 move"
+  expires: 2027-02-10
+
+- scanner: osv
+  id: GHSA-85c8-ppgw-ccpr
+  reason: "tinypool 1.x: same as GHSA-5gmw-xhrv-c9v3"
+  expires: 2027-02-10
+
+- scanner: osv
+  id: GHSA-w5hq-g745-h8pq
+  reason: "uuid 8/9 (dev tooling transitive: cypress and test runners): the flaw needs the caller to pass a buffer to v3/v5/v6; nothing in this repo does, and it is not in the shipped bundle"
+  expires: 2027-02-10
+
+- scanner: osv
+  id: GHSA-587h-7wmj-h5pm
+  reason: "vite 5.4 dev server (launch-editor path check on Windows): the dev server runs only on localhost on macOS and Linux; production is a static build. Upgrade with the vite 6 move"
+  expires: 2027-02-10
+
+- scanner: osv
+  id: GHSA-5xrq-8626-4rwp
+  reason: "vitest 2.1 UI server: the Vitest UI is never started (we run `vitest run`), dev and CI only. Upgrade with the vite 6 move"
+  expires: 2027-02-10

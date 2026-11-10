@@ -16,6 +16,18 @@ kotlin {
 dependencies {
     implementation(project(":engine:core"))
     implementation(platform(SpringBootPlugin.BOM_COORDINATES))
+    // ci.b: patched versions of libraries Spring Boot 4.1.1 still manages at a vulnerable release (osv-scanner, see
+    // .security-allow.yml for what remains). Drop a constraint once the Boot BOM catches up.
+    constraints {
+        implementation("org.apache.tomcat.embed:tomcat-embed-core:11.0.25")
+        implementation("org.apache.tomcat.embed:tomcat-embed-el:11.0.25")
+        implementation("org.apache.tomcat.embed:tomcat-embed-websocket:11.0.25")
+        implementation("com.fasterxml.jackson.core:jackson-core:2.22.3")
+        implementation("com.fasterxml.jackson.core:jackson-databind:2.22.3")
+        implementation("com.fasterxml.jackson.core:jackson-annotations:2.22")
+        implementation("tools.jackson.core:jackson-core:3.1.7")
+        implementation("tools.jackson.core:jackson-databind:3.1.7")
+    }
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("com.bucket4j:bucket4j_jdk17-core:8.14.0")
