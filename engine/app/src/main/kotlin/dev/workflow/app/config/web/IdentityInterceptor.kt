@@ -44,7 +44,7 @@ class IdentityInterceptor(
     private fun isPublic(path: String): Boolean = path in PUBLIC_PATHS || PUBLIC_PREFIXES.any { path.startsWith(it) }
 }
 
-private val PUBLIC_PATHS = setOf("/", "/index.html", "/health", "/app.js", "/app.css", "/demo/status", "/openapi.json")
+private val PUBLIC_PATHS = setOf("/", "/index.html", "/health", "/ready", "/app.js", "/app.css", "/demo/status", "/openapi.json")
 
 private val PUBLIC_PREFIXES = listOf(
     "/vendor/", "/console-demo/", "/docs", "/swagger-ui", "/v3/api-docs",

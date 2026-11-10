@@ -17,7 +17,7 @@ Kotlin 25/Spring Boot 4.1 + Gradle; React studio in `apps/web` (pnpm). Routes: `
 ## Where things live (`engine/app/src/main/kotlin/dev/workflow/app` = `app/`)
 | route / screen / concept | files |
 |---|---|
-| `/health`, `/definitions*` (list, graph, export) | `app/api/DefinitionController.kt` · `mappers/Views.kt` (`DefinitionMapper`, `ExportMapper`) · `runtime/Queries.kt` (`DefinitionService`) · `adapters/WorkflowRegistry.kt` |
+| `/health`, `/ready` (DB probe), `/definitions*` (list, graph, export) | `app/api/DefinitionController.kt` · `runtime/ReadinessService.kt`, `persistence/JdbcDatabaseProbe.kt` · `mappers/Views.kt` (`DefinitionMapper`, `ExportMapper`) · `runtime/Queries.kt` (`DefinitionService`) · `adapters/WorkflowRegistry.kt` |
 | `/definitions/{n}/instances`, `/instances*`, retry, restart | `api/InstanceController.kt` · `runtime/InstanceService.kt`, `Transitions.kt` · `persistence/InstanceRepository.kt` · DTOs `api/dtos/Dtos.kt` |
 | `/tasks*` (list, complete, reassign) | `api/TaskController.kt` · `runtime/TaskService.kt`, `FormValidation.kt` · `persistence/TaskRepository.kt` · `security/TaskAuthorizer.kt` |
 | `/events/{name}`, `/timeouts/…` | `api/EventController.kt` · `InstanceService.deliverEvent/fireTimeout` · `runtime/TimeoutPoller.kt` · `persistence/WaitRepository.kt` |

@@ -4,10 +4,14 @@ import dev.workflow.app.api.dtos.DefinitionSummary
 import dev.workflow.app.api.dtos.DefinitionView
 import dev.workflow.app.api.dtos.ExportQuery
 import dev.workflow.app.api.dtos.GraphView
+import dev.workflow.app.api.dtos.ReadinessView
 import dev.workflow.app.mappers.DefinitionMapper
 import dev.workflow.app.mappers.ExportMapper
 import dev.workflow.app.mappers.GraphMapper
+import dev.workflow.app.mappers.ReadinessMapper
 import dev.workflow.app.runtime.DefinitionService
+import dev.workflow.app.runtime.ReadinessService
+import org.springframework.http.HttpStatus
 import dev.workflow.app.security.Permissions
 import dev.workflow.app.security.Public
 import dev.workflow.app.security.Requires
@@ -31,6 +35,16 @@ class HealthController {
     @Public
     @GetMapping("/health")
     fun health() = mapOf("status" to "ok")
+}
+
+/** Readiness, apart from liveness: 200 when the app's own database answers, else 503 naming the failing check. */
+@RestController
+class ReadinessController(private val readiness: ReadinessService) {
+    @Public
+    @GetMapping("/ready")
+    fun ready(): ResponseEntity<ReadinessView> = ReadinessMapper.view(readiness.checks()).let {
+        ResponseEntity.status(if (it.status == ReadinessMapper.READY) HttpStatus.OK else HttpStatus.SERVICE_UNAVAILABLE).body(it)
+    }
 }
 
 @RestController

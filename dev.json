@@ -22,13 +22,16 @@
   "health": {
     "url": "http://localhost:47831/health"
   },
+  "ready": {
+    "url": "http://localhost:47831/ready"
+  },
   "dependsOn": [],
   "calls": [],
   "test": {
     "cmd": "make test",
     "kind": "e2e"
   },
-  "notes": "Business API is under /api/v1 (old unversioned paths answer as deprecated aliases); /health, /docs, /openapi.json stay at the root. Kotlin/Spring Boot 4.1, Java 25, Gradle. make dev stops any running engine on 47831, starts compose Postgres on 127.0.0.1:55434, runs bootRun and opens the console. DATABASE_URL is JDBC form. Swagger at /docs. Browser console at /. Auth is the X-User header; dev users and roles come from workflow.rbac.grants in application.yaml (stub until the central rbac service). Two sample workflows call the demo providers on localhost:47831 by hard-coded URL. Tests use Testcontainers (Docker required). The React workflow studio (apps/web, mock/demo/live profiles, no backend needed in mock and demo) runs on 5183 with `make web`; the static demo build for the fleet stack is `pnpm -C apps/web build:demo` (apps/web/dist, served on 15183). The engine does not yet serve the studio's /api/v1 contract (docs/ui-plan.md section 4). Input limits (SECURITY.md): Bean Validation on every route, unknown fields rejected, 1 MB body cap (413), JSON only (415), problem+json errors[] of paths. Rate limits per user else IP: reads RATE_LIMIT_READ_PER_MIN=300, writes RATE_LIMIT_WRITE_PER_MIN=60, heavy (start/restart/retry run, send event, fire timeout, demo reset) RATE_LIMIT_HEAVY_PER_MIN=20; RATE_LIMIT_ENABLED=false only in tests.",
+  "notes": "Business API is under /api/v1 (old unversioned paths answer as deprecated aliases); /health (liveness), /ready (readiness: own DB SELECT 1 within 1 s, 503 naming the failing check), /docs, /openapi.json stay at the root. Kotlin/Spring Boot 4.1, Java 25, Gradle. make dev stops any running engine on 47831, starts compose Postgres on 127.0.0.1:55434, runs bootRun and opens the console. DATABASE_URL is JDBC form. Swagger at /docs. Browser console at /. Auth is the X-User header; dev users and roles come from workflow.rbac.grants in application.yaml (stub until the central rbac service). Two sample workflows call the demo providers on localhost:47831 by hard-coded URL. Tests use Testcontainers (Docker required). The React workflow studio (apps/web, mock/demo/live profiles, no backend needed in mock and demo) runs on 5183 with `make web`; the static demo build for the fleet stack is `pnpm -C apps/web build:demo` (apps/web/dist, served on 15183). The engine does not yet serve the studio's /api/v1 contract (docs/ui-plan.md section 4). Input limits (SECURITY.md): Bean Validation on every route, unknown fields rejected, 1 MB body cap (413), JSON only (415), problem+json errors[] of paths. Rate limits per user else IP: reads RATE_LIMIT_READ_PER_MIN=300, writes RATE_LIMIT_WRITE_PER_MIN=60, heavy (start/restart/retry run, send event, fire timeout, demo reset) RATE_LIMIT_HEAVY_PER_MIN=20; RATE_LIMIT_ENABLED=false only in tests.",
   "secProbe": {
     "path": "/api/v1/events/sec-probe",
     "method": "POST",
