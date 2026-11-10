@@ -4,7 +4,7 @@
 Pinned Docker images, no accounts. Accepted findings live in .security-allow.yml, each with a reason and an expiry
 date; an expired entry stops counting, so the finding fails the gate again.
 
-  security.py secrets | deps | sast     fail on secrets, high/critical dependency findings, Semgrep ERROR findings
+  security.py secrets | deps | sast     fail on secrets, high/critical dependency findings, Semgrep ERROR findings (sast only with SAST=1)
   security.py trivy | zap               report-only scans into reports/security/
   security.py summary                   counts per scanner, for docs/SECURITY-REPORT.md
 """
@@ -132,6 +132,9 @@ def run_semgrep():
 
 
 def sast():
+    if os.environ.get("SAST") != "1":  # the Semgrep image is 4.6 GB: CI sets SAST=1, a dev machine does not pull it
+        print("semgrep: skipped (set SAST=1; CI runs it)")
+        return 0
     allow, bad = allowed(), 0
     report = run_semgrep()
     os.makedirs(REPORTS, exist_ok=True)
@@ -151,7 +154,7 @@ def trivy():
     os.makedirs(REPORTS, exist_ok=True)
     skip = ",".join(f"**/{e}" for e in EXCLUDES if e not in ("vendor", "console-demo"))
     r = docker(IMAGES["trivy"], ["fs", "--scanners", "vuln,secret,misconfig", "--skip-dirs", skip, "--format", "json", "--quiet", "/src"],
-               mounts=[f"{os.path.expanduser('~')}/.cache/trivy:/root/.cache/trivy"])
+               mounts=[f"{os.path.expanduser('~')}/.cache/trivy:/root/.cache/"])
     open(os.path.join(REPORTS, "trivy.json"), "w").write(r.stdout)
     print("trivy fs: written to reports/security/trivy.json")
 

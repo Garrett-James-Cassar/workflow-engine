@@ -1,9 +1,11 @@
 # The studio's static demo build (mocked data, no API) served by an unprivileged nginx (dp.2). Build context: apps/web.
+# syntax=docker/dockerfile:1
 FROM node:22-alpine AS build
 WORKDIR /web
 RUN corepack enable && corepack prepare pnpm@9.15.9 --activate
 COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
+# the store path is what `pnpm store path` prints in this image
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store/v3 pnpm install --frozen-lockfile
 COPY . .
 RUN pnpm build:demo
 

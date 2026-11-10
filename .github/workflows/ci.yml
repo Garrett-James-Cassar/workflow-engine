@@ -8,6 +8,7 @@ jobs:
   ci:
     runs-on: ubuntu-latest
     env:
+      SAST: "1"
       REGISTRY: ${{ vars.REGISTRY }}
       DEPLOY_TARGET: ${{ vars.DEPLOY_TARGET || 'compose-ssh' }}
       DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}

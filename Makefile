@@ -1,4 +1,4 @@
-.PHONY: console-gate live-gate release deploy rollback share-console security security-secrets security-deps security-sast security-report lock backup restore restore-drill seed reseed openapi api-breaking web-static web-browser fast fast-be fast-web push-gate gradle-check up down stop dev demo restart test ci check-placement diagrams hooks web web-demo web-install web-gen-check web-typecheck web-lint web-test web-build web-demo-build web-cy web-smoke web-demo-check web-live-check web-ci share share-studio share-studio-local cy-live console-install console-build console-bundle-check console-typecheck console-cy console-smoke console-demo-check console-ci
+.PHONY: deploy-clean console-gate live-gate release deploy rollback share-console security security-secrets security-deps security-sast security-report lock backup restore restore-drill seed reseed openapi api-breaking web-static web-browser fast fast-be fast-web push-gate gradle-check up down stop dev demo restart test ci check-placement diagrams hooks web web-demo web-install web-gen-check web-typecheck web-lint web-test web-build web-demo-build web-cy web-smoke web-demo-check web-live-check web-ci share share-studio share-studio-local cy-live console-install console-build console-bundle-check console-typecheck console-cy console-smoke console-demo-check console-ci
 
 PORT ?= 47831
 export PORT
@@ -7,8 +7,12 @@ OPEN_PATH ?= /
 up: ## start Postgres (127.0.0.1:55434)
 	docker compose up -d --wait db
 
-down:
+down: ## stop the app's Postgres
 	docker compose down
+
+deploy-clean: ## remove the local deployment and its volumes (compose down -v)
+	-docker rm -f workflow-engine-$(ENV)
+	docker compose down -v
 
 # Stop a running copy of this engine on $(PORT). Refuses to touch any other process on that port.
 stop:
@@ -102,7 +106,7 @@ gradle-check:
 	./gradlew check
 
 # ---- security (ci.b, ci.c; fleet CICD.md): pinned Docker scanners via scripts/security.py, accepted findings in .security-allow.yml ----
-security: security-secrets security-deps security-sast ## secrets (gitleaks), dependencies (osv-scanner), SAST (Semgrep owasp-top-ten); fails on high/critical
+security: security-secrets security-deps security-sast ## secrets (gitleaks), dependencies (osv-scanner), SAST (Semgrep owasp-top-ten, only with SAST=1: CI sets it); fails on high/critical
 
 security-secrets:
 	@python3 scripts/security.py secrets
