@@ -20,10 +20,10 @@ Internal workflow tool. Expected users: about 20 operators, reviewers and reques
 | id | requirement | target | test |
 |---|---|---|---|
 | NFR-A1 | `/health` (liveness) and `/ready` (dependency check) are separate | always; `/ready` is missing | `EngineE2ETest` E1 covers `/health`; `/ready` to add |
-| NFR-A2 | RPO (max data loss) | 24 h (proposed, nightly dump) | restore drill (to add) |
-| NFR-A3 | RTO (time to restore) | 4 h (proposed) | restore drill (to add) |
-| NFR-A4 | Migrations apply on deploy and have a tested rollback | applied by Flyway on start; rollback not in place | Flyway runs in the Postgres tests (`StorePostgresTest`, `PostgresOnlyTest`); rollback test to add |
-| NFR-A5 | Destructive operations blocked in production | `POST /demo/reset` is 404 outside dev and demo and needs `demo.reset` | `DemoResetTest` |
+| NFR-A2 | RPO (max data loss) | 24 h (daily `make backup`) | RUNBOOK.md "Backup and restore"; the drill proves a dump restores |
+| NFR-A3 | RTO (time to restore) | 1 h | `make restore-drill` on 2026-11-10: counts matched, wipe and restore under 1 s for the seeded set (6 runs, 20 events); re-measure on a production-sized copy |
+| NFR-A4 | Migrations apply on deploy; rollback is expand-contract, forward-fix only | applied by Flyway on start; no down migrations | `MigrationTest` (empty DB, and the latest migration over a database with data); RUNBOOK.md Rollback |
+| NFR-A5 | Destructive operations blocked in production | `POST /demo/reset` is 404 unless `ALLOW_RESET=true` (default false), outside dev and demo, and needs `demo.reset`; startup fails with `ALLOW_RESET=true` in production | `ResetGuardTest`, `DemoResetTest` |
 | NFR-A6 | Event history is append-only | always | Postgres trigger in `V1__init.sql`; `PostgresOnlyTest` "E1 the event log is append-only" |
 | NFR-A7 | A failing service task becomes an incident, not a lost run | always | `EngineE2ETest` E4 incident and retry |
 

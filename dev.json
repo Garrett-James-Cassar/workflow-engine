@@ -19,7 +19,8 @@
       "MAX_BODY_BYTES",
       "MAX_IMPORT_BYTES",
       "CORS_ORIGINS",
-      "TLS"
+      "TLS",
+      "ALLOW_RESET"
     ]
   },
   "health": {

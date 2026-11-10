@@ -104,7 +104,10 @@ This runs:
 | `WORKFLOW_HTTP_ALLOWED_HOSTS` | `localhost,127.0.0.1` | hosts a workflow's `http { }` step may call |
 | `TIMEOUT_POLL_INTERVAL` | `5s` | how often due timeouts are fired |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | unset | send traces, metrics and logs to an OTLP collector |
+| `ALLOW_RESET` | `false` (`make dev` sets `true`) | allows `POST /demo/reset` and `make reseed`; the app refuses to start with it `true` under the `prod` profile or `APP_ENV=prod` |
 | `NO_BROWSER` | unset | `NO_BROWSER=1 make dev` skips opening the console |
+
+Data: `make backup` / `make restore FILE=…` / `make restore-drill` (see [RUNBOOK.md](RUNBOOK.md)); `make seed` starts the Object Mother's sample runs in a running engine (does nothing when runs exist), `make reseed` wipes them first.
 
 Routes are not listed here: see `/docs` (Swagger) and `/openapi.json` on the running engine.
 

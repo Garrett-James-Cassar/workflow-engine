@@ -15,5 +15,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - Gate tiers `make fast`, `make push-gate` and `make ci`; lefthook hooks, including a Conventional Commits check on commit messages.
 - `RUNBOOK.md` (deploy, rollback, incidents) and an environment and ports table in the README.
 
+- Data management: `make backup`, `make restore` and `make restore-drill` (a tested restore), `make seed` and `make reseed` (Object Mother data through the API), `MigrationTest`, and the `ALLOW_RESET` guard (default false; startup fails with it true in production). RPO 24 h and RTO 1 h in NFR.md.
+
 ### Changed
 - The studio's contract and mocks use the engine's real export envelope (`{kind, version, key, ...}`, exports are arrays).

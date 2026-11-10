@@ -19,9 +19,18 @@ How to deploy, roll back and handle an incident for workflow-engine. Commands ru
 
 1. Stop the new engine (`make stop` locally, or stop the process or container).
 2. Start the previous build: check out the previous commit (`git log --oneline`, `git checkout <sha>`) and rebuild, or run the previous jar or image.
-3. Migrations are forward-only. Do not edit or delete an applied `V<n>__*.sql`. If the new migration is compatible with the old code (additive columns and tables, which is the rule), the old build runs against the migrated database. If not, fix forward: add `V<n+1>__*.sql` that repairs it and ship that.
+3. Migrations: **expand-contract, forward-fix only.** Add columns and tables first, backfill, switch the code, and drop the old thing in a later release; no destructive change ships in the same release as the code that stops using it. Never edit or delete an applied `V<n>__*.sql`; there are no down migrations. Because every release only expands, the previous build runs against the migrated database. If a migration is wrong, add `V<n+1>__*.sql` that repairs it and ship that. `MigrationTest` (`./gradlew :engine:app:postgresTest`) applies every migration to an empty PostgreSQL and the latest one to a database at the previous version that holds data.
 4. Config rolls back with the bundle: import the `export.json` saved before the change (preview first).
 5. Only for a throwaway local database: `make down` deletes all data, and the next `make dev` starts empty.
+
+## Backup and restore
+
+Postgres is the only state. `pg_dump` and `psql` run inside the compose container, so only Docker is needed. Targets: RPO 24 h, RTO 1 h (NFR.md).
+
+1. Back up: `make backup` writes `backups/workflow-<UTC stamp>.sql` (gitignored; a plain-SQL dump with `--clean --if-exists`). Schedule it daily wherever the engine runs, and copy the file off the host.
+2. Restore: stop the engine (`make stop`), then `make restore FILE=backups/workflow-<stamp>.sql`. The dump drops and recreates the tables, so it replaces the current data. Start the engine and check `/ready`.
+3. Drill, to prove a backup restores: with runs in the database (`make dev`, then `make seed`), run `make restore-drill`. It counts rows per table, backs up, drops the schema, restores, counts again and fails unless the counts match; it prints how long the wipe and restore took.
+4. Last drill (2026-11-10, local compose Postgres 17): seeded with `make seed` (6 runs, 3 open tasks, 3 waits, 20 events); row counts matched on every table; wipe and restore took under 1 s (0 s at the script's 1 s resolution). A production-sized database will take longer: re-measure it with `make restore-drill` on a copy.
 
 ## Incidents
 
