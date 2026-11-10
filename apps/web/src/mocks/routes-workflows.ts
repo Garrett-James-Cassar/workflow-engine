@@ -2,7 +2,7 @@
 import type { Workflow, WorkflowSummary } from '../api/types';
 import { intParam, ok, problem, type Ctx, type MockResponse, type Route } from './http';
 import { allOf, compareBy, contains, page, type Order } from './query';
-import { portable } from './routes-instances';
+import { currentWorkflows } from './portable';
 import type { Definition } from './defs';
 
 const summary = (d: Definition): WorkflowSummary => ({
@@ -51,7 +51,7 @@ function start(ctx: Ctx): MockResponse {
 
 export const workflowRoutes: Route[] = [
   { method: 'GET', path: '/workflows', handle: list },
-  { method: 'GET', path: '/workflows/export', handle: (ctx) => ok(portable('workflows', filtered(ctx), ctx.store.now())) },
+  { method: 'GET', path: '/workflows/export', handle: (ctx) => ok(currentWorkflows(ctx.store)) },
   { method: 'GET', path: '/workflows/{name}', handle: get },
   { method: 'GET', path: '/workflows/{name}/diagram', handle: diagram },
   { method: 'POST', path: '/workflows/{name}/instances', handle: start }

@@ -1,10 +1,13 @@
 // Contract-test cases: one success and the main errors per operation, plus the
 // paging/sort/filter semantics a real backend must honour.
 import assert from 'node:assert/strict';
-import type { Incident, Instance, Page, PortableDocument, Task, Wait, WorkflowSummary } from '../api/types';
+import type { ImportPlan, Incident, Instance, Page, PortableDoc, Task, Wait, WorkflowSummary } from '../api/types';
 import { FIXED } from './fixtures';
 import { someoneWho } from './rbac';
+import { currentWorkflows } from './portable';
 import type { MockStore } from './store';
+
+const newWorkflow = (key: string) => ({ kind: 'workflow', version: 1, key, name: key.split(':')[0], workflowVersion: 1, sample: {}, steps: [{ id: 'first', label: 'First', type: 'user-task' }] });
 
 export type Case = {
   name: string; op: string; method: 'GET' | 'POST'; path: (s: MockStore) => string; query?: string; user?: string | ((s: MockStore) => string);
@@ -21,7 +24,32 @@ export const CASES: Case[] = [
   { name: 'list workflows: the four samples, name filter and sort', op: '/workflows', method: 'GET', path: fixed('/workflows'), query: 'sort=steps&order=desc', status: 200,
     check: (b) => { const p = page<WorkflowSummary>(b); assert.equal(p.total, 4); assert.ok(p.items.every((w, i, a) => i === 0 || a[i - 1].steps >= w.steps)); } },
   { name: 'list workflows: name contains', op: '/workflows', method: 'GET', path: fixed('/workflows'), query: 'name=TRADE', status: 200, check: (b) => assert.deepEqual(page<WorkflowSummary>(b).items.map((w) => w.name), ['trade-booking']) },
-  { name: 'export workflows: a portable document', op: '/workflows/export', method: 'GET', path: fixed('/workflows/export'), status: 200, check: (b) => assert.equal((b as PortableDocument).items.length, 4) },
+  { name: 'export workflows: the documents', op: '/workflows/export', method: 'GET', path: fixed('/workflows/export'), status: 200, check: (b) => assert.equal((b as PortableDoc[]).length, 4) },
+  { name: 'export one workflow: the envelope with kind, version and key', op: '/workflows/{key}/export', method: 'GET', path: fixed('/workflows/trade-booking:1/export'), status: 200,
+    check: (b) => { const d = b as PortableDoc; assert.equal(d.kind, 'workflow'); assert.equal(d.version, 1); assert.equal(d.key, 'trade-booking:1'); } },
+  { name: 'export one workflow: unknown key is a 404 problem', op: '/workflows/{key}/export', method: 'GET', path: fixed('/workflows/nope:1/export'), status: 404 },
+  { name: 'export the bundle: every Config kind', op: '/export', method: 'GET', path: fixed('/export'), status: 200, check: (b) => assert.equal((b as PortableDoc[]).length, 4) },
+  { name: 'import preview: the bundle we exported is all unchanged and writes nothing', op: '/import/preview', method: 'POST', path: fixed('/import/preview'), status: 200,
+    body: (s) => currentWorkflows(s),
+    check: (b, s) => { const p = b as ImportPlan; assert.ok(p.entries.every((e) => e.action === 'unchanged')); assert.equal(s.imported.size, 0); } },
+  { name: 'import preview: a new key is create, an unknown handler is missing-ref', op: '/import/preview', method: 'POST', path: fixed('/import/preview'), status: 200,
+    body: () => [newWorkflow('fresh:1'), { ...newWorkflow('broken:1'), steps: [{ id: 'a', label: 'A', type: 'service-task', handler: 'com.acme.Missing' }] }],
+    check: (b) => { const e = (b as ImportPlan).entries; assert.deepEqual(e.map((x) => x.action), ['create', 'missing-ref']); assert.equal(e[1].missing[0].key, 'com.acme.Missing'); } },
+  { name: 'import preview: a bad entry is a 400 with a pointer', op: '/import/preview', method: 'POST', path: fixed('/import/preview'), status: 400, body: () => [newWorkflow('x:1'), { kind: 'workflow', version: 1, key: 'y:1', name: 'y', steps: [] }] },
+  { name: 'import: counts, then the document is exported', op: '/import', method: 'POST', path: fixed('/import'), status: 200, body: () => [newWorkflow('fresh:1')],
+    check: (b, s) => { assert.deepEqual(b, { created: 1, updated: 0, skipped: 0, conflicts: 0 }); assert.equal(currentWorkflows(s).length, 5); } },
+  { name: 'import: a bad entry writes nothing', op: '/import', method: 'POST', path: fixed('/import'), status: 400, body: () => [newWorkflow('fresh:1'), { kind: 'nope', version: 1, key: 'z' }], check: (_b, s) => assert.equal(s.imported.size, 0) },
+  { name: 'import: a missing-ref refuses the whole file', op: '/import', method: 'POST', path: fixed('/import'), status: 400,
+    body: () => [newWorkflow('fresh:1'), { ...newWorkflow('broken:1'), steps: [{ id: 'a', label: 'A', type: 'service-task', handler: 'com.acme.Missing' }] }], check: (_b, s) => assert.equal(s.imported.size, 0) },
+  { name: 'import workflows: preview then import, one kind', op: '/workflows/import/preview', method: 'POST', path: fixed('/workflows/import/preview'), status: 200, body: () => [newWorkflow('fresh:1')], check: (b) => assert.equal((b as ImportPlan).entries[0].action, 'create') },
+  { name: 'import workflows: a code workflow that differs is a conflict', op: '/workflows/import', method: 'POST', path: fixed('/workflows/import'), status: 200,
+    body: (s) => [{ ...currentWorkflows(s)[0], sample: { changed: true } }], check: (b) => assert.deepEqual(b, { created: 0, updated: 0, skipped: 0, conflicts: 1 }) },
+  { name: 'export one run: the envelope', op: '/instances/{id}/export', method: 'GET', path: (s) => `/instances/${s.runs[0].id}/export`, status: 200, check: (b, s) => assert.equal((b as PortableDoc).key, s.runs[0].id) },
+  { name: 'export waits: one document per open wait', op: '/waits/export', method: 'GET', path: fixed('/waits/export'), status: 200, check: (b, s) => assert.equal((b as PortableDoc[]).length, s.openWaits().length) },
+  { name: 'me: a narrow role has no export permission, an admin has', op: '/me', method: 'GET', path: fixed('/me'), user: 'w.support', status: 200,
+    check: (b) => assert.ok(!(b as { permissions: Array<{ permission: string }> }).permissions.some((p) => p.permission.endsWith('.export'))) },
+  { name: 'me: the default login holds every export and import permission', op: '/me', method: 'GET', path: fixed('/me'), user: 'l.jones', status: 200,
+    check: (b) => assert.ok((b as { permissions: Array<{ permission: string }> }).permissions.some((p) => p.permission === 'workflows.import')) },
   { name: 'get workflow: graph and sample vars', op: '/workflows/{name}', method: 'GET', path: fixed('/workflows/confirmation-approval'), status: 200, check: (b) => assert.ok((b as { graph: { nodes: unknown[] } }).graph.nodes.length > 10) },
   { name: 'get workflow: unknown name is a 404 problem', op: '/workflows/{name}', method: 'GET', path: fixed('/workflows/nope'), status: 404 },
   { name: 'get workflow: unknown version is a 404 problem', op: '/workflows/{name}', method: 'GET', path: fixed('/workflows/trade-booking'), query: 'version=9', status: 404 },
@@ -36,7 +64,7 @@ export const CASES: Case[] = [
     check: (b, s) => { const p = page<Instance>(b); assert.equal(p.total, s.runs.filter((r) => r.status === 'waiting' || r.status === 'failed').length); assert.equal(p.items.length, 10); } },
   { name: 'list runs: workflow and step filters', op: '/instances', method: 'GET', path: fixed('/instances'), query: 'workflow=trade-booking&step=book', status: 200, check: (b) => assert.ok(page<Instance>(b).items.every((r) => r.definition === 'trade-booking' && r.currentStep?.includes('book'))) },
   { name: 'instance stats', op: '/instances/stats', method: 'GET', path: fixed('/instances/stats'), status: 200, check: (b, s) => assert.equal((b as { failed: number }).failed, s.runs.filter((r) => r.status === 'failed').length) },
-  { name: 'export runs: a portable document with the filter applied', op: '/instances/export', method: 'GET', path: fixed('/instances/export'), query: 'status=failed', status: 200, check: (b, s) => assert.equal((b as PortableDocument).items.length, s.runs.filter((r) => r.status === 'failed').length) },
+  { name: 'export runs: a portable document with the filter applied', op: '/instances/export', method: 'GET', path: fixed('/instances/export'), query: 'status=failed', status: 200, check: (b, s) => assert.equal((b as PortableDoc[]).length, s.runs.filter((r) => r.status === 'failed').length) },
   { name: 'get run', op: '/instances/{id}', method: 'GET', path: (s) => `/instances/${s.runs[0].id}`, status: 200 },
   { name: 'get run: unknown ID is a 404 problem', op: '/instances/{id}', method: 'GET', path: fixed('/instances/NOPE'), status: 404 },
   { name: 'run history, oldest first', op: '/instances/{id}/events', method: 'GET', path: (s) => `/instances/${s.runs[0].id}/events`, status: 200, check: (b) => assert.equal((b as Array<{ type: string }>)[0].type, 'instance-started') },
@@ -64,6 +92,6 @@ export const CASES: Case[] = [
   { name: 'send event: nothing waiting is a 404 problem', op: '/events/{name}', method: 'POST', path: fixed('/events/signed'), status: 404, body: () => ({ correlation: { envelopeId: 'NOPE' } }) },
   { name: 'list incidents: newest first, the stuck booking on top', op: '/incidents', method: 'GET', path: fixed('/incidents'), status: 200, check: (b) => { const p = page<Incident>(b); assert.equal(p.items[0].instanceId, FIXED.stuckBooking.id); assert.match(p.items[0].message, /booking system/); } },
   { name: 'list incidents: workflow filter', op: '/incidents', method: 'GET', path: fixed('/incidents'), query: 'workflow=counterparty-onboarding', status: 200, check: (b) => assert.ok(page<Incident>(b).items.every((i) => i.definition === 'counterparty-onboarding')) },
-  { name: 'export incidents: a portable document', op: '/incidents/export', method: 'GET', path: fixed('/incidents/export'), status: 200, check: (b, s) => assert.equal((b as PortableDocument).items.length, s.incidents().length) },
+  { name: 'export incidents: a portable document', op: '/incidents/export', method: 'GET', path: fixed('/incidents/export'), status: 200, check: (b, s) => assert.equal((b as PortableDoc[]).length, s.incidents().length) },
   { name: 'people: the engine dev personas with their teams', op: '/people', method: 'GET', path: fixed('/people'), status: 200, check: (b) => assert.ok((b as Array<{ user: string; teams: string[] }>).some((p) => p.user === 'l.jones' && p.teams.includes('legal'))) }
 ];

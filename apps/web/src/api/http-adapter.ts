@@ -30,13 +30,19 @@ export function createHttpAdapter(baseUrl: string, fetchImpl?: typeof fetch): Ap
     listWorkflows: (query) => unwrap(c.GET('/workflows', { params: { query } })),
     getWorkflow: (name, v) => unwrap(c.GET('/workflows/{name}', { params: { path: { name }, query: version(v) } })),
     workflowDiagram: (name, v) => unwrap(c.GET('/workflows/{name}/diagram', { params: { path: { name }, query: version(v) } })),
-    exportWorkflows: (name) => unwrap(c.GET('/workflows/export', { params: { query: name ? { name } : {} } })),
+    exportWorkflows: () => unwrap(c.GET('/workflows/export')),
+    exportWorkflow: (key) => unwrap(c.GET('/workflows/{key}/export', { params: { path: { key } } })),
+    previewImport: (scope, body) => unwrap(scope === 'bundle' ? c.POST('/import/preview', { body: body as never }) : c.POST('/workflows/import/preview', { body: body as never })),
+    importDocs: (scope, body) => unwrap(scope === 'bundle' ? c.POST('/import', { body: body as never }) : c.POST('/workflows/import', { body: body as never })),
+    exportBundle: () => unwrap(c.GET('/export')),
+    me: () => unwrap(c.GET('/me')),
     startInstance: (name, body) => unwrap(c.POST('/workflows/{name}/instances', { params: { path: { name } }, body })),
     listInstances: (query) => unwrap(c.GET('/instances', { params: { query } })),
     instanceStats: () => unwrap(c.GET('/instances/stats')),
     getInstance: (v) => unwrap(c.GET('/instances/{id}', id(v))),
     instanceEvents: (v) => unwrap(c.GET('/instances/{id}/events', id(v))),
     exportInstances: (query) => unwrap(c.GET('/instances/export', { params: { query } })),
+    exportInstance: (v) => unwrap(c.GET('/instances/{id}/export', id(v))),
     retry: (v) => unwrap(c.POST('/instances/{id}/retry', id(v))),
     restart: (v, step) => unwrap(c.POST('/instances/{id}/restart', { ...id(v), body: { step } })),
     fireTimeout: (v, step) => unwrap(c.POST('/instances/{id}/timeouts/{step}', { params: { path: { id: v, step } } })),
@@ -47,6 +53,7 @@ export function createHttpAdapter(baseUrl: string, fetchImpl?: typeof fetch): Ap
     sendEvent: (name, body) => unwrap(c.POST('/events/{name}', { params: { path: { name } }, body })),
     listIncidents: (query) => unwrap(c.GET('/incidents', { params: { query } })),
     exportIncidents: (query) => unwrap(c.GET('/incidents/export', { params: { query } })),
+    exportWaits: () => unwrap(c.GET('/waits/export')),
     people: () => unwrap(c.GET('/people'))
   };
 }

@@ -10,6 +10,7 @@ import { fleetGridTheme, reducedMotion, rowHeight } from './theme';
 import { infiniteDatasource, type FetchPage, type GridStatus } from './datasource';
 import { cn } from '../../lib/cn';
 import { Button } from '../ui/button';
+import { RowMenu, type RowAction } from './RowMenu';
 import { EmptyState } from '../states/EmptyState';
 import { ErrorState } from '../states/ErrorState';
 import { LoadingState } from '../states/LoadingState';
@@ -29,6 +30,10 @@ export type FleetGridProps<T> = {
   actions?: ReactNode;
   permissions?: { export?: boolean };
   onRowOpen?: (row: T) => void;
+  /** The row's "⋯" menu (Export, for one). No column when a row has no actions. */
+  rowMenu?: (row: T) => RowAction[];
+  /** What the row is called in the menu button's label. */
+  rowName?: (row: T) => string;
   /** The stable identity of a row (AG Grid's getRowId). */
   rowId: (row: T) => string;
   /** Grid placement on the page (a column span, say). The grid always fills its row's height. */
@@ -66,8 +71,21 @@ function useInfinite<T>(fetchPage: FetchPage<T>, queryKey: string) {
   return { status: current, datasource, retry: () => setAttempt((a) => a + 1) };
 }
 
+/** A click or key inside the row's own menu is not "open the row". */
+const inRowAction = (e: Event | null | undefined): boolean => (e?.target instanceof Element) && e.target.closest('[data-row-action]') !== null;
+
+const menuColumn = <T,>(rowMenu: (row: T) => RowAction[], rowName: (row: T) => string): ColDef<T> => ({
+  colId: 'menu', headerName: '', headerTooltip: 'Actions', width: 64, minWidth: 64, maxWidth: 64, pinned: 'right', sortable: false, resizable: false,
+  cellRenderer: ({ data }: { data?: T }) => (data ? <RowMenu actions={rowMenu(data)} name={rowName(data)} /> : null)
+});
+
 export function FleetGrid<T>(props: FleetGridProps<T>) {
   const { status, datasource, retry } = useInfinite(props.datasource, props.queryKey);
+  // The menu reads the page's latest callbacks at click time, so the column list (and AG Grid's column state) stays put.
+  const latest = useRef(props);
+  latest.current = props;
+  const hasMenu = Boolean(props.rowMenu);
+  const columns = useMemo(() => (hasMenu ? [...props.columns, menuColumn<T>((r) => latest.current.rowMenu!(r), (r) => (latest.current.rowName ?? latest.current.rowId)(r))] : props.columns), [props.columns, hasMenu]);
   const api = useRef<GridApi<T> | null>(null);
   const exportCsv = props.permissions?.export ? () => api.current?.exportDataAsCsv({ fileName: `${props.dataCy}.csv` }) : undefined;
   return (
@@ -76,11 +94,11 @@ export function FleetGrid<T>(props: FleetGridProps<T>) {
       <div className="relative min-h-0 flex-1">
         <Overlay status={status} states={props.states} onRetry={retry} />
         <AgGridReact<T>
-          theme={fleetGridTheme} rowModelType="infinite" datasource={datasource} columnDefs={props.columns}
+          theme={fleetGridTheme} rowModelType="infinite" datasource={datasource} columnDefs={columns}
           cacheBlockSize={100} maxConcurrentDatasourceRequests={1} rowHeight={rowHeight()} animateRows={!reducedMotion()} getRowId={(p) => props.rowId(p.data)}
           defaultColDef={{ sortable: false, resizable: true }} onGridReady={(e) => { api.current = e.api; }}
-          onRowClicked={(e) => e.data && props.onRowOpen?.(e.data)}
-          onCellKeyDown={(e) => { if ((e.event as KeyboardEvent | null)?.key === 'Enter' && e.data) props.onRowOpen?.(e.data); }}
+          onRowClicked={(e) => e.data && !inRowAction(e.event) && props.onRowOpen?.(e.data)}
+          onCellKeyDown={(e) => { if ((e.event as KeyboardEvent | null)?.key === 'Enter' && e.data && !inRowAction(e.event)) props.onRowOpen?.(e.data); }}
         />
       </div>
     </section>

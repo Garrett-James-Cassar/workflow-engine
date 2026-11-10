@@ -1,20 +1,22 @@
 // The shell (STYLE.md §4): 232px sidebar, a top bar with a menu button under 1024px.
-import { useState, type ReactNode } from 'react';
+import { useState, useSyncExternalStore, type ReactNode } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { Menu } from 'lucide-react';
+import { accessVersion, can, subscribeAccess } from '../lib/access';
 import { cn } from '../lib/cn';
 import { MODE } from '../lib/mode';
 import { ModeBanner } from './ModeBanner';
 import { PersonaSwitch } from './PersonaSwitch';
 import { DemoControls } from '../demo/DemoControls';
 
-export type NavItem = { to: string; label: string; cy: string };
+export type NavItem = { to: string; label: string; cy: string; show?: () => boolean };
 export const NAV: NavItem[] = [
   { to: '/workflows', label: 'Workflows', cy: 'nav-workflows' },
   { to: '/instances', label: 'Workflow runs', cy: 'nav-instances' },
   { to: '/tasks', label: 'My tasks', cy: 'nav-tasks' },
   { to: '/events', label: 'Events', cy: 'nav-events' },
-  { to: '/incidents', label: 'Incidents', cy: 'nav-incidents' }
+  { to: '/incidents', label: 'Incidents', cy: 'nav-incidents' },
+  { to: '/configuration', label: 'Configuration', cy: 'nav-configuration', show: () => can('workflows.export') || can('workflows.import') }
 ];
 
 function isActive(item: NavItem, path: string, search: string): boolean {
@@ -26,9 +28,10 @@ function isActive(item: NavItem, path: string, search: string): boolean {
 
 function Nav({ onNavigate }: { onNavigate: () => void }) {
   const { pathname, search } = useLocation();
+  useSyncExternalStore(subscribeAccess, accessVersion);
   return (
     <nav aria-label="Main" className="flex flex-col gap-1">
-      {NAV.map((item) => (
+      {NAV.filter((item) => item.show?.() ?? true).map((item) => (
         <NavLink key={item.to} to={item.to} data-cy={item.cy} onClick={onNavigate}
           className={() => cn('tap-target rounded-md px-2 py-2 transition-colors', isActive(item, pathname, search) ? 'bg-primary-soft text-foreground' : 'text-muted-foreground hover:text-foreground')}>
           {item.label}

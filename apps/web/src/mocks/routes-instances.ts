@@ -1,14 +1,11 @@
 // Run operations: list, stats, one run, its history, retry, restart, fire a timeout, export.
-import type { Instance, PortableDocument } from '../api/types';
+import type { Instance } from '../api/types';
 import { intParam, ok, problem, type Ctx, type MockResponse, type Route } from './http';
 import { dropOpenWork, expire } from './ops';
 import { allOf, compareBy, contains, eq, list, oneOf, page, type Order } from './query';
 import { mayRestart } from './rbac';
+import { instanceDoc } from './portable';
 import { enter, retryStep, type Run } from './sim';
-
-export function portable(resource: string, items: unknown[], nowMs: number): PortableDocument {
-  return { format: 'fleet.portable', version: 1, resource, exportedAt: new Date(nowMs).toISOString(), items: items as Array<Record<string, unknown>> };
-}
 
 const notFound = (ctx: Ctx) => problem(ctx, 404, `No run has the ID ${ctx.params.id}.`);
 
@@ -80,7 +77,8 @@ function fireTimeout(ctx: Ctx): MockResponse {
 export const instanceRoutes: Route[] = [
   { method: 'GET', path: '/instances', handle: listRuns },
   { method: 'GET', path: '/instances/stats', handle: stats },
-  { method: 'GET', path: '/instances/export', handle: (ctx) => ok(portable('instances', filtered(ctx), ctx.store.now())) },
+  { method: 'GET', path: '/instances/export', handle: (ctx) => ok(filtered(ctx).map(instanceDoc)) },
+  { method: 'GET', path: '/instances/{id}/export', handle: (ctx) => withRun(ctx, (run) => ok(instanceDoc(ctx.store.view(run)))) },
   { method: 'GET', path: '/instances/{id}', handle: getRun },
   { method: 'GET', path: '/instances/{id}/events', handle: events },
   { method: 'POST', path: '/instances/{id}/retry', handle: retry },

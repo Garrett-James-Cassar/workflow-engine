@@ -27,15 +27,15 @@ function useFocusTrap(onClose: () => void) {
   return ref;
 }
 
-export function Dialog({ title, children, actions, onClose, dataCy }: { title: string; children?: ReactNode; actions: ReactNode; onClose: () => void; dataCy?: string }) {
+export function Dialog({ title, children, actions, onClose, dataCy }: { title: string; children?: ReactNode; actions?: ReactNode; onClose: () => void; dataCy?: string }) {
   const ref = useFocusTrap(onClose);
   const id = useId();
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 p-4" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div ref={ref} role="dialog" aria-modal="true" aria-labelledby={id} data-cy={dataCy} className="w-full max-w-dialog rounded-lg border border-border bg-surface p-6 shadow-raised">
+      <div ref={ref} role="dialog" aria-modal="true" aria-labelledby={id} data-cy={dataCy} className="max-h-[90dvh] w-full max-w-dialog overflow-y-auto rounded-lg border border-border bg-surface p-6 shadow-raised">
         <h2 id={id} className="text-lg">{title}</h2>
         {children && <div className="mt-2 text-base text-muted-foreground">{children}</div>}
-        <div className="mt-6 flex flex-wrap justify-end gap-2">{actions}</div>
+        {actions && <div className="mt-6 flex flex-wrap justify-end gap-2">{actions}</div>}
       </div>
     </div>
   );

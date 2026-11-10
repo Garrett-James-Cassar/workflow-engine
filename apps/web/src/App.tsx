@@ -1,5 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
+import { AccessGate } from './components/AccessGate';
 import { Layout } from './components/Layout';
+import { ConfigurationPage } from './routes/configuration/ConfigurationPage';
 import { NotFoundPage } from './routes/NotFoundPage';
 import { EventsPage } from './routes/events/EventsPage';
 import { IncidentsPage } from './routes/incidents/IncidentsPage';
@@ -12,6 +14,7 @@ import { WorkflowsPage } from './routes/workflows/WorkflowsPage';
 export function App() {
   return (
     <Layout>
+      <AccessGate>
       <Routes>
         <Route path="/" element={<Navigate to="/workflows" replace />} />
         <Route path="/workflows" element={<WorkflowsPage />} />
@@ -21,8 +24,10 @@ export function App() {
         <Route path="/incidents" element={<IncidentsPage />} />
         <Route path="/instances" element={<InstancesPage />} />
         <Route path="/instances/:id" element={<InstancePage />} />
+        <Route path="/configuration" element={<ConfigurationPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
+      </AccessGate>
     </Layout>
   );
 }

@@ -24,6 +24,22 @@ export const GRANTS: Grant[] = [
   { user: 'w.support', role: 'workflow-support' }
 ];
 
+/** What a login may do in the studio. The studio's mock treats everyone as an engine admin except the logins that hold only a narrow role:
+ *  the workflow-support w.support (the engine's own persona file maps roles to permissions). */
+const NARROW: Record<string, string[]> = {
+  'workflow-support': ['instances.read', 'instances.restart']
+};
+const ADMIN = [
+  'workflows.read', 'workflows.export', 'workflows.import', 'instances.read', 'instances.start', 'instances.retry', 'instances.restart', 'instances.fire-timeout', 'instances.export',
+  'tasks.read', 'tasks.complete', 'tasks.reassign', 'tasks.export', 'waits.export', 'events.send', 'events.export', 'incidents.read', 'incidents.retry', 'incidents.export', 'people.read', 'people.export'
+];
+
+export function permissionsOf(user: string): string[] {
+  const roles = GRANTS.filter((g) => g.user === user).map((g) => g.role);
+  const narrow = roles.length > 0 && roles.every((r) => r in NARROW);
+  return narrow ? [...new Set(roles.flatMap((r) => NARROW[r]))].sort() : ADMIN;
+}
+
 export const people = (): Person[] => Object.entries(PEOPLE).map(([user, name]) => ({
   user, name, teams: [...new Set(GRANTS.filter((g) => g.user === user).map((g) => g.role))].sort()
 }));

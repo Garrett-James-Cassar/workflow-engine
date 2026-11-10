@@ -5,6 +5,7 @@ import { useApi } from '../../api';
 import type { Wait, WaitListQuery } from '../../api/types';
 import { FleetGrid } from '../../components/grid/FleetGrid';
 import type { PageQuery } from '../../components/grid/datasource';
+import { usePortable } from '../../components/portable/usePortable';
 import { PageHeader } from '../../components/PageHeader';
 import { PageGrid } from '../../components/PageGrid';
 import { can } from '../../lib/access';
@@ -29,13 +30,18 @@ export function EventsPage() {
     if (!instance) return;
     void api.getInstance(instance).then((run) => { if (run.openWaits[0]) setPrefill(fromWait(run.openWaits[0], Date.now())); }, () => undefined);
   }, [instance]);
+  const portable = usePortable<Wait>({
+    resource: 'waits', exportPermission: 'waits.export', exportAll: () => api.exportWaits(), rowName: (w) => `wait-${w.id}`,
+    exportRow: (w) => api.exportWaits().then((docs) => docs.filter((d) => d.key === w.id))
+  });
   return (
     <PageGrid fill above={1}>
       <PageHeader title="Events" description="Send an event to the runs that wait for it, the way an external system would." />
       <FleetGrid<Wait>
         className="lg:col-span-7 3xl:col-span-8" dataCy="waits-grid" title="Waiting for events" columns={waitColumns} rowId={(w) => w.id} queryKey={`${version}`}
         datasource={(q: PageQuery) => api.listWaits({ ...q } as WaitListQuery)}
-        permissions={{ export: can('instances.export') }} onRowOpen={(w) => setPrefill(fromWait(w, Date.now()))}
+        permissions={{ export: can('waits.export') }} onRowOpen={(w) => setPrefill(fromWait(w, Date.now()))}
+        actions={portable.toolbar} rowMenu={portable.rowMenu} rowName={portable.rowName}
         states={{ empty: { ...EMPTY, action: <Link to="/workflows" data-cy="waits-empty-workflows" className={LINK}>Open workflows</Link> }, errorHeading: 'Could not load waiting events' }}
       />
       <div className="lg:col-span-5 3xl:col-span-4"><SendEventForm prefill={prefill} onSent={() => setVersion((v) => v + 1)} /></div>

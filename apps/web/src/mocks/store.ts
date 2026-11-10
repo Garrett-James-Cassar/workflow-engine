@@ -10,6 +10,8 @@ export const uuid = (rand: Rand): string => `${hex(rand, 8)}-${hex(rand, 4)}-4${
 
 export class MockStore {
   runs: Run[] = [];
+  /** Config documents that arrived through an import, by kind and key (the registered workflows are not here). */
+  imported = new Map<string, Record<string, unknown>>();
   private idRand: Rand = seeded(1);
   private eventSeq = 0;
   private emptied = false;
@@ -20,6 +22,7 @@ export class MockStore {
     this.idRand = seeded(1);
     this.eventSeq = 0;
     this.runs = [];
+    this.imported = new Map();
     this.emptied = empty;
     if (!empty) seed(this);
   }

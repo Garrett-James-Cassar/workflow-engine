@@ -5,13 +5,13 @@ import type { WorkflowListQuery, WorkflowSummary } from '../../api/types';
 import { FilterPanel, TextFilter } from '../../components/filters/filters';
 import { FleetGrid } from '../../components/grid/FleetGrid';
 import type { PageQuery } from '../../components/grid/datasource';
+import { usePortable } from '../../components/portable/usePortable';
 import { PageHeader } from '../../components/PageHeader';
 import { PageGrid } from '../../components/PageGrid';
 import { Button } from '../../components/ui/button';
 import { can } from '../../lib/access';
 import { queryOf, useUrlFilters } from '../../lib/useUrlFilters';
 import { workflowColumns } from './columns';
-import { WorkflowsGridActions } from './WorkflowsGridActions';
 
 const FILTERS = ['name'] as const;
 const EMPTY = { headline: 'No workflows registered', text: 'Workflows are defined in Kotlin and registered when the engine starts. Add one to Workflows.kt to see it here.' };
@@ -22,6 +22,10 @@ export function WorkflowsPage() {
   const navigate = useNavigate();
   const f = useUrlFilters(FILTERS);
   const query = queryOf(f, FILTERS) as Partial<WorkflowListQuery>;
+  const portable = usePortable<WorkflowSummary>({
+    resource: 'workflows', exportPermission: 'workflows.export', exportAll: () => api.exportWorkflows(),
+    exportRow: (w) => api.exportWorkflow(`${w.name}:${w.latestVersion}`), rowName: (w) => w.name, importScope: 'workflows', importPermission: 'workflows.import'
+  });
   const empty = f.count ? { ...NO_MATCH, action: <Button variant="ghost" data-cy="workflows-empty-clear" onClick={f.clear}>Clear filters</Button> } : EMPTY;
   return (
     <PageGrid fill above={2}>
@@ -33,7 +37,7 @@ export function WorkflowsPage() {
         dataCy="workflows-grid" title="Workflows" columns={workflowColumns} rowId={(w) => w.name} queryKey={f.key}
         datasource={(q: PageQuery) => api.listWorkflows({ ...query, ...q } as WorkflowListQuery)}
         permissions={{ export: can('workflows.export') }} onRowOpen={(w) => navigate(`/workflows/${w.name}`)}
-        actions={<WorkflowsGridActions name={query.name} />}
+        actions={portable.toolbar} rowMenu={portable.rowMenu} rowName={portable.rowName}
         states={{ empty, errorHeading: 'Could not load workflows' }}
       />
     </PageGrid>

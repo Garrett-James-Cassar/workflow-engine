@@ -33,11 +33,9 @@ paths:
   /workflows/export:
     get:
       operationId: exportWorkflows
-      summary: Export workflows as a portable document (GAP - new endpoint)
-      parameters:
-        - { name: name, in: query, schema: { type: string } }
+      summary: Export every workflow as portable documents, newest envelope (Config kind; docs/RESOURCES.md)
       responses:
-        '200': { description: Portable document, content: { application/json: { schema: { $ref: '#/components/schemas/PortableDocument' } } } }
+        '200': { description: The documents, content: { application/json: { schema: { $ref: '#/components/schemas/PortableDocuments' } } } }
         default: { $ref: '#/components/responses/Problem' }
   /workflows/{name}:
     get:
@@ -95,13 +93,13 @@ paths:
   /instances/export:
     get:
       operationId: exportInstances
-      summary: Export runs as a portable document, export-only (GAP - new endpoint)
+      summary: Export runs as portable documents, export-only (Records kind)
       parameters:
         - { name: status, in: query, style: form, explode: false, schema: { type: array, items: { $ref: '#/components/schemas/InstanceStatus' } } }
         - { name: workflow, in: query, schema: { type: string } }
         - { name: step, in: query, schema: { type: string } }
       responses:
-        '200': { description: Portable document, content: { application/json: { schema: { $ref: '#/components/schemas/PortableDocument' } } } }
+        '200': { description: The documents, content: { application/json: { schema: { $ref: '#/components/schemas/PortableDocuments' } } } }
         default: { $ref: '#/components/responses/Problem' }
   /instances/{id}:
     get:
@@ -229,12 +227,83 @@ paths:
   /incidents/export:
     get:
       operationId: exportIncidents
-      summary: Export incidents as a portable document, export-only (GAP - new endpoint)
+      summary: Export incidents as portable documents, export-only (Records kind)
       parameters:
         - { name: workflow, in: query, schema: { type: string } }
         - { name: step, in: query, schema: { type: string } }
       responses:
-        '200': { description: Portable document, content: { application/json: { schema: { $ref: '#/components/schemas/PortableDocument' } } } }
+        '200': { description: The documents, content: { application/json: { schema: { $ref: '#/components/schemas/PortableDocuments' } } } }
+        default: { $ref: '#/components/responses/Problem' }
+  /workflows/{key}/export:
+    get:
+      operationId: exportWorkflow
+      summary: One workflow as a portable document; the key is name:version
+      parameters:
+        - { name: key, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: The document, content: { application/json: { schema: { $ref: '#/components/schemas/PortableDoc' } } } }
+        default: { $ref: '#/components/responses/Problem' }
+  /workflows/import/preview:
+    post:
+      operationId: previewWorkflowImport
+      summary: What importing these workflow documents would do. Writes nothing.
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/PortableDocuments' } } } }
+      responses:
+        '200': { description: The plan, content: { application/json: { schema: { $ref: '#/components/schemas/ImportPlan' } } } }
+        default: { $ref: '#/components/responses/Problem' }
+  /workflows/import:
+    post:
+      operationId: importWorkflows
+      summary: Import workflow documents, all or nothing
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/PortableDocuments' } } } }
+      responses:
+        '200': { description: The counts, content: { application/json: { schema: { $ref: '#/components/schemas/ImportResult' } } } }
+        default: { $ref: '#/components/responses/Problem' }
+  /export:
+    get:
+      operationId: exportConfiguration
+      summary: The promotion bundle, every Config kind in dependency order
+      responses:
+        '200': { description: The documents, content: { application/json: { schema: { $ref: '#/components/schemas/PortableDocuments' } } } }
+        default: { $ref: '#/components/responses/Problem' }
+  /import/preview:
+    post:
+      operationId: previewConfigurationImport
+      summary: What importing this bundle would do. Writes nothing.
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/PortableDocuments' } } } }
+      responses:
+        '200': { description: The plan, content: { application/json: { schema: { $ref: '#/components/schemas/ImportPlan' } } } }
+        default: { $ref: '#/components/responses/Problem' }
+  /import:
+    post:
+      operationId: importConfiguration
+      summary: Import a bundle, all or nothing
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/PortableDocuments' } } } }
+      responses:
+        '200': { description: The counts, content: { application/json: { schema: { $ref: '#/components/schemas/ImportResult' } } } }
+        default: { $ref: '#/components/responses/Problem' }
+  /instances/{id}/export:
+    get:
+      operationId: exportInstance
+      summary: One run as a portable document (Records kind)
+      parameters:
+        - { $ref: '#/components/parameters/Id' }
+      responses:
+        '200': { description: The document, content: { application/json: { schema: { $ref: '#/components/schemas/PortableDoc' } } } }
+        default: { $ref: '#/components/responses/Problem' }
+  /waits/export:
+    get:
+      operationId: exportWaits
+      summary: Export the waits for an event as portable documents (Records kind)
+      responses:
+        '200': { description: The documents, content: { application/json: { schema: { $ref: '#/components/schemas/PortableDocuments' } } } }
+        default: { $ref: '#/components/responses/Problem' }
+  /me:
+    get:
+      operationId: getMe
+      summary: The caller's own permissions, for the UI's can()
+      responses:
+        '200': { description: The caller, content: { application/json: { schema: { $ref: '#/components/schemas/Me' } } } }
         default: { $ref: '#/components/responses/Problem' }
   /people:
     get:
@@ -500,12 +569,48 @@ components:
         user: { type: string }
         name: { type: string }
         teams: { type: array, items: { type: string } }
-    PortableDocument:
+    PortableDoc:
       type: object
-      required: [format, version, resource, exportedAt, items]
+      description: One document in the fleet envelope (PORTABLE.md section 2); the kind's own fields sit beside the three below.
+      required: [kind, version, key]
       properties:
-        format: { type: string, const: fleet.portable }
-        version: { type: integer }
-        resource: { type: string }
-        exportedAt: { type: string, format: date-time }
-        items: { type: array, items: { type: object, additionalProperties: true } }
+        kind: { type: string }
+        version: { type: integer, minimum: 1 }
+        key: { type: string }
+      additionalProperties: true
+    PortableDocuments: { type: array, items: { $ref: '#/components/schemas/PortableDoc' } }
+    ImportPlan:
+      type: object
+      required: [entries]
+      properties:
+        entries: { type: array, items: { $ref: '#/components/schemas/ImportPlanEntry' } }
+    ImportPlanEntry:
+      type: object
+      required: [kind, key, action, changed, missing]
+      properties:
+        kind: { type: string }
+        key: { type: string }
+        action: { type: string, enum: [create, overwrite, unchanged, conflict, missing-ref] }
+        changed: { type: array, items: { type: string } }
+        missing: { type: array, items: { $ref: '#/components/schemas/MissingRef' } }
+        note: { type: string }
+    MissingRef:
+      type: object
+      required: [kind, key, path]
+      properties: { kind: { type: string }, key: { type: string }, path: { type: string } }
+    ImportResult:
+      type: object
+      required: [created, updated, skipped, conflicts]
+      properties: { created: { type: integer }, updated: { type: integer }, skipped: { type: integer }, conflicts: { type: integer } }
+    Me:
+      type: object
+      required: [login, displayName, permissions]
+      properties:
+        login: { type: string }
+        displayName: { type: string }
+        permissions:
+          type: array
+          items:
+            type: object
+            required: [permission, scope]
+            properties: { permission: { type: string }, scope: { type: object, additionalProperties: { type: string } } }

@@ -3,9 +3,9 @@ import type { FieldError, Incident, Task, Wait } from '../api/types';
 import { intParam, ok, problem, type Ctx, type MockResponse, type Route } from './http';
 import { deliver, finishTask } from './ops';
 import { allOf, compareBy, contains, eq, page, type Order } from './query';
-import { mayComplete, mayReassign, people } from './rbac';
+import { mayComplete, mayReassign, people, permissionsOf } from './rbac';
 import { emit, type Vars } from './sim';
-import { portable } from './routes-instances';
+import { incidentDoc, waitDoc } from './portable';
 
 const paged = <T>(rows: T[], q: URLSearchParams) => ok(page(rows, intParam(q, 'offset', 0), Math.min(500, intParam(q, 'limit', 100))));
 
@@ -100,6 +100,8 @@ export const taskRoutes: Route[] = [
   { method: 'GET', path: '/waits', handle: listWaits },
   { method: 'POST', path: '/events/{name}', handle: sendEvent },
   { method: 'GET', path: '/incidents', handle: listIncidents },
-  { method: 'GET', path: '/incidents/export', handle: (ctx) => ok(portable('incidents', ctx.store.incidents().filter(incidentFilter(ctx.query)), ctx.store.now())) },
+  { method: 'GET', path: '/incidents/export', handle: (ctx) => ok(ctx.store.incidents().filter(incidentFilter(ctx.query)).map(incidentDoc)) },
+  { method: 'GET', path: '/waits/export', handle: (ctx) => ok(ctx.store.openWaits().map(waitDoc)) },
+  { method: 'GET', path: '/me', handle: (ctx) => ok({ login: ctx.user, displayName: people().find((p) => p.user === ctx.user)?.name ?? ctx.user, permissions: permissionsOf(ctx.user).map((permission) => ({ permission, scope: {} })) }) },
   { method: 'GET', path: '/people', handle: () => ok(people()) }
 ];

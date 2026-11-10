@@ -28,7 +28,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Export workflows as a portable document (GAP - new endpoint) */
+        /** Export every workflow as portable documents, newest envelope (Config kind; docs/RESOURCES.md) */
         get: operations["exportWorkflows"];
         put?: never;
         post?: never;
@@ -130,7 +130,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Export runs as a portable document, export-only (GAP - new endpoint) */
+        /** Export runs as portable documents, export-only (Records kind) */
         get: operations["exportInstances"];
         put?: never;
         post?: never;
@@ -334,8 +334,161 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Export incidents as a portable document, export-only (GAP - new endpoint) */
+        /** Export incidents as portable documents, export-only (Records kind) */
         get: operations["exportIncidents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workflows/{key}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One workflow as a portable document; the key is name:version */
+        get: operations["exportWorkflow"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workflows/import/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** What importing these workflow documents would do. Writes nothing. */
+        post: operations["previewWorkflowImport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workflows/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Import workflow documents, all or nothing */
+        post: operations["importWorkflows"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The promotion bundle, every Config kind in dependency order */
+        get: operations["exportConfiguration"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/import/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** What importing this bundle would do. Writes nothing. */
+        post: operations["previewConfigurationImport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Import a bundle, all or nothing */
+        post: operations["importConfiguration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/instances/{id}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One run as a portable document (Records kind) */
+        get: operations["exportInstance"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/waits/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export the waits for an event as portable documents (Records kind) */
+        get: operations["exportWaits"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The caller's own permissions, for the UI's can() */
+        get: operations["getMe"];
         put?: never;
         post?: never;
         delete?: never;
@@ -594,15 +747,46 @@ export interface components {
             name: string;
             teams: string[];
         };
-        PortableDocument: {
-            /** @constant */
-            format: "fleet.portable";
+        /** @description One document in the fleet envelope (PORTABLE.md section 2); the kind's own fields sit beside the three below. */
+        PortableDoc: {
+            kind: string;
             version: number;
-            resource: string;
-            /** Format: date-time */
-            exportedAt: string;
-            items: {
-                [key: string]: unknown;
+            key: string;
+        } & {
+            [key: string]: unknown;
+        };
+        PortableDocuments: components["schemas"]["PortableDoc"][];
+        ImportPlan: {
+            entries: components["schemas"]["ImportPlanEntry"][];
+        };
+        ImportPlanEntry: {
+            kind: string;
+            key: string;
+            /** @enum {string} */
+            action: "create" | "overwrite" | "unchanged" | "conflict" | "missing-ref";
+            changed: string[];
+            missing: components["schemas"]["MissingRef"][];
+            note?: string;
+        };
+        MissingRef: {
+            kind: string;
+            key: string;
+            path: string;
+        };
+        ImportResult: {
+            created: number;
+            updated: number;
+            skipped: number;
+            conflicts: number;
+        };
+        Me: {
+            login: string;
+            displayName: string;
+            permissions: {
+                permission: string;
+                scope: {
+                    [key: string]: string;
+                };
             }[];
         };
     };
@@ -662,22 +846,20 @@ export interface operations {
     };
     exportWorkflows: {
         parameters: {
-            query?: {
-                name?: string;
-            };
+            query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Portable document */
+            /** @description The documents */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PortableDocument"];
+                    "application/json": components["schemas"]["PortableDocuments"];
                 };
             };
             default: components["responses"]["Problem"];
@@ -825,13 +1007,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Portable document */
+            /** @description The documents */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PortableDocument"];
+                    "application/json": components["schemas"]["PortableDocuments"];
                 };
             };
             default: components["responses"]["Problem"];
@@ -1132,13 +1314,222 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Portable document */
+            /** @description The documents */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PortableDocument"];
+                    "application/json": components["schemas"]["PortableDocuments"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    exportWorkflow: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The document */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortableDoc"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    previewWorkflowImport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PortableDocuments"];
+            };
+        };
+        responses: {
+            /** @description The plan */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportPlan"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    importWorkflows: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PortableDocuments"];
+            };
+        };
+        responses: {
+            /** @description The counts */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportResult"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    exportConfiguration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The documents */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortableDocuments"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    previewConfigurationImport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PortableDocuments"];
+            };
+        };
+        responses: {
+            /** @description The plan */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportPlan"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    importConfiguration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PortableDocuments"];
+            };
+        };
+        responses: {
+            /** @description The counts */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportResult"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    exportInstance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The document */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortableDoc"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    exportWaits: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The documents */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortableDocuments"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getMe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The caller */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Me"];
                 };
             };
             default: components["responses"]["Problem"];
