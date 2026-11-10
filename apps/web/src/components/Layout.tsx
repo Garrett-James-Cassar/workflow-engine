@@ -57,13 +57,14 @@ export function Layout({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
   return (
     <div className="flex h-dvh flex-col overflow-hidden lg:flex-row">
+      <a href="#main" data-cy="skip-link" className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-[60] focus:rounded-md focus:bg-surface focus:px-3 focus:py-2 focus:text-foreground focus:shadow-raised">Skip to content</a>
       <aside className="hidden overflow-y-auto border-r border-border bg-surface lg:block lg:w-sidebar lg:shrink-0">
         <div className="p-4"><div className="pb-4"><Brand /></div><Nav onNavigate={() => undefined} /></div>
       </aside>
       <div className="shell-wash flex min-h-0 min-w-0 flex-1 flex-col">
         <header className="shrink-0"><TopBar onMenu={() => setOpen((o) => !o)} /></header>
         {open && <div className="shrink-0 border-b border-border bg-surface p-4 lg:hidden"><Nav onNavigate={() => setOpen(false)} /></div>}
-        <main data-cy="main" className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 py-6 sm:px-6">{children}</main>
+        <main id="main" tabIndex={-1} data-cy="main" className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 py-6 sm:px-6">{children}</main>
       </div>
     </div>
   );

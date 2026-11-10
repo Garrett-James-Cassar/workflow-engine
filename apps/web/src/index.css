@@ -68,6 +68,8 @@
   .tap-target { position: relative; }
   @media (pointer: coarse) {
     .tap-target { min-height: 44px; min-width: 44px; }
+    /* STYLE.md tap targets: text fields reach 44px too; checkboxes and radios sit in a tap-target label (the label is the target). */
+    input:not([type=checkbox]):not([type=radio]), select, textarea { min-height: 44px; }
   }
 }
 

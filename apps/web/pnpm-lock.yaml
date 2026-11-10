@@ -95,6 +95,9 @@ importers:
       cypress-axe:
         specifier: ^1.5.0
         version: 1.7.0(axe-core@4.14.0)(cypress@13.17.0)
+      cypress-real-events:
+        specifier: 1.13.0
+        version: 1.13.0(cypress@13.17.0)
       msw:
         specifier: ^2.6.0
         version: 2.15.0(@types/node@22.20.5)(typescript@5.9.3)
@@ -1749,6 +1752,11 @@ packages:
     peerDependencies:
       axe-core: ^3 || ^4
       cypress: ^10 || ^11 || ^12 || ^13 || ^14 || ^15
+
+  cypress-real-events@1.13.0:
+    resolution: {integrity: sha512-LoejtK+dyZ1jaT8wGT5oASTPfsNV8/ClRp99ruN60oPj8cBJYod80iJDyNwfPAu4GCxTXOhhAv9FO65Hpwt6Hg==}
+    peerDependencies:
+      cypress: ^4.x || ^5.x || ^6.x || ^7.x || ^8.x || ^9.x || ^10.x || ^11.x || ^12.x || ^13.x
 
   cypress@13.17.0:
     resolution: {integrity: sha512-5xWkaPurwkIljojFidhw8lFScyxhtiFHl/i/3zov+1Z5CmY4t9tjIdvSXfu82Y3w7wt0uR9KkucbhkVvJZLQSA==}
@@ -5376,6 +5384,10 @@ snapshots:
   cypress-axe@1.7.0(axe-core@4.14.0)(cypress@13.17.0):
     dependencies:
       axe-core: 4.14.0
+      cypress: 13.17.0
+
+  cypress-real-events@1.13.0(cypress@13.17.0):
+    dependencies:
       cypress: 13.17.0
 
   cypress@13.17.0:
