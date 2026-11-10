@@ -21,6 +21,8 @@
     "incidents.export",
     "people.read",
     "people.export",
+    "audit.read",
+    "audit.export",
     "demo.reset"
   ],
   "roles": [
@@ -149,6 +151,8 @@
       "name": "engine-admin",
       "description": "Everything in the workflow engine, in every team",
       "permissions": [
+        "audit.export",
+        "audit.read",
         "demo.reset",
         "events.export",
         "events.send",
@@ -179,7 +183,8 @@
       "permissions": [
         "workflows.read",
         "instances.read",
-        "tasks.read"
+        "tasks.read",
+        "audit.read"
       ]
     }
   ],
@@ -389,7 +394,7 @@
   ],
   "coverage": {
     "admin": "e.admin (engine-admin, everything); ops.admin (tasks.reassign via ops)",
-    "read-only": "r.viewer (auditor: workflows.read, instances.read, tasks.read; no write permission)",
+    "read-only": "r.viewer (auditor: workflows.read, instances.read, tasks.read, audit.read; no write permission)",
     "denied": "p.maint (no grants; /check says why; the 403-with-reason is proven in AuthorizationTest 'a denied person gets 403 with the reason...' and '...cannot start a run')",
     "scoped": "k.comply (compliance, region EU); c.acme (counterparty ACME)"
   },

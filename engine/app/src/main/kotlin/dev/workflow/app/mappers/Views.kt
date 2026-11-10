@@ -2,6 +2,7 @@ package dev.workflow.app.mappers
 
 import dev.workflow.app.api.dtos.DefinitionSummary
 import dev.workflow.app.api.dtos.DefinitionView
+import dev.workflow.app.api.dtos.AuditView
 import dev.workflow.app.api.dtos.EventView
 import dev.workflow.app.api.dtos.GraphView
 import dev.workflow.app.api.dtos.InstanceView
@@ -72,6 +73,11 @@ object InstanceMapper {
 
 object EventMapper {
     fun view(r: EventRow) = EventView(r.id, r.event.type, r.event.step, r.event.outcome, r.event.actor, r.event.payload, r.event.at)
+}
+
+object AuditMapper {
+    fun view(e: dev.workflow.app.domain.AuditEntry) =
+        AuditView(e.id, e.at, e.actor, e.via, e.action, e.resource, e.outcome.name.lowercase(), e.changes, e.traceId)
 }
 
 object AccessMapper {

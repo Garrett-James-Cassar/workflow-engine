@@ -18,7 +18,7 @@ class PortableTest : ApiTest() {
     /** The shared test clock moves between tests, so the day in a file name is read from it. */
     private fun day(): java.time.LocalDate = java.time.LocalDate.now(clock)
 
-    private fun audits() = jdbc.sql("select count(*) from import_audit").query(Long::class.java).single()
+    private fun audits() = jdbc.sql("select count(*) from audit_log where action = 'workflows.import'").query(Long::class.java).single()
 
     private fun import(body: Any?, path: String = "/api/v1/workflows/import", user: String = ADMIN) = call("POST", path, user, body)
 
@@ -154,7 +154,7 @@ class PortableTest : ApiTest() {
         assertEquals(start + 1, audits())
         import(copyOf("audited"))
         assertEquals(start + 2, audits())
-        assertEquals("e.admin", jdbc.sql("select actor from import_audit order by id desc limit 1").query(String::class.java).single())
+        assertEquals("e.admin", jdbc.sql("select actor from audit_log where action = 'workflows.import' order by id desc limit 1").query(String::class.java).single())
     }
 
     @Test

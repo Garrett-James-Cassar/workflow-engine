@@ -30,6 +30,7 @@ class TaskService(
     private val rbac: RbacPort,
     private val authorizer: Authorizer,
     private val spans: UseCaseSpans,
+    private val audit: Audit,
     private val clock: Clock,
 ) {
     /** A user task is for the person it names; a team task is for anyone holding the team's role in the task's scope. */
@@ -52,8 +53,9 @@ class TaskService(
      */
     fun reassignTask(taskId: UUID, user: String, to: Assignment): InstanceState = spans.run("workflow.task.reassign") {
         val task = openTask(taskId)
-        authorizer.require(user, Permissions.TASKS_REASSIGN, task.assignment.scope)
-        transitions.inTx { reassignLocked(task, user, to) }
+        audit.run(audit.context(user), "tasks.reassign", "task:$taskId", listOf("assignment"), { authorizer.require(user, Permissions.TASKS_REASSIGN, task.assignment.scope) }) {
+            transitions.inTx { reassignLocked(task, user, to) }
+        }
     }
 
     private fun reassignLocked(task: TaskRow, user: String, to: Assignment): InstanceState {
@@ -82,11 +84,16 @@ class TaskService(
 
     fun completeTask(taskId: UUID, user: String, outcome: String, form: Map<String, Any?>): InstanceState = spans.run("workflow.task.complete") {
         val task = store.task(taskId) ?: throw NotFoundException("no task $taskId")
+        audit.run(audit.context(user), "tasks.complete", "task:$taskId", listOf("status", "outcome") + form.keys.map { "form.$it" }, { mayComplete(task, user) }) {
+            transitions.inTx { completeLocked(task, TaskDecision(outcome, form, user, clock.instant())) }
+        }
+    }
+
+    private fun mayComplete(task: TaskRow, user: String) {
         val decision = eligibility(task, user)
-        if (!decision.allowed) throw ForbiddenException("'$user' may not complete task $taskId", decision.reason)
+        if (!decision.allowed) throw ForbiddenException("'$user' may not complete task ${task.id}", decision.reason)
         // A team task needs the completing permission in the task's scope; a person's own task needs none.
         if (task.assignment.type == Assignment.Type.ROLE) authorizer.require(user, Permissions.TASKS_COMPLETE, task.assignment.scope)
-        transitions.inTx { completeLocked(task, TaskDecision(outcome, form, user, clock.instant())) }
     }
 
     private fun completeLocked(task: TaskRow, decision: TaskDecision): InstanceState {

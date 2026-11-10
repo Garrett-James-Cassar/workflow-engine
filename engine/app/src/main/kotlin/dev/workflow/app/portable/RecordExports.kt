@@ -1,9 +1,12 @@
 package dev.workflow.app.portable
 
+import dev.workflow.app.domain.AuditOutcome
+import dev.workflow.app.domain.AuditQuery
 import dev.workflow.app.domain.ExportFile
 import dev.workflow.app.domain.NotFoundException
 import dev.workflow.app.ports.RbacPort
 import dev.workflow.app.ports.WorkflowStore
+import dev.workflow.app.runtime.Audit
 import dev.workflow.app.runtime.TaskService
 import dev.workflow.core.InstanceState
 import dev.workflow.core.InstanceStatus
@@ -21,12 +24,14 @@ class RecordExports(
     private val store: WorkflowStore,
     private val tasks: TaskService,
     private val rbac: RbacPort,
+    private val audit: Audit,
     private val clock: Clock,
 ) {
     fun instances(): ExportFile = file("instances", runs().map(InstanceExporter::toDoc))
 
     fun instance(id: UUID): ExportFile {
         val run = store.instance(id) ?: throw NotFoundException("no instance $id")
+        recorded("instances")
         return ExportFile("instance-$id.json", InstanceExporter.toDoc(run))
     }
 
@@ -40,9 +45,18 @@ class RecordExports(
     fun events(): ExportFile =
         file("events", runs().flatMap { run -> store.events(UUID.fromString(run.id)).map { EventExporter.toDoc(RunEvent(run.id, it)) } })
 
+    /** The audit log, newest first (the newest [RECORDS_LIMIT] rows). Exporting it is itself audited as `audit.export`. */
+    fun audit(): ExportFile = file("audit", audit.list(AuditQuery(limit = RECORDS_LIMIT)).map(AuditExporter::toDoc))
+
     fun people(): ExportFile = file("people", rbac.people().sortedBy { it.login }.map(PersonExporter::toDoc))
 
     private fun runs(): List<InstanceState> = store.instances(RECORDS_LIMIT)
 
-    private fun file(plural: String, docs: List<Any?>) = ExportFile("$plural-${LocalDate.now(clock)}.json", docs)
+    private fun file(plural: String, docs: List<Any?>): ExportFile {
+        recorded(plural)
+        return ExportFile("$plural-${LocalDate.now(clock)}.json", docs)
+    }
+
+    /** Every export is audited as `<resource>.export` (sec.6): who took the data out. */
+    private fun recorded(plural: String) = audit.record(audit.context(), "$plural.export", plural, AuditOutcome.OK)
 }

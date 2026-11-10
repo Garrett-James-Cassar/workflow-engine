@@ -38,6 +38,7 @@ object Limits {
     const val MAP_ITEMS = 200
     const val SCOPE_ITEMS = 20
     const val MAX_PAGE = 500L
+    const val FILTER = 200
     const val MAX_VERSION = 100_000L
 }
 
@@ -145,6 +146,18 @@ data class Rendered(val mediaType: String, val body: Any)
 data class MeView(val login: String, val displayName: String, val permissions: List<GrantView>) {
     data class GrantView(val permission: String, val scope: Map<String, String>)
 }
+
+data class AuditView(
+    val id: Long,
+    val at: java.time.Instant,
+    val actor: String,
+    val via: String?,
+    val action: String,
+    val resource: String,
+    val outcome: String,
+    val changes: List<String>,
+    val traceId: String?,
+)
 
 data class PersonView(val user: String, val name: String, val teams: List<String>, val grants: List<RoleGrantView>) {
     data class RoleGrantView(val role: String, val scope: Map<String, String>)

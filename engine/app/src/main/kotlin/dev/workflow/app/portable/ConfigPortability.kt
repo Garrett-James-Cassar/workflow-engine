@@ -1,5 +1,6 @@
 package dev.workflow.app.portable
 
+import dev.workflow.app.domain.AuditOutcome
 import dev.workflow.app.domain.DocProblem
 import dev.workflow.app.domain.ExportFile
 import dev.workflow.app.domain.ImportRejectedException
@@ -8,6 +9,7 @@ import dev.workflow.app.domain.NotFoundException
 import dev.workflow.app.domain.Plan
 import dev.workflow.app.domain.PlanAction
 import dev.workflow.app.ports.PortableStore
+import dev.workflow.app.runtime.Audit
 import org.springframework.stereotype.Service
 import org.springframework.transaction.support.TransactionTemplate
 import java.time.Clock
@@ -23,14 +25,17 @@ class ConfigPortability(
     private val planner: ImportPlanner,
     private val store: PortableStore,
     private val tx: TransactionTemplate,
+    private val audit: Audit,
     private val clock: Clock,
 ) {
-    fun exportAll(plural: String): ExportFile = ExportFile("$plural-${today()}.json", docs(known(plural)))
+    fun exportAll(plural: String): ExportFile = ExportFile("$plural-${today()}.json", docs(known(plural))).also { recorded(plural) }
 
     fun exportOne(plural: String, key: String): ExportFile =
-        ExportFile("${known(plural).codec.kind}-$key.json", known(plural).current()[key] ?: throw NotFoundException("no ${known(plural).codec.kind} '$key'"))
+        ExportFile("${known(plural).codec.kind}-$key.json", known(plural).current()[key] ?: throw NotFoundException("no ${known(plural).codec.kind} '$key'")).also { recorded(plural) }
 
-    fun bundle(): ExportFile = ExportFile("export-${today()}.json", kinds.all.flatMap(::docs))
+    fun bundle(): ExportFile = ExportFile("export-${today()}.json", kinds.all.flatMap(::docs)).also { recorded("bundle") }
+
+    private fun recorded(plural: String) = audit.record(audit.context(), "$plural.export", plural, AuditOutcome.OK)
 
     /** What an import would do. Writes nothing. [plural] limits the file to one kind; null takes any. */
     fun preview(body: Any?, plural: String? = null): Plan = planner.summary(planner.plan(body, plural?.let { known(it).plural }))
@@ -46,7 +51,7 @@ class ConfigPortability(
         planned.filter { it.entry.action in WRITES }.forEach { it.kind.save(it.doc, now) }
         val count = { action: PlanAction -> planned.count { it.entry.action == action } }
         return ImportResult(count(PlanAction.CREATE), count(PlanAction.OVERWRITE), count(PlanAction.UNCHANGED), count(PlanAction.CONFLICT))
-            .also { store.audit(actor, it, now) }
+            .also { audit.record(audit.context(actor), "workflows.import", "workflows", AuditOutcome.OK, listOf("created=${it.created}", "updated=${it.updated}", "skipped=${it.skipped}", "conflicts=${it.conflicts}")) }
     }
 
     private fun refuseMissingRefs(planned: List<Planned>) {

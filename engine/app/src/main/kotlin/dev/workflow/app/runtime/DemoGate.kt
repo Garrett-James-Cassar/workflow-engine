@@ -15,6 +15,7 @@ class DemoGate(
     private val auth: AuthProperties,
     private val store: WorkflowStore,
     private val resetGuard: ResetGuard,
+    private val audit: Audit,
 ) {
     fun check() {
         if (!enabled || auth.authMode != AuthMode.DEV) throw NotFoundException("the demo is not available in this deployment")
@@ -24,7 +25,9 @@ class DemoGate(
     fun reset() {
         check()
         resetGuard.check()
-        store.resetAll()
-        DemoBookingSystem.up.set(true)
+        audit.run(audit.context(), "demo.reset", "demo", listOf("instances", "tasks", "waits", "events")) {
+            store.resetAll()
+            DemoBookingSystem.up.set(true)
+        }
     }
 }

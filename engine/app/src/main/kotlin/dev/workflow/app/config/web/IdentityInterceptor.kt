@@ -2,6 +2,8 @@ package dev.workflow.app.config.web
 
 import dev.workflow.app.security.AuthMode
 import dev.workflow.app.security.AuthProperties
+import dev.workflow.app.security.CallContext
+import dev.workflow.app.security.Caller
 import dev.workflow.app.security.Hs256Verifier
 import dev.workflow.app.security.Identity
 import org.springframework.stereotype.Component
@@ -35,8 +37,16 @@ class IdentityInterceptor(
             return false
         }
         request.setAttribute(Identity.LOGIN, login)
+        CallContext.set(Caller(login, request.getHeader(CallContext.HEADER)?.trim()?.takeIf { it.isNotEmpty() }))
         return true
     }
+
+    override fun afterCompletion(
+        request: jakarta.servlet.http.HttpServletRequest,
+        response: jakarta.servlet.http.HttpServletResponse,
+        handler: Any,
+        ex: Exception?,
+    ) = CallContext.clear()
 
     private fun bearer(request: jakarta.servlet.http.HttpServletRequest): String? =
         request.getHeader("Authorization")?.takeIf { it.startsWith("Bearer ", ignoreCase = true) }?.substring(7)?.trim()

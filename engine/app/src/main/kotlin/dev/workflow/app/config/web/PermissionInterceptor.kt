@@ -9,7 +9,9 @@ import dev.workflow.app.security.Requires
 import dev.workflow.app.security.TaskAuthorizer
 import dev.workflow.app.security.ScopeFrom
 
+import dev.workflow.app.domain.AuditOutcome
 import dev.workflow.app.domain.ForbiddenException
+import dev.workflow.app.runtime.Audit
 import org.springframework.stereotype.Component
 import org.springframework.web.method.HandlerMethod
 import org.springframework.web.servlet.HandlerInterceptor
@@ -28,6 +30,7 @@ import jakarta.servlet.http.HttpServletResponse
 class PermissionInterceptor(
     private val authorizer: Authorizer,
     private val tasks: TaskAuthorizer,
+    private val audit: Audit,
     private val json: JsonMapper,
 ) : HandlerInterceptor {
 
@@ -48,6 +51,8 @@ class PermissionInterceptor(
         check(request, login, requires)
         true
     } catch (e: ForbiddenException) {
+        // sec.6: every denied request is audited (the request's own transaction does not exist yet, so this row stands alone).
+        audit.record(audit.context(login), requires.permission, "${request.method} ${request.requestURI}", AuditOutcome.DENIED)
         deny(response, 403, "Not allowed", e.reason, e.message)
     }
 

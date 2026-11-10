@@ -10,9 +10,10 @@ How this app applies fleet `PORTABLE.md`. Every resource has a class; the class 
 | waits | Records | WaitController | `GET /api/v1/waits/export` | none | wait id |
 | incidents | Records | IncidentController | `GET /api/v1/incidents/export` | none | instance id |
 | events | Records | EventController | `GET /api/v1/events/export` | none | event id |
+| audit | Records | AuditController | `GET /api/v1/audit/export` | none | audit row id |
 | people | Records | RbacController | `GET /api/v1/people/export` | none | login |
 
-**Bookkeeping, not resources:** `config_docs` holds the imported Config documents (they are the `workflows` resource) and `import_audit` holds one row per import. Neither has a route of its own.
+**Bookkeeping, not resources:** `config_docs` holds the imported Config documents (they are the `workflows` resource, with no route of its own); `audit_log` is the `audit` resource above (it replaced `import_audit`; each import is one `workflows.import` row).
 
 **Secrets and environment bindings:** none. The app stores no credential, token or key; the only secrets it reads are its own settings (`DB_PASSWORD`), which are not resources and have no route.
 
@@ -32,7 +33,7 @@ A workflow's own version is `workflowVersion` and is part of the key, because a 
 
 - Match on `key`. Same content: `unchanged`. A new key: `create`. Different content: `overwrite`.
 - A workflow defined in code (the DSL objects in `app/workflow/`) cannot be changed by an import: the same key with different content is `conflict`, counted and skipped. Only documents that arrived through an import can be overwritten.
-- The whole file is validated before anything is written. A bad document is a 400 `problem+json` with `errors: [{path: "/3/steps/0/id", message}]`, and nothing is written. Writes happen in one transaction, and each import adds one row to `import_audit` with the counts.
+- The whole file is validated before anything is written. A bad document is a 400 `problem+json` with `errors: [{path: "/3/steps/0/id", message}]`, and nothing is written. Writes happen in one transaction, and each import adds one `workflows.import` row to `audit_log` with the counts.
 - `POST .../import/preview` returns `{entries: [{kind, key, action, changed, missing}]}` and writes nothing (not even the audit row). Actions: `create`, `overwrite`, `unchanged`, `conflict`, `missing-ref`.
 - Both import routes use the heavy rate limit and a 5 MB body cap (`MAX_IMPORT_BYTES`); everything else keeps `MAX_BODY_BYTES` (1 MB).
 

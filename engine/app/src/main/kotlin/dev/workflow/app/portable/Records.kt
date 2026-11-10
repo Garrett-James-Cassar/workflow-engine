@@ -1,5 +1,6 @@
 package dev.workflow.app.portable
 
+import dev.workflow.app.domain.AuditEntry
 import dev.workflow.app.domain.Doc
 import dev.workflow.app.domain.EventRow
 import dev.workflow.app.domain.PersonInfo
@@ -75,6 +76,20 @@ object EventExporter : Exporter<RunEvent> {
             mapOf("instance" to item.instance, "type" to it.type, "step" to it.step, "outcome" to it.outcome, "actor" to it.actor, "payload" to it.payload, "at" to it.at.toString()),
         )
     }
+}
+
+object AuditExporter : Exporter<AuditEntry> {
+    override val kind = "audit"
+
+    override fun keyOf(item: AuditEntry) = item.id.toString()
+
+    override fun toDoc(item: AuditEntry): Doc = envelope(
+        kind, keyOf(item),
+        mapOf(
+            "at" to item.at.toString(), "actor" to item.actor, "via" to item.via, "action" to item.action, "resource" to item.resource,
+            "outcome" to item.outcome.name.lowercase(), "changes" to item.changes, "traceId" to item.traceId,
+        ),
+    )
 }
 
 object PersonExporter : Exporter<PersonInfo> {

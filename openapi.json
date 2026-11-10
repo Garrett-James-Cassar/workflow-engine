@@ -18,6 +18,43 @@
         },
         "type" : "object"
       },
+      "AuditView" : {
+        "properties" : {
+          "action" : {
+            "type" : "string"
+          },
+          "actor" : {
+            "type" : "string"
+          },
+          "at" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "changes" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "id" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "outcome" : {
+            "type" : "string"
+          },
+          "resource" : {
+            "type" : "string"
+          },
+          "traceId" : {
+            "type" : [ "string", "null" ]
+          },
+          "via" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "type" : "object"
+      },
       "CompleteTaskRequest" : {
         "properties" : {
           "form" : {
@@ -620,6 +657,170 @@
   },
   "openapi" : "3.1.0",
   "paths" : {
+    "/audit" : {
+      "get" : {
+        "operationId" : "list_3",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "actor",
+          "required" : false,
+          "schema" : {
+            "maxLength" : 200,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "action",
+          "required" : false,
+          "schema" : {
+            "maxLength" : 200,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "resource",
+          "required" : false,
+          "schema" : {
+            "maxLength" : 200,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "pattern" : "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}(:\\d{2}(\\.\\d{1,9})?)?Z$",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "pattern" : "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}(:\\d{2}(\\.\\d{1,9})?)?Z$",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 50,
+            "format" : "int32",
+            "maximum" : 500,
+            "minimum" : 1,
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "offset",
+          "required" : false,
+          "schema" : {
+            "default" : 0,
+            "format" : "int32",
+            "minimum" : 0,
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/AuditView"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorView"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorView"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorView"
+                }
+              }
+            },
+            "description" : "Conflict"
+          }
+        },
+        "tags" : [ "audit-controller" ]
+      }
+    },
+    "/audit/export" : {
+      "get" : {
+        "operationId" : "export_9",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorView"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorView"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorView"
+                }
+              }
+            },
+            "description" : "Conflict"
+          }
+        },
+        "tags" : [ "audit-controller" ]
+      }
+    },
     "/definitions" : {
       "get" : {
         "operationId" : "list_2",
