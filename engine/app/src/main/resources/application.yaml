@@ -59,6 +59,10 @@ workflow:
   limits:
     # Body cap in bytes (413 over it). The Content-Type must be JSON (415).
     max-body-bytes: ${MAX_BODY_BYTES:1048576}
+  tls: ${TLS:false}
+  cors:
+    # Comma-separated allow-list; defaults to the studio's dev (5183) and demo build (15183) origins. Never "*".
+    origins: ${CORS_ORIGINS:http://localhost:5183,http://127.0.0.1:5183,http://localhost:15183,http://127.0.0.1:15183}
   rate-limit:
     # SECURITY.md: per user (else client IP) per minute. Disabled only in the test and NFR profiles.
     enabled: ${RATE_LIMIT_ENABLED:true}

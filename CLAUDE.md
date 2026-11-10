@@ -9,7 +9,7 @@ Kotlin 25/Spring Boot 4.1 + Gradle; React studio in `apps/web` (pnpm). Routes: `
 - Tests: core kotlin.test; compile-fail cases in `CompileFailTest`; app e2e on H2 + `MutableClock` (`ApiTest` base, one shared context); Postgres in `postgresTest`. Name tests with the milestone (`E5 …`).
 
 ## Ports, env, gate tiers
-- Engine **47831** (`PORT`), Postgres **55434** (`DATABASE_URL`, `DB_USER`, `DB_PASSWORD`), studio **5183**, demo build **15183**, rbac 47861 (`RBAC_URL`, optional). Also `AUTH_MODE`, `RATE_LIMIT_{ENABLED,READ_PER_MIN,WRITE_PER_MIN,HEAVY_PER_MIN}`, `MAX_BODY_BYTES`, `WORKFLOW_HTTP_ALLOWED_HOSTS`, `TIMEOUT_POLL_INTERVAL`, `OTEL_EXPORTER_OTLP_ENDPOINT`. `make dev` runs it; `make stop` stops it.
+- Engine **47831** (`PORT`), Postgres **55434** (`DATABASE_URL`, `DB_USER`, `DB_PASSWORD`), studio **5183**, demo build **15183**, rbac 47861 (`RBAC_URL`, optional). Also `AUTH_MODE`, `RATE_LIMIT_{ENABLED,READ_PER_MIN,WRITE_PER_MIN,HEAVY_PER_MIN}`, `MAX_BODY_BYTES`, `CORS_ORIGINS` (default: studio 5183/15183), `TLS`, `WORKFLOW_HTTP_ALLOWED_HOSTS`, `TIMEOUT_POLL_INTERVAL`, `OTEL_EXPORTER_OTLP_ENDPOINT`. `make dev` runs it; `make stop` stops it.
 - `make fast` (pre-commit; lint, typecheck, ArchUnit, detekt, H2 tests; no browser) · `make push-gate` (+ mocked smoke) · `make ci` (everything; once at the end of a task).
 - Standards, one line each: [trunk-based, fast feedback](/Users/garrett.cassar/Projects/fleet/standards/FEEDBACK.md) · [arch rules](/Users/garrett.cassar/Projects/fleet/standards/ARCHITECTURE-RULES.md) (map: `fleet-layers.json`, `ARCHITECTURE.md`) · [security](/Users/garrett.cassar/Projects/fleet/standards/SECURITY.md) · [UI style](/Users/garrett.cassar/Projects/fleet/standards/ui/STYLE.md).
 - How this app applies them (API versioning, input limits, observability, console Demo, studio decisions): [docs/conventions.md](docs/conventions.md).
@@ -23,7 +23,7 @@ Kotlin 25/Spring Boot 4.1 + Gradle; React studio in `apps/web` (pnpm). Routes: `
 | `/events/{name}`, `/timeouts/…` | `api/EventController.kt` · `InstanceService.deliverEvent/fireTimeout` · `runtime/TimeoutPoller.kt` · `persistence/WaitRepository.kt` |
 | `/me`, `/rbac/people`, permissions | `api/AccessController.kt` · `runtime/Queries.kt` (`AccessService`) · `security/Identity.kt` (`Authorizer`), `Permissions.kt` · `adapters/LocalRbac.kt`, `clients/HttpRbac.kt` |
 | `/demo/*`, console reset | `api/DemoController.kt`, `DemoProviders.kt` · `runtime/DemoGate.kt` · `samples/` |
-| errors, validation, 413/415, rate limit | `api/ErrorHandler.kt` · `config/web/ValidationProblems.kt`, `BodyGuardFilter.kt`, `RateLimitInterceptor.kt`, `ResponseValidation.kt` |
+| errors, validation, 413/415, rate limit | `api/ErrorHandler.kt` · `config/web/ValidationProblems.kt`, `BodyGuardFilter.kt`, `RateLimitInterceptor.kt`, `ResponseValidation.kt`, `SecurityHeadersFilter.kt`, `CorsFilter.kt` |
 | `/api/v1` prefix, deprecated aliases | `config/ApiVersionConfig.kt`, `config/web/DeprecatedAliasFilter.kt` |
 | identity, labels, access log | `config/web/IdentityInterceptor.kt`, `EndpointLabelInterceptor.kt`, `AccessLogFilter.kt` · `telemetry/` |
 | DSL, validation, graph, Mermaid, `Engine` | `engine/core/src/main/kotlin/dev/workflow/core/` (`Dsl.kt`, `StepBuilders.kt`, `DefinitionValidator.kt`, `Engine.kt`) |
