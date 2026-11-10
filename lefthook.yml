@@ -2,6 +2,7 @@
 #
 # pre-commit (t.be.e, ci.a): `make fast` (lint, typecheck, ArchUnit + detekt limits, backend suite on in-memory H2,
 #   web unit; no Docker, no browser) and gitleaks on the staged changes; blocks the commit on failure.
+# commit-msg (dx.5): Conventional Commits, checked by scripts/check-commit-msg.sh (plain shell, no dependency).
 # pre-push (t.e2e.c, ci.a): `make push-gate` = fast + the mocked web smoke specs.
 #   The full suites run in `make ci` / CI.
 pre-commit:
@@ -15,3 +16,7 @@ pre-push:
   jobs:
     - name: push gate
       run: make push-gate
+commit-msg:
+  jobs:
+    - name: conventional commits
+      run: sh scripts/check-commit-msg.sh {1}

@@ -43,7 +43,7 @@ make dev
 `make dev` always starts from a clean state:
 1. **Stops any running copy of the engine** on port 47831. It only stops the workflow engine. If another app holds the port, it stops and tells you the PID, and leaves that app alone.
 2. Starts Postgres in Docker on `127.0.0.1:55434` if it isn't already running.
-3. Runs the engine on **port 47831**. Database tables are created automatically on first start.
+3. Runs the engine on **port 47831**. Flyway creates and migrates the tables on start.
 
 Once the engine is up, `make dev` opens the console (http://localhost:47831/) in your browser. Set `NO_BROWSER=1 make dev` to skip that.
 
@@ -68,6 +68,45 @@ This runs:
 - **compile-fail tests**, which prove the compiler rejects unrouted outcomes;
 - **end-to-end tests** over HTTP against a throwaway Postgres, one per feature of each sample workflow;
 - **a check that `docs/workflows` matches the DSL.** If it fails, run `make diagrams`.
+
+### 5. The gate tiers
+| Command | What it runs | When |
+|---|---|---|
+| `make fast` | lint, typecheck, ArchUnit and detekt limits, backend suite on in-memory H2, web unit tests; no Docker, no browser | the pre-commit hook |
+| `make push-gate` | `fast` + the API breaking-change check + the mocked Cypress smoke specs | the pre-push hook |
+| `make ci` | everything: `./gradlew check` (Testcontainers) beside the web static steps, then Cypress and the Demo chapters | once at the end of a task, and in CI |
+
+`make hooks` installs the git hooks (lefthook). Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/) (checked by the `commit-msg` hook); changes are summarised in [CHANGELOG.md](CHANGELOG.md).
+
+### 6. Ports and environment
+| Port | What |
+|---|---|
+| 47831 | the engine (`PORT`): API under `/api/v1`, `/health`, `/ready`, `/docs`, `/openapi.json`, console at `/` |
+| 55434 | Postgres from `compose.yaml` (`DB_PORT` moves the container port; `DATABASE_URL` must match) |
+| 5183 | the studio in the mock profile (`make web`) |
+| 15183 | the static studio demo build |
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `PORT` | `47831` | engine HTTP port |
+| `DATABASE_URL` | `jdbc:postgresql://127.0.0.1:55434/workflow` | JDBC URL |
+| `DB_USER`, `DB_PASSWORD` | `workflow`, `workflow` | database login (dev defaults; set real ones outside dev) |
+| `LOG_LEVEL` | `INFO` | root log level (logs are ECS JSON on stdout) |
+| `APP_VERSION`, `APP_ENV` | `dev`, `dev` | service version and environment on logs and telemetry |
+| `AUTH_MODE` | `dev` | `dev` trusts the `X-User` header; `live` expects a Supabase bearer JWT (`SUPABASE_JWT_SECRET` or `SUPABASE_JWKS_URL`) and needs `RBAC_URL` |
+| `RBAC_URL` | empty | the central rbac service; empty uses the local grants in `application.yaml` |
+| `RATE_LIMIT_ENABLED` | `true` | in-process rate limits per user, else per IP |
+| `RATE_LIMIT_READ_PER_MIN`, `RATE_LIMIT_WRITE_PER_MIN`, `RATE_LIMIT_HEAVY_PER_MIN` | `300`, `60`, `20` | the three limits |
+| `MAX_BODY_BYTES` | `1048576` | request body cap (413 above it) |
+| `MAX_IMPORT_BYTES` | `5242880` | the same cap for the import routes |
+| `CORS_ORIGINS` | the studio's 5183 and 15183 origins | comma-separated allow-list; never `*` |
+| `TLS` | `false` | `true` adds HSTS (the app sits behind TLS) |
+| `WORKFLOW_HTTP_ALLOWED_HOSTS` | `localhost,127.0.0.1` | hosts a workflow's `http { }` step may call |
+| `TIMEOUT_POLL_INTERVAL` | `5s` | how often due timeouts are fired |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | unset | send traces, metrics and logs to an OTLP collector |
+| `NO_BROWSER` | unset | `NO_BROWSER=1 make dev` skips opening the console |
+
+Routes are not listed here: see `/docs` (Swagger) and `/openapi.json` on the running engine.
 
 ## Using the console
 
@@ -271,7 +310,7 @@ Routes, schemas and examples live in one place: the running app's `/docs` (Swagg
 
 ## Workflow studio (apps/web)
 
-A React studio for the engine, written against its own contract (`apps/web/contract/openapi.yaml`, under `/api/v1`), so it runs without the engine: `make web` (mock data, :5183), `make web-demo` (adds the Demo player with seven chapters), `make web-demo-build` (static `apps/web/dist/` for the fleet stack, served on 15183), `make share` (demo build through ngrok, `NGROK_AUTHTOKEN` from env). `make ci` runs the Gradle checks and the web gate. The views are in [UI-SPEC.md](UI-SPEC.md), the plan and the contract gaps against the engine's current API in [docs/ui-plan.md](docs/ui-plan.md). The static console at `/` is unchanged.
+A React studio for the engine, written against its own contract (`apps/web/contract/openapi.yaml`, under `/api/v1`), so it runs without the engine: `make web` (mock data, :5183), `make web-demo` (adds the Demo player with seven chapters), `make web-demo-build` (static `apps/web/dist/` for the fleet stack, served on 15183), `make share-studio` (demo build through ngrok, `NGROK_AUTHTOKEN` from env). `make ci` runs the Gradle checks and the web gate. The views are in [UI-SPEC.md](UI-SPEC.md), the plan and the contract gaps against the engine's current API in [docs/ui-plan.md](docs/ui-plan.md). The static console at `/` is unchanged.
 
 ## Layout
 
