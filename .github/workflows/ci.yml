@@ -29,5 +29,5 @@ jobs:
         run: |
           if [ -z "$DEPLOY_HOST" ]; then echo "DEPLOY_HOST is not set: skipping the prod deploy"; else make release deploy ENV=prod; fi
         if: github.event_name == 'push' && github.ref_name == 'main'
-      - run: make security-report
+      - run: make security-report ZAP=1
         if: github.event_name == 'schedule'

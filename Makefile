@@ -113,9 +113,9 @@ security-deps:
 security-sast:
 	@python3 scripts/security.py sast
 
-security-report: security ## security + trivy (filesystem until an image exists) + ZAP baseline on the engine's console; writes reports/security/
+security-report: security ## security + trivy + the ZAP baseline only when ZAP=1 (weekly CI; the image is 6.6 GB); writes reports/security/
 	@python3 scripts/security.py trivy
-	@python3 scripts/security.py zap
+	@if [ "$(ZAP)" = "1" ]; then python3 scripts/security.py zap; else echo "zap baseline: skipped (set ZAP=1; runs in the weekly CI)"; fi
 	@python3 scripts/security.py summary
 
 lock: ## refresh the Gradle lockfiles osv-scanner reads
