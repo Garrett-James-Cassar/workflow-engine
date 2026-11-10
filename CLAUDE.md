@@ -37,6 +37,7 @@ Kotlin 25/Spring Boot 4.1 + Gradle; React studio in `apps/web` (pnpm). Routes: `
 - `ApiTest` sets `workflow.rate-limit.enabled=false`; `RateLimitTest` is the one test with the limiter on. A new test needing its own context costs 5–10 s.
 - Cypress next to a busy Gradle times out (10 s): `make ci` runs it after the parallel part. Specs pass alone.
 - The Gradle daemon has a short PATH: `npx` (jscpd) is found via `sh -c` in `engine/app/build.gradle.kts`.
+- API change: run `make openapi` and commit `openapi.json` (a test fails when it is stale). `make api-breaking` (oasdiff via Docker; in `ci` and `push-gate`, not `fast`) diffs it against `origin/main`. A break needs `/api/v2`; `API_BREAKING_OK=1` passes only together with a CHANGELOG.md entry.
 - Rbac persona file is read leniently; Jackson is strict everywhere else (unknown fields → 400).
 
 ## Do not touch

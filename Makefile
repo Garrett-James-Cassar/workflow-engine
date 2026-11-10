@@ -1,4 +1,4 @@
-.PHONY: web-static web-browser fast fast-be fast-web push-gate gradle-check up down stop dev demo restart test ci check-placement diagrams hooks web web-demo web-install web-gen-check web-typecheck web-lint web-test web-build web-demo-build web-cy web-smoke web-demo-check web-live-check web-ci share share-studio share-studio-local cy-live console-install console-build console-bundle-check console-typecheck console-cy console-smoke console-demo-check console-ci
+.PHONY: openapi api-breaking web-static web-browser fast fast-be fast-web push-gate gradle-check up down stop dev demo restart test ci check-placement diagrams hooks web web-demo web-install web-gen-check web-typecheck web-lint web-test web-build web-demo-build web-cy web-smoke web-demo-check web-live-check web-ci share share-studio share-studio-local cy-live console-install console-build console-bundle-check console-typecheck console-cy console-smoke console-demo-check console-ci
 
 PORT ?= 47831
 export PORT
@@ -63,7 +63,7 @@ fast-web:
 fast: ## lint, typecheck, fitness (ArchUnit + detekt size limits), unit + backend e2e on H2; no browser, no Docker
 	@$(MAKE) -j2 fast-be fast-web
 
-push-gate: fast ## fast + the mocked Cypress smoke subset (lefthook pre-push)
+push-gate: fast api-breaking ## fast + the API breaking-change check + the mocked Cypress smoke subset (lefthook pre-push)
 	$(WEB) cy:smoke
 
 gradle-check:
@@ -73,7 +73,30 @@ gradle-check:
 # next to a busy Gradle is flake, not signal.
 ci: ## everything: Gradle check || web static steps, then the web browser steps
 	@$(MAKE) -j2 gradle-check web-static
+	@$(MAKE) api-breaking
 	@$(MAKE) web-browser
+
+# ---- API contract (api.5): the engine's served OpenAPI is committed as openapi.json ----
+SPEC := openapi.json
+API_BASELINE ?=
+API_CURRENT ?= $(SPEC)
+OASDIFF := docker run --rm -v "$(CURDIR):/w" -w /w tufin/oasdiff:v1.11.7
+
+openapi: ## rewrite the committed openapi.json from the served spec (OpenApiSpecTest fails when it is stale)
+	OPENAPI_WRITE=1 ./gradlew --quiet :engine:app:cleanTest :engine:app:test --tests 'dev.workflow.app.OpenApiSpecTest'
+
+# Breaking changes need /api/v2 (API.md). Baseline: the spec on origin/main (or API_BASELINE=<file>, for trials).
+# API_BREAKING_OK=1 lets an intentional break through, only together with a CHANGELOG.md change against origin/main.
+api-breaking: ## oasdiff breaking: origin/main's openapi.json vs the working copy; fails on ERR
+	@mkdir -p build; \
+	base="$(API_BASELINE)"; \
+	if [ -z "$$base" ]; then \
+	  if ! git cat-file -e origin/main:$(SPEC) 2>/dev/null; then echo "api-breaking: origin/main has no $(SPEC) yet; skipped"; exit 0; fi; \
+	  git show origin/main:$(SPEC) > build/openapi-baseline.json; base=build/openapi-baseline.json; \
+	fi; \
+	if $(OASDIFF) breaking "$$base" "$(API_CURRENT)" --fail-on ERR; then echo "api-breaking: no breaking changes"; exit 0; fi; \
+	if [ "$(API_BREAKING_OK)" = "1" ] && ! git diff --quiet origin/main -- CHANGELOG.md; then echo "api-breaking: allowed by API_BREAKING_OK=1 with a CHANGELOG.md entry"; exit 0; fi; \
+	echo "api-breaking: breaking change. Add /api/v2, or set API_BREAKING_OK=1 together with a CHANGELOG.md entry"; exit 1
 
 diagrams: ## regenerate docs/workflows from the DSL
 	./gradlew :engine:app:diagrams

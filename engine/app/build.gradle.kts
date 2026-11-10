@@ -50,6 +50,9 @@ tasks.test {
     useJUnitPlatform { excludeTags("postgres") }
     jvmArgs("-Xshare:off")
     systemProperty("docsDir", rootDir.resolve("docs/workflows").path)
+    // The committed OpenAPI spec (api.5): OpenApiSpecTest compares the served one to it; `make openapi` rewrites it.
+    systemProperty("openapiFile", rootDir.resolve("openapi.json").path)
+    inputs.files(rootDir.resolve("openapi.json"))
 }
 
 tasks.register<Test>("postgresTest") {
