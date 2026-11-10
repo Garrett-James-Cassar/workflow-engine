@@ -115,6 +115,7 @@ class TracingTest : ApiTest() {
             createContext("/callout") { ex ->
                 seen["traceparent"] = ex.requestHeaders.getFirst("traceparent") ?: ""
                 seen["baggage"] = ex.requestHeaders.getFirst("baggage") ?: ""
+                seen["caller"] = ex.requestHeaders.getFirst("X-Fleet-Caller") ?: ""
                 ex.sendResponseHeaders(204, -1)
                 ex.close()
             }
@@ -124,6 +125,7 @@ class TracingTest : ApiTest() {
             val vars = mapOf("vars" to mapOf("target" to mapOf("url" to "http://127.0.0.1:${server.address.port}/callout"), "payload" to mapOf("id" to "D-1")))
             assertEquals(201, post("/api/v1/definitions/http-callout/instances", mapOf("traceparent" to inbound, "baggage" to "fleet.origin=forge%3A%20Publish%20rule"), vars).statusCode())
             assertTrue(seen["traceparent"]!!.startsWith("00-$traceId-"), "outbound traceparent: ${seen["traceparent"]}")
+            assertEquals("workflow-engine", seen["caller"], "every outbound call names this app in X-Fleet-Caller")
             assertEquals("forge: Publish rule", originOf(seen["baggage"]), "an inbound origin is kept unchanged: ${seen["baggage"]}")
 
             val other = "00-0af7651916cd43dd8448eb211c80319c-00f067aa0ba902b7-01"
