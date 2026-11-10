@@ -1,4 +1,4 @@
-package dev.workflow.app.config.web
+package dev.workflow.app.config
 
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest

@@ -23,7 +23,7 @@ Kotlin 25/Spring Boot 4.1 + Gradle; React studio in `apps/web` (pnpm). Routes: `
 | `/events/{name}`, `/timeouts/…` | `api/EventController.kt` · `InstanceService.deliverEvent/fireTimeout` · `runtime/TimeoutPoller.kt` · `persistence/WaitRepository.kt` |
 | `/me`, `/rbac/people`, permissions | `api/AccessController.kt` · `runtime/Queries.kt` (`AccessService`) · `security/Identity.kt` (`Authorizer`), `Permissions.kt` · `adapters/LocalRbac.kt`, `clients/HttpRbac.kt` |
 | `/demo/*`, console reset | `api/DemoController.kt`, `DemoProviders.kt` · `runtime/DemoGate.kt` · `samples/` |
-| errors, validation, 413/415, rate limit | `api/ErrorHandler.kt` · `config/web/ValidationProblems.kt`, `BodyGuardFilter.kt`, `RateLimitInterceptor.kt`, `ResponseValidation.kt`, `SecurityHeadersFilter.kt`, `CorsFilter.kt` |
+| errors, validation, 413/415, rate limit | `api/ErrorHandler.kt` · `config/web/ValidationProblems.kt`, `BodyGuardFilter.kt`, `RateLimitInterceptor.kt`, `ResponseValidation.kt`, `CorsFilter.kt` · `config/SecurityHeadersFilter.kt` |
 | `/api/v1` prefix, deprecated aliases | `config/ApiVersionConfig.kt`, `config/web/DeprecatedAliasFilter.kt` |
 | identity, labels, access log | `config/web/IdentityInterceptor.kt`, `EndpointLabelInterceptor.kt`, `AccessLogFilter.kt` · `telemetry/` |
 | DSL, validation, graph, Mermaid, `Engine` | `engine/core/src/main/kotlin/dev/workflow/core/` (`Dsl.kt`, `StepBuilders.kt`, `DefinitionValidator.kt`, `Engine.kt`) |
