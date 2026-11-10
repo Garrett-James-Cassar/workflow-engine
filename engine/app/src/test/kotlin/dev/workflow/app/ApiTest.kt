@@ -27,6 +27,7 @@ import kotlin.test.assertTrue
         "workflow.service.backoff=1ms",
         "logging.structured.ecs.service.environment=test",
         "workflow.http.allowed-hosts=localhost,127.0.0.1",
+        "workflow.allow-reset=true", // the demo reset needs the flag (ResetGuardTest covers it off)
         "workflow.rate-limit.enabled=false", // the limiter is disabled in tests; RateLimitTest turns it on
         "spring.datasource.url=jdbc:h2:mem:workflow-test;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH",
         "spring.datasource.username=sa",

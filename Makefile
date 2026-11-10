@@ -1,4 +1,4 @@
-.PHONY: openapi api-breaking web-static web-browser fast fast-be fast-web push-gate gradle-check up down stop dev demo restart test ci check-placement diagrams hooks web web-demo web-install web-gen-check web-typecheck web-lint web-test web-build web-demo-build web-cy web-smoke web-demo-check web-live-check web-ci share share-studio share-studio-local cy-live console-install console-build console-bundle-check console-typecheck console-cy console-smoke console-demo-check console-ci
+.PHONY: backup restore restore-drill seed reseed openapi api-breaking web-static web-browser fast fast-be fast-web push-gate gradle-check up down stop dev demo restart test ci check-placement diagrams hooks web web-demo web-install web-gen-check web-typecheck web-lint web-test web-build web-demo-build web-cy web-smoke web-demo-check web-live-check web-ci share share-studio share-studio-local cy-live console-install console-build console-bundle-check console-typecheck console-cy console-smoke console-demo-check console-ci
 
 PORT ?= 47831
 export PORT
@@ -36,13 +36,29 @@ dev: stop up ## run the engine on $(PORT) against compose Postgres (Flyway migra
 	      sleep 1; \
 	    done ) & \
 	fi; \
-	./gradlew :engine:app:bootRun
+	ALLOW_RESET=$${ALLOW_RESET:-true} ./gradlew :engine:app:bootRun
 
 restart: dev
 
 demo: ## the engine with the console Demo: opens http://localhost:$(PORT)/?demo and starts the player (dev auth only, never live)
 	$(MAKE) dev OPEN_PATH='/?demo'
 
+
+# ---- data (dm.3, dm.5): backups of the compose Postgres, and demo data from the Object Mother ----
+backup: ## dm.3: timestamped pg_dump of the compose Postgres into ./backups/ (gitignored)
+	@scripts/db.sh backup
+
+restore: ## dm.3: restore a dump over the compose Postgres: make restore FILE=backups/workflow-<stamp>.sql
+	@scripts/db.sh restore "$(FILE)"
+
+restore-drill: ## dm.3: backup, wipe, restore, compare row counts, report the restore time
+	@scripts/db.sh drill
+
+seed: ## dm.5: start the Object Mother's sample runs in the running engine on $(PORT); idempotent (does nothing when runs exist)
+	./gradlew :engine:app:seed
+
+reseed: ## dm.5: wipe every run (the engine needs ALLOW_RESET=true) and seed again
+	./gradlew :engine:app:seed --args=reset
 
 test: ## unit + compile-fail + e2e (Testcontainers; needs Docker)
 	./gradlew check

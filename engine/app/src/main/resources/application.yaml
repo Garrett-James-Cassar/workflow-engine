@@ -56,6 +56,8 @@ management:
         base-time-unit: seconds
 
 workflow:
+  # dm.6: the demo reset and other wipes need ALLOW_RESET=true; startup fails when it is true in production.
+  allow-reset: ${ALLOW_RESET:false}
   limits:
     # Body cap in bytes (413 over it). The Content-Type must be JSON (415).
     max-body-bytes: ${MAX_BODY_BYTES:1048576}

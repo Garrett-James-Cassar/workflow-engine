@@ -10,3 +10,4 @@ apps/web/coverage/
 apps/web/.nyc_output/
 test-evidence/
 .claude/state.md
+backups/

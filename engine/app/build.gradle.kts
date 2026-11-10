@@ -115,6 +115,15 @@ tasks.register<JavaExec>("diagrams") {
     args("docs/workflows")
 }
 
+/** dm.5: demo data from the Object Mother into a running engine (PORT, default 47831); `--args=reset` wipes first (needs ALLOW_RESET=true on the engine). */
+tasks.register<JavaExec>("seed") {
+    group = "application"
+    description = "Starts the Object Mother's sample runs in a running engine (idempotent)"
+    dependsOn(tasks.testClasses)
+    classpath = sourceSets.test.get().runtimeClasspath
+    mainClass = "dev.workflow.app.SeedKt"
+}
+
 // t.be.c: backend line coverage of at least 80%, measured on the in-memory suite (the postgresTest
 // task adds its own execution data to the report).
 jacoco { toolVersion = "0.8.13" }

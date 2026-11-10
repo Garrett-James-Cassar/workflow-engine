@@ -14,6 +14,7 @@ class DemoGate(
     @Value("\${workflow.demo.enabled:true}") private val enabled: Boolean,
     private val auth: AuthProperties,
     private val store: WorkflowStore,
+    private val resetGuard: ResetGuard,
 ) {
     fun check() {
         if (!enabled || auth.authMode != AuthMode.DEV) throw NotFoundException("the demo is not available in this deployment")
@@ -22,6 +23,7 @@ class DemoGate(
     /** A fresh state for the next chapter: clears every run, task, wait and event, and brings the fake booking system back up. */
     fun reset() {
         check()
+        resetGuard.check()
         store.resetAll()
         DemoBookingSystem.up.set(true)
     }
