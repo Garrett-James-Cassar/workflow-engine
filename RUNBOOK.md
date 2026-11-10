@@ -1,8 +1,19 @@
 # Runbook
 
-How to deploy, roll back and handle an incident for workflow-engine. Commands run from the repo root. There is no deployed environment yet (no deploy target, no registry); the procedure below is the local and Docker one, and the config bundle works the same against any running engine.
+How to deploy, roll back and handle an incident for workflow-engine. Commands run from the repo root. Deploys go through `make release`, `make deploy` and `make rollback` (images `workflow-engine-api`, ~580 MB, and `workflow-engine-web`, ~83 MB, tagged with the short commit hash); the target is chosen by `DEPLOY_TARGET` (`local` by default, `compose-ssh` with `DEPLOY_HOST`). The config bundle works the same against any running engine.
 
 ## Deploy
+
+Local (Docker on this machine, Postgres from `make up` on 55434):
+
+```
+make up
+make release deploy ENV=local
+```
+
+`release` builds the two images (no `REGISTRY`: they stay local; with `REGISTRY=<host>/<org>` it pushes) and then deletes this app's older commit tags, keeping the newest 2. `deploy` runs `deploy/$(DEPLOY_TARGET)/deploy.sh local <short-sha>`, then polls `/ready` for 60 s; if it never answers 200 it redeploys the previous tag and exits 1. Remote host: `DEPLOY_TARGET=compose-ssh DEPLOY_HOST=user@host REGISTRY=<registry> make release deploy ENV=prod` (`DOCKER_HOST=ssh://$DEPLOY_HOST`; the host keeps `.env.prod` with `DATABASE_URL`, `DB_USER`, `DB_PASSWORD` and the rest, never the repo). CI runs the prod deploy on main only when the `DEPLOY_HOST` secret is set. The image starts with env vars only.
+
+Steps and checks behind it:
 
 1. Gate the commit: `make ci` must be green (Gradle check, web gate, Cypress, Demo chapters).
 2. Build the engine: `./gradlew :engine:app:bootJar` (the jar is `engine/app/build/libs/`). Run it with Java 25: `java -jar engine/app/build/libs/<jar>`.
@@ -17,8 +28,8 @@ How to deploy, roll back and handle an incident for workflow-engine. Commands ru
 
 ## Rollback
 
-1. Stop the new engine (`make stop` locally, or stop the process or container).
-2. Start the previous build: check out the previous commit (`git log --oneline`, `git checkout <sha>`) and rebuild, or run the previous jar or image.
+1. Pick the previous tag: `docker images workflow-engine-api` (local) or `git log --oneline`.
+2. Redeploy it: `make rollback ENV=local TAG=<previous-tag>` (same `DEPLOY_TARGET` as the deploy; it replaces the container and checks `/ready`). A failed deploy rolls back by itself.
 3. Migrations: **expand-contract, forward-fix only.** Add columns and tables first, backfill, switch the code, and drop the old thing in a later release; no destructive change ships in the same release as the code that stops using it. Never edit or delete an applied `V<n>__*.sql`; there are no down migrations. Because every release only expands, the previous build runs against the migrated database. If a migration is wrong, add `V<n+1>__*.sql` that repairs it and ship that. `MigrationTest` (`./gradlew :engine:app:postgresTest`) applies every migration to an empty PostgreSQL and the latest one to a database at the previous version that holds data.
 4. Config rolls back with the bundle: import the `export.json` saved before the change (preview first).
 5. Only for a throwaway local database: `make down` deletes all data, and the next `make dev` starts empty.
