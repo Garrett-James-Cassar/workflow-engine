@@ -12,6 +12,8 @@ How this app applies fleet `PORTABLE.md`. Every resource has a class; the class 
 | events | Records | EventController | `GET /api/v1/events/export` | none | event id |
 | people | Records | RbacController | `GET /api/v1/people/export` | none | login |
 
+**Bookkeeping, not resources:** `config_docs` holds the imported Config documents (they are the `workflows` resource) and `import_audit` holds one row per import. Neither has a route of its own.
+
 **Secrets and environment bindings:** none. The app stores no credential, token or key; the only secrets it reads are its own settings (`DB_PASSWORD`), which are not resources and have no route.
 
 **Promotion bundle:** `GET /api/v1/export` writes every Config kind in dependency order; `POST /api/v1/import/preview` and `POST /api/v1/import` take it back (or any single document or array of documents of any Config kind). With one Config kind today, the bundle is the `workflows` documents.
