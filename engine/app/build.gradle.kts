@@ -53,6 +53,9 @@ tasks.test {
     // The committed OpenAPI spec (api.5): OpenApiSpecTest compares the served one to it; `make openapi` rewrites it.
     systemProperty("openapiFile", rootDir.resolve("openapi.json").path)
     inputs.files(rootDir.resolve("openapi.json"))
+    // The resource table PortableFitnessTest reads (PORTABLE.md): every listed resource's controller must export.
+    systemProperty("resourcesDoc", rootDir.resolve("docs/RESOURCES.md").path)
+    inputs.files(rootDir.resolve("docs/RESOURCES.md"))
 }
 
 tasks.register<Test>("postgresTest") {
@@ -81,7 +84,7 @@ fun registerDetekt(name: String, configFile: String, packages: List<String>) = t
 // The plugin's one-size `detekt` task is replaced by the two role-scoped tasks below (separate limits per role).
 tasks.named("detekt") { enabled = false }
 registerDetekt("detektEdge", "edge.yml", listOf("api", "persistence", "clients", "mappers", "adapters"))
-registerDetekt("detektCore", "core.yml", listOf("runtime", "security", "domain", "telemetry", "config/web", "samples", "workflow", "/engine/core/src/main/kotlin"))
+registerDetekt("detektCore", "core.yml", listOf("runtime", "security", "portable", "domain", "telemetry", "config/web", "samples", "workflow", "/engine/core/src/main/kotlin"))
 
 // arch.1 / arch.3 / arch.7 / arch.8: the ArchUnit rules (src/test/.../architecture/ArchitectureTest.kt, role map in
 // fleet-layers.json) are ordinary tests, so `test` and therefore `check` enforce them.

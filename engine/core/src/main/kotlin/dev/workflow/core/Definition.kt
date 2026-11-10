@@ -56,7 +56,8 @@ class Definition private constructor(
         /** End status of a workflow that runs off the end of its main flow. */
         const val COMPLETED = "completed"
 
-        internal fun build(name: String, version: Int, steps: List<Step>, sample: Map<String, Any?>): Definition {
+        /** Validates and resolves [steps]. Public so a definition read from a portable document can be checked the same way as the DSL's. */
+        fun build(name: String, version: Int, steps: List<Step>, sample: Map<String, Any?>): Definition {
             val locations = DefinitionValidator(name, steps).validate()
             val definition = Definition(name, version, steps, sample, locations)
             val unreachable = locations.keys - definition.reachableSteps()

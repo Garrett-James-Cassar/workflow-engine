@@ -17,7 +17,7 @@ import com.tngtech.archunit.library.dependencies.SlicesRuleDefinition.slices
 private val ROLES = mapOf(
     "Domain" to listOf("dev.workflow.core..", "dev.workflow.app.domain..", "dev.workflow.app.workflow..", "dev.workflow.app.samples..", "dev.workflow.app.telemetry.."),
     "Ports" to listOf("dev.workflow.app.ports.."),
-    "Services" to listOf("dev.workflow.app.runtime..", "dev.workflow.app.security.."),
+    "Services" to listOf("dev.workflow.app.runtime..", "dev.workflow.app.security..", "dev.workflow.app.portable.."),
     "Controllers" to listOf("dev.workflow.app.api"),
     "Dtos" to listOf("dev.workflow.app.api.dtos.."),
     "Mappers" to listOf("dev.workflow.app.mappers.."),

@@ -14,7 +14,8 @@
     ],
     "services": [
       "dev.workflow.app.runtime",
-      "dev.workflow.app.security"
+      "dev.workflow.app.security",
+      "dev.workflow.app.portable"
     ],
     "controllers": [
       "dev.workflow.app.api"
