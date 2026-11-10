@@ -6,10 +6,11 @@ Kotlin 25/Spring Boot 4.1 + Gradle; React studio in `apps/web` (pnpm). Routes: `
 - `engine/core` is pure Kotlin (no Spring, no I/O); `Engine` is a pure transition function, the app applies its effects.
 - Every step yields an enum outcome; route with `on { when (it) { … } }`. Never add `else` branches to sample workflows.
 - New workflow: DSL `object : Workflow(...)` in `engine/app/.../app/workflow/`, list it in `adapters/Workflows.kt`, handlers in `app/samples`, then `./gradlew diagrams` (DiagramsUpToDateTest). Behaviour change = version bump.
+- New resource or route: classify it in `docs/RESOURCES.md` (Config = export+import, Records = export only); its controller needs the `…/export` mapping or `PortableFitnessTest` fails.
 - Tests: core kotlin.test; compile-fail cases in `CompileFailTest`; app e2e on H2 + `MutableClock` (`ApiTest` base, one shared context); Postgres in `postgresTest`. Name tests with the milestone (`E5 …`).
 
 ## Ports, env, gate tiers
-- Engine **47831** (`PORT`), Postgres **55434** (`DATABASE_URL`, `DB_USER`, `DB_PASSWORD`), studio **5183**, demo build **15183**, rbac 47861 (`RBAC_URL`, optional). Also `AUTH_MODE`, `RATE_LIMIT_{ENABLED,READ_PER_MIN,WRITE_PER_MIN,HEAVY_PER_MIN}`, `MAX_BODY_BYTES`, `CORS_ORIGINS` (default: studio 5183/15183), `TLS`, `WORKFLOW_HTTP_ALLOWED_HOSTS`, `TIMEOUT_POLL_INTERVAL`, `OTEL_EXPORTER_OTLP_ENDPOINT`. `make dev` runs it; `make stop` stops it.
+- Engine **47831** (`PORT`), Postgres **55434** (`DATABASE_URL`, `DB_USER`, `DB_PASSWORD`), studio **5183**, demo build **15183**, rbac 47861 (`RBAC_URL`, optional). Also `AUTH_MODE`, `RATE_LIMIT_{ENABLED,READ_PER_MIN,WRITE_PER_MIN,HEAVY_PER_MIN}`, `MAX_BODY_BYTES`, `MAX_IMPORT_BYTES` (5 MB, import routes), `CORS_ORIGINS` (default: studio 5183/15183), `TLS`, `WORKFLOW_HTTP_ALLOWED_HOSTS`, `TIMEOUT_POLL_INTERVAL`, `OTEL_EXPORTER_OTLP_ENDPOINT`. `make dev` runs it; `make stop` stops it.
 - `make fast` (pre-commit; lint, typecheck, ArchUnit, detekt, H2 tests; no browser) · `make push-gate` (+ mocked smoke) · `make ci` (everything; once at the end of a task).
 - Standards, one line each: [trunk-based, fast feedback](/Users/garrett.cassar/Projects/fleet/standards/FEEDBACK.md) · [arch rules](/Users/garrett.cassar/Projects/fleet/standards/ARCHITECTURE-RULES.md) (map: `fleet-layers.json`, `ARCHITECTURE.md`) · [security](/Users/garrett.cassar/Projects/fleet/standards/SECURITY.md) · [UI style](/Users/garrett.cassar/Projects/fleet/standards/ui/STYLE.md).
 - How this app applies them (API versioning, input limits, observability, console Demo, studio decisions): [docs/conventions.md](docs/conventions.md).
@@ -26,6 +27,7 @@ Kotlin 25/Spring Boot 4.1 + Gradle; React studio in `apps/web` (pnpm). Routes: `
 | errors, validation, 413/415, rate limit | `api/ErrorHandler.kt` · `config/web/ValidationProblems.kt`, `BodyGuardFilter.kt`, `RateLimitInterceptor.kt`, `ResponseValidation.kt`, `CorsFilter.kt` · `config/SecurityHeadersFilter.kt` |
 | `/api/v1` prefix, deprecated aliases | `config/ApiVersionConfig.kt`, `config/web/DeprecatedAliasFilter.kt` |
 | identity, labels, access log | `config/web/IdentityInterceptor.kt`, `EndpointLabelInterceptor.kt`, `AccessLogFilter.kt` · `telemetry/` |
+| export/import (portable), bundle `/export` `/import` | [docs/RESOURCES.md](docs/RESOURCES.md) (class of each resource; `PortableFitnessTest` reads it) · `app/portable/` (`Codec.kt`, `WorkflowCodec.kt`, `ImportPlanner.kt`, `ConfigPortability.kt`, `RecordExports.kt`) · `api/PortableController.kt`, `api/RecordsController.kt` + `…/export` routes in the resource controllers |
 | DSL, validation, graph, Mermaid, `Engine` | `engine/core/src/main/kotlin/dev/workflow/core/` (`Dsl.kt`, `StepBuilders.kt`, `DefinitionValidator.kt`, `Engine.kt`) |
 | sample workflows | `app/workflow/*.kt` · handlers `app/samples/` · diagrams `docs/workflows/` |
 | console (no build) | `engine/app/src/main/resources/static/app.js`; Demo specs `engine/console-e2e/cypress/e2e/chapters`, player `static/console-demo/` (committed; `make console-build`) |

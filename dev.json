@@ -17,6 +17,7 @@
       "RATE_LIMIT_WRITE_PER_MIN",
       "RATE_LIMIT_HEAVY_PER_MIN",
       "MAX_BODY_BYTES",
+      "MAX_IMPORT_BYTES",
       "CORS_ORIGINS",
       "TLS"
     ]
