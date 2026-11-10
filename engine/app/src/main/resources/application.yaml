@@ -59,6 +59,8 @@ workflow:
   limits:
     # Body cap in bytes (413 over it). The Content-Type must be JSON (415).
     max-body-bytes: ${MAX_BODY_BYTES:1048576}
+    # The import routes (POST .../import and .../import/preview) take whole configurations: a separate cap, 5 MB.
+    max-import-bytes: ${MAX_IMPORT_BYTES:5242880}
   tls: ${TLS:false}
   cors:
     # Comma-separated allow-list; defaults to the studio's dev (5183) and demo build (15183) origins. Never "*".

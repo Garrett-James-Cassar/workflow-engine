@@ -8,6 +8,7 @@ package dev.workflow.app.security
 object Permissions {
     const val WORKFLOWS_READ = "workflows.read"
     const val WORKFLOWS_EXPORT = "workflows.export"
+    const val WORKFLOWS_IMPORT = "workflows.import"
     const val INSTANCES_READ = "instances.read"
     const val INSTANCES_START = "instances.start"
     const val INSTANCES_RETRY = "instances.retry"
@@ -17,19 +18,23 @@ object Permissions {
     const val TASKS_READ = "tasks.read"
     const val TASKS_COMPLETE = "tasks.complete"
     const val TASKS_REASSIGN = "tasks.reassign"
+    const val TASKS_EXPORT = "tasks.export"
+    const val WAITS_EXPORT = "waits.export"
     const val EVENTS_SEND = "events.send"
+    const val EVENTS_EXPORT = "events.export"
     const val INCIDENTS_READ = "incidents.read"
     const val INCIDENTS_RETRY = "incidents.retry"
     const val INCIDENTS_EXPORT = "incidents.export"
     const val PEOPLE_READ = "people.read"
+    const val PEOPLE_EXPORT = "people.export"
     const val DEMO_RESET = "demo.reset"
 
     val ALL: List<String> = listOf(
-        WORKFLOWS_READ, WORKFLOWS_EXPORT,
+        WORKFLOWS_READ, WORKFLOWS_EXPORT, WORKFLOWS_IMPORT,
         INSTANCES_READ, INSTANCES_START, INSTANCES_RETRY, INSTANCES_RESTART, INSTANCES_FIRE_TIMEOUT, INSTANCES_EXPORT,
-        TASKS_READ, TASKS_COMPLETE, TASKS_REASSIGN,
-        EVENTS_SEND,
+        TASKS_READ, TASKS_COMPLETE, TASKS_REASSIGN, TASKS_EXPORT, WAITS_EXPORT,
+        EVENTS_SEND, EVENTS_EXPORT,
         INCIDENTS_READ, INCIDENTS_RETRY, INCIDENTS_EXPORT,
-        PEOPLE_READ, DEMO_RESET,
+        PEOPLE_READ, PEOPLE_EXPORT, DEMO_RESET,
     )
 }

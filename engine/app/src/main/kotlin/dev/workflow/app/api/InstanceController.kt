@@ -11,12 +11,14 @@ import dev.workflow.app.api.dtos.RestartRequest
 import dev.workflow.app.api.dtos.StartRequest
 import dev.workflow.app.mappers.EventMapper
 import dev.workflow.app.mappers.InstanceMapper
+import dev.workflow.app.portable.RecordExports
 import dev.workflow.app.runtime.InstanceService
 import dev.workflow.app.runtime.RunQueries
 import dev.workflow.app.security.Identity
 import dev.workflow.app.security.Permissions
 import dev.workflow.app.security.Requires
 import org.springframework.http.HttpStatus
+import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
@@ -28,7 +30,7 @@ import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
 
 @RestController
-class InstanceController(private val instances: InstanceService, private val queries: RunQueries) {
+class InstanceController(private val instances: InstanceService, private val queries: RunQueries, private val records: RecordExports) {
 
     @Requires(Permissions.INSTANCES_START, label = "Start run", heavy = true)
     @PostMapping("/definitions/{name}/instances")
@@ -43,6 +45,14 @@ class InstanceController(private val instances: InstanceService, private val que
     @GetMapping("/instances")
     fun list(@RequestParam(defaultValue = "50") @Min(1) @Max(Limits.MAX_PAGE) limit: Int): List<InstanceView> =
         queries.recent(limit).map(InstanceMapper::view)
+
+    @Requires(Permissions.INSTANCES_EXPORT, label = "Export runs")
+    @GetMapping("/instances/export")
+    fun export(): ResponseEntity<Any> = download(records.instances())
+
+    @Requires(Permissions.INSTANCES_EXPORT, label = "Export run")
+    @GetMapping("/instances/{id}/export")
+    fun exportOne(@PathVariable id: UUID): ResponseEntity<Any> = download(records.instance(id))
 
     @Requires(Permissions.INSTANCES_READ, label = "Show run")
     @GetMapping("/instances/{id}")

@@ -2,6 +2,7 @@
   "permissions": [
     "workflows.read",
     "workflows.export",
+    "workflows.import",
     "instances.read",
     "instances.start",
     "instances.retry",
@@ -11,11 +12,15 @@
     "tasks.read",
     "tasks.complete",
     "tasks.reassign",
+    "tasks.export",
+    "waits.export",
     "events.send",
+    "events.export",
     "incidents.read",
     "incidents.retry",
     "incidents.export",
     "people.read",
+    "people.export",
     "demo.reset"
   ],
   "roles": [
@@ -145,6 +150,7 @@
       "description": "Everything in the workflow engine, in every team",
       "permissions": [
         "demo.reset",
+        "events.export",
         "events.send",
         "incidents.export",
         "incidents.read",
@@ -155,11 +161,15 @@
         "instances.restart",
         "instances.retry",
         "instances.start",
+        "people.export",
         "people.read",
         "tasks.complete",
+        "tasks.export",
         "tasks.read",
         "tasks.reassign",
+        "waits.export",
         "workflows.export",
+        "workflows.import",
         "workflows.read"
       ]
     },

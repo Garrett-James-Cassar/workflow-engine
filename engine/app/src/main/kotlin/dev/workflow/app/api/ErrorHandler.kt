@@ -1,9 +1,12 @@
 package dev.workflow.app.api
 
 import dev.workflow.app.api.dtos.ErrorView
+import dev.workflow.app.config.web.ProblemType
 import dev.workflow.app.domain.BadRequestException
 import dev.workflow.app.domain.ConflictException
 import dev.workflow.app.domain.ForbiddenException
+import dev.workflow.app.domain.ImportRejectedException
+import dev.workflow.app.mappers.PortableMapper
 import dev.workflow.app.domain.NotFoundException
 import dev.workflow.app.domain.RbacUnavailableException
 import dev.workflow.app.domain.UnauthenticatedException
@@ -37,6 +40,13 @@ class ErrorHandler {
     @ExceptionHandler(BadRequestException::class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     fun badRequest(e: BadRequestException) = problem(400, "Invalid request", e.message ?: "bad request")
+
+    /** An import file with a bad document: 400 naming each spot by JSON pointer. Nothing was written. */
+    @ExceptionHandler(ImportRejectedException::class)
+    fun importRejected(e: ImportRejectedException): ResponseEntity<Any> =
+        ResponseEntity.status(400).contentType(MediaType("application", "problem+json")).body(
+            ErrorView(e.message.orEmpty(), null, "Invalid import", 400, e.message.orEmpty(), ProblemType.VALIDATION, e.problems.map(PortableMapper::problem)),
+        )
 
     @ExceptionHandler(ConflictException::class)
     @ResponseStatus(HttpStatus.CONFLICT)

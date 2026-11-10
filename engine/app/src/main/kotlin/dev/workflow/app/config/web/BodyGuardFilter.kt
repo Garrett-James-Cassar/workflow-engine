@@ -16,6 +16,7 @@ import org.springframework.web.filter.OncePerRequestFilter
 import tools.jackson.databind.json.JsonMapper
 
 private val WITH_BODY = setOf("POST", "PUT", "PATCH")
+private val IMPORT_PATH = Regex("/import(/preview)?$")
 
 /**
  * First stop for a request body (SECURITY.md): a body over the cap (1 MB by default) answers 413, and a body that is
@@ -26,19 +27,24 @@ private val WITH_BODY = setOf("POST", "PUT", "PATCH")
 class BodyGuardFilter(
     private val json: JsonMapper,
     @Value("\${workflow.limits.max-body-bytes:1048576}") private val maxBytes: Long,
+    @Value("\${workflow.limits.max-import-bytes:5242880}") private val importBytes: Long,
 ) : OncePerRequestFilter(), Ordered {
     private val log = LoggerFactory.getLogger(BodyGuardFilter::class.java)
 
     override fun getOrder() = Ordered.HIGHEST_PRECEDENCE + 10
 
     override fun doFilterInternal(request: HttpServletRequest, response: HttpServletResponse, chain: FilterChain) {
-        val verdict = verdict(request)
-        if (verdict == null) return chain.doFilter(CappedRequest(request, maxBytes), response)
+        val cap = capFor(request)
+        val verdict = verdict(request, cap)
+        if (verdict == null) return chain.doFilter(CappedRequest(request, cap), response)
         log.warn("Rejected request: {}", verdict.detail)
         response.writeProblem(json, verdict)
     }
 
-    private fun verdict(request: HttpServletRequest) = when {
+    /** Imports carry whole configurations, so they get a larger cap (5 MB by default; PORTABLE.md section 4). */
+    private fun capFor(request: HttpServletRequest): Long = if (IMPORT_PATH.containsMatchIn(request.requestURI)) importBytes else maxBytes
+
+    private fun verdict(request: HttpServletRequest, maxBytes: Long) = when {
         request.method !in WITH_BODY || !hasBody(request) -> null
         request.contentLengthLong > maxBytes -> problem(413, ProblemType.TOO_LARGE, "Payload too large", "The request body is over $maxBytes bytes")
         !isJson(request.contentType) -> problem(415, ProblemType.UNSUPPORTED_MEDIA, "Unsupported media type", "The body must be application/json")

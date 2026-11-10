@@ -97,6 +97,35 @@
         },
         "type" : "object"
       },
+      "Entry" : {
+        "properties" : {
+          "action" : {
+            "type" : "string"
+          },
+          "changed" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "key" : {
+            "type" : "string"
+          },
+          "kind" : {
+            "type" : "string"
+          },
+          "missing" : {
+            "items" : {
+              "$ref" : "#/components/schemas/Missing"
+            },
+            "type" : "array"
+          },
+          "note" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "type" : "object"
+      },
       "ErrorView" : {
         "properties" : {
           "detail" : {
@@ -269,6 +298,38 @@
         },
         "type" : "object"
       },
+      "ImportPlanView" : {
+        "properties" : {
+          "entries" : {
+            "items" : {
+              "$ref" : "#/components/schemas/Entry"
+            },
+            "type" : "array"
+          }
+        },
+        "type" : "object"
+      },
+      "ImportResultView" : {
+        "properties" : {
+          "conflicts" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "created" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "skipped" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "updated" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
       "InstanceView" : {
         "properties" : {
           "currentStep" : {
@@ -322,6 +383,20 @@
               "$ref" : "#/components/schemas/GrantView"
             },
             "type" : "array"
+          }
+        },
+        "type" : "object"
+      },
+      "Missing" : {
+        "properties" : {
+          "key" : {
+            "type" : "string"
+          },
+          "kind" : {
+            "type" : "string"
+          },
+          "path" : {
+            "type" : "string"
           }
         },
         "type" : "object"
@@ -667,7 +742,7 @@
     },
     "/definitions/{name}/export" : {
       "get" : {
-        "operationId" : "export",
+        "operationId" : "export_8",
         "parameters" : [ {
           "in" : "path",
           "name" : "name",
@@ -875,6 +950,54 @@
         "tags" : [ "instance-controller" ]
       }
     },
+    "/events/export" : {
+      "get" : {
+        "operationId" : "export_7",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorView"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorView"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorView"
+                }
+              }
+            },
+            "description" : "Conflict"
+          }
+        },
+        "tags" : [ "event-controller" ]
+      }
+    },
     "/events/{name}" : {
       "post" : {
         "operationId" : "receive",
@@ -943,6 +1066,54 @@
         "tags" : [ "event-controller" ]
       }
     },
+    "/export" : {
+      "get" : {
+        "operationId" : "export_6",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorView"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorView"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorView"
+                }
+              }
+            },
+            "description" : "Conflict"
+          }
+        },
+        "tags" : [ "portable-controller" ]
+      }
+    },
     "/health" : {
       "get" : {
         "operationId" : "health",
@@ -997,6 +1168,168 @@
         "url" : "/"
       } ]
     },
+    "/import" : {
+      "post" : {
+        "operationId" : "import_1",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "type" : "object"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ImportResultView"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorView"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorView"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorView"
+                }
+              }
+            },
+            "description" : "Conflict"
+          }
+        },
+        "tags" : [ "portable-controller" ]
+      }
+    },
+    "/import/preview" : {
+      "post" : {
+        "operationId" : "preview_1",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "type" : "object"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ImportPlanView"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorView"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorView"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorView"
+                }
+              }
+            },
+            "description" : "Conflict"
+          }
+        },
+        "tags" : [ "portable-controller" ]
+      }
+    },
+    "/incidents/export" : {
+      "get" : {
+        "operationId" : "export_5",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorView"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorView"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorView"
+                }
+              }
+            },
+            "description" : "Conflict"
+          }
+        },
+        "tags" : [ "incident-controller" ]
+      }
+    },
     "/instances" : {
       "get" : {
         "operationId" : "list_1",
@@ -1021,6 +1354,54 @@
                     "$ref" : "#/components/schemas/InstanceView"
                   },
                   "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorView"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorView"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorView"
+                }
+              }
+            },
+            "description" : "Conflict"
+          }
+        },
+        "tags" : [ "instance-controller" ]
+      }
+    },
+    "/instances/export" : {
+      "get" : {
+        "operationId" : "export_4",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object"
                 }
               }
             },
@@ -1138,6 +1519,63 @@
                     "$ref" : "#/components/schemas/EventView"
                   },
                   "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorView"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorView"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorView"
+                }
+              }
+            },
+            "description" : "Conflict"
+          }
+        },
+        "tags" : [ "instance-controller" ]
+      }
+    },
+    "/instances/{id}/export" : {
+      "get" : {
+        "operationId" : "exportOne_1",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object"
                 }
               }
             },
@@ -1349,6 +1787,54 @@
         "tags" : [ "me-controller" ]
       }
     },
+    "/people/export" : {
+      "get" : {
+        "operationId" : "export_3",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorView"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorView"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorView"
+                }
+              }
+            },
+            "description" : "Conflict"
+          }
+        },
+        "tags" : [ "rbac-controller" ]
+      }
+    },
     "/rbac/people" : {
       "get" : {
         "operationId" : "people",
@@ -1480,6 +1966,54 @@
                     "$ref" : "#/components/schemas/TaskView"
                   },
                   "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorView"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorView"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorView"
+                }
+              }
+            },
+            "description" : "Conflict"
+          }
+        },
+        "tags" : [ "task-controller" ]
+      }
+    },
+    "/tasks/export" : {
+      "get" : {
+        "operationId" : "export_2",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object"
                 }
               }
             },
@@ -1721,6 +2255,275 @@
           }
         },
         "tags" : [ "event-controller" ]
+      }
+    },
+    "/waits/export" : {
+      "get" : {
+        "operationId" : "export_1",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorView"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorView"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorView"
+                }
+              }
+            },
+            "description" : "Conflict"
+          }
+        },
+        "tags" : [ "wait-controller" ]
+      }
+    },
+    "/workflows/export" : {
+      "get" : {
+        "operationId" : "export",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorView"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorView"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorView"
+                }
+              }
+            },
+            "description" : "Conflict"
+          }
+        },
+        "tags" : [ "workflow-controller" ]
+      }
+    },
+    "/workflows/import" : {
+      "post" : {
+        "operationId" : "import",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "type" : "object"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ImportResultView"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorView"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorView"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorView"
+                }
+              }
+            },
+            "description" : "Conflict"
+          }
+        },
+        "tags" : [ "workflow-controller" ]
+      }
+    },
+    "/workflows/import/preview" : {
+      "post" : {
+        "operationId" : "preview",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "type" : "object"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ImportPlanView"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorView"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorView"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorView"
+                }
+              }
+            },
+            "description" : "Conflict"
+          }
+        },
+        "tags" : [ "workflow-controller" ]
+      }
+    },
+    "/workflows/{key}/export" : {
+      "get" : {
+        "operationId" : "exportOne",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "key",
+          "required" : true,
+          "schema" : {
+            "maxLength" : 100,
+            "minLength" : 0,
+            "pattern" : "^[A-Za-z0-9._:-]+$",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorView"
+                }
+              }
+            },
+            "description" : "Bad Request"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorView"
+                }
+              }
+            },
+            "description" : "Not Found"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorView"
+                }
+              }
+            },
+            "description" : "Conflict"
+          }
+        },
+        "tags" : [ "workflow-controller" ]
       }
     }
   },
