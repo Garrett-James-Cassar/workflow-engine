@@ -1,0 +1,16 @@
+.git
+.gradle
+.kotlin
+.idea
+.claude
+build
+**/build
+**/node_modules
+apps
+docs
+backups
+reports
+test-evidence
+engine/console-e2e
+**/coverage
+**/dist

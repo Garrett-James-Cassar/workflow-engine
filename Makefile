@@ -1,4 +1,4 @@
-.PHONY: security security-secrets security-deps security-sast security-report lock backup restore restore-drill seed reseed openapi api-breaking web-static web-browser fast fast-be fast-web push-gate gradle-check up down stop dev demo restart test ci check-placement diagrams hooks web web-demo web-install web-gen-check web-typecheck web-lint web-test web-build web-demo-build web-cy web-smoke web-demo-check web-live-check web-ci share share-studio share-studio-local cy-live console-install console-build console-bundle-check console-typecheck console-cy console-smoke console-demo-check console-ci
+.PHONY: console-gate live-gate release deploy rollback share-console security security-secrets security-deps security-sast security-report lock backup restore restore-drill seed reseed openapi api-breaking web-static web-browser fast fast-be fast-web push-gate gradle-check up down stop dev demo restart test ci check-placement diagrams hooks web web-demo web-install web-gen-check web-typecheck web-lint web-test web-build web-demo-build web-cy web-smoke web-demo-check web-live-check web-ci share share-studio share-studio-local cy-live console-install console-build console-bundle-check console-typecheck console-cy console-smoke console-demo-check console-ci
 
 PORT ?= 47831
 export PORT
@@ -43,6 +43,22 @@ restart: dev
 demo: ## the engine with the console Demo: opens http://localhost:$(PORT)/?demo and starts the player (dev auth only, never live)
 	$(MAKE) dev OPEN_PATH='/?demo'
 
+
+# ---- release and deploy (dp.2; fleet CICD.md): images tagged by commit, deploy/$(DEPLOY_TARGET)/deploy.sh <env> <tag> ----
+REGISTRY ?=
+export REGISTRY
+DEPLOY_TARGET ?= local
+ENV ?= local
+TAG ?= $(shell git rev-parse --short HEAD)
+
+release: ## build workflow-engine-api and -web tagged with the short commit hash; push to $$REGISTRY when set; keep the newest 2 local tags
+	@TAG=$(TAG) scripts/release.sh
+
+deploy: ## make deploy ENV=<env> [TAG=<tag>]: deploy/$(DEPLOY_TARGET)/deploy.sh; polls /ready for 60 s, rolls back to the previous tag on failure
+	@deploy/$(DEPLOY_TARGET)/deploy.sh $(ENV) $(TAG)
+
+rollback: ## make rollback ENV=<env> TAG=<tag>: redeploy an earlier tag (migrations follow the forward-fix rule, RUNBOOK.md)
+	@ROLLBACK=1 deploy/$(DEPLOY_TARGET)/deploy.sh $(ENV) $(TAG)
 
 # ---- data (dm.3, dm.5): backups of the compose Postgres, and demo data from the Object Mother ----
 backup: ## dm.3: timestamped pg_dump of the compose Postgres into ./backups/ (gitignored)
@@ -188,8 +204,10 @@ web-ci: web-static web-browser
 cy-live: ## Cypress against the real engine on :47831 and Postgres on 55434 (opt-in; nightly in e2e-live.yml)
 	$(WEB) cy:live
 
-share-studio: ## serve the studio DEMO build through ngrok (needs NGROK_AUTHTOKEN); remote viewers run its Demo in their own tab
+share: ## dp.1: the MOCKED studio demo build (static, no API) through ngrok; NGROK_AUTHTOKEN from the env; remote viewers run the Demo in their own tab
 	$(WEB) exec node scripts/share.mjs
+
+share-studio: share
 
 share-studio-local: ## serve the studio demo build on 0.0.0.0:5183 without a tunnel
 	$(WEB) exec node scripts/share.mjs --no-tunnel
@@ -220,5 +238,11 @@ console-demo-check: ## plays every Demo chapter unpaced in the in-page runtime a
 
 console-ci: console-bundle-check console-typecheck console-cy console-demo-check ## the console gate; the engine must be running (CI starts it)
 
-share: ## tunnel the console (the engine on $(PORT)) through ngrok so a remote viewer runs the Demo in their own tab
+console-gate: ## start Postgres and the engine, run the console gate (console-ci) against it, stop the engine (CI)
+	@scripts/with-engine.sh console-install console-ci
+
+live-gate: ## start Postgres and the engine, run the studio's live Cypress against it, stop the engine (nightly CI)
+	@scripts/with-engine.sh web-install cy-live
+
+share-console: ## tunnel the console (the engine on $(PORT)) through ngrok so a remote viewer runs the Demo in their own tab (dev auth: a demo only)
 	$(CONSOLE) exec node scripts/share.mjs --port $(PORT)

@@ -1,0 +1,10 @@
+# Any Linux host with Docker (CICD.md compose-ssh). Env comes from the host's .env.<env> file, never from the repo.
+services:
+  api:
+    image: ${REGISTRY:+$REGISTRY/}workflow-engine-api:${TAG:?set TAG}
+    restart: unless-stopped
+    env_file: ${ENV_FILE:-.env.prod}
+    ports:
+      - "${DEPLOY_PORT:-47831}:47831"
+    labels:
+      dev.workflow.tag: ${TAG}

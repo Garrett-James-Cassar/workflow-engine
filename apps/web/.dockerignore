@@ -1,0 +1,5 @@
+node_modules
+dist
+coverage
+cypress
+.nyc_output

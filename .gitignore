@@ -12,3 +12,4 @@ test-evidence/
 .claude/state.md
 backups/
 reports/
+engine.log

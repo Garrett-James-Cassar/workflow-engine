@@ -1,87 +1,33 @@
-# Fleet CI (standards v1) for Gradle/JVM apps with a web studio: the whole gate is `make ci`
-# = ./gradlew check (core + Testcontainers app tests) + the web gate (contract, typecheck,
-# style grep, vitest, build, headless mocked Cypress with the 80% coverage gate, Demo chapters).
+# Fleet CI (standards/CICD.md). The only provider-specific file: every step is a make target, no logic here.
 name: ci
 on:
   push: { branches: [main, master] }
   pull_request: {}
-
+  schedule: [{ cron: "0 6 * * 1" }]   # weekly security report
 jobs:
-  gate:
+  ci:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 25
-      - uses: gradle/actions/setup-gradle@v4
-      - uses: pnpm/action-setup@v4
-        with: { version: 9 }
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-          cache-dependency-path: apps/web/pnpm-lock.yaml
-      - run: make web-install
-      - name: ci gate
-        run: make ci
-      - name: screenshots on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: cypress-screenshots
-          path: test-evidence/web/screenshots
-          if-no-files-found: ignore
-
-  # The console Demo chapters are real Cypress specs against the real engine (dev auth) and its own Postgres.
-  console:
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:17-alpine
-        env:
-          POSTGRES_USER: workflow
-          POSTGRES_PASSWORD: workflow
-          POSTGRES_DB: workflow
-        ports: ['55434:5432']
-        options: >-
-          --health-cmd "pg_isready -U workflow"
-          --health-interval 2s --health-timeout 3s --health-retries 30
     env:
-      DATABASE_URL: jdbc:postgresql://127.0.0.1:55434/workflow
+      REGISTRY: ${{ vars.REGISTRY }}
+      DEPLOY_TARGET: ${{ vars.DEPLOY_TARGET || 'compose-ssh' }}
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 25
+        with: { distribution: temurin, java-version: 25 }
       - uses: gradle/actions/setup-gradle@v4
       - uses: pnpm/action-setup@v4
         with: { version: 9 }
       - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-          cache-dependency-path: engine/console-e2e/pnpm-lock.yaml
-      - run: make console-install
-      - name: start the engine (Flyway migrates, then the engine on :47831)
+        with: { node-version-file: .nvmrc }
+      - run: make web-install
+      - run: make ci
+        if: github.event_name != 'schedule'
+      - run: make console-gate
+        if: github.event_name != 'schedule'
+      - name: deploy to prod (skipped until DEPLOY_HOST is set)
         run: |
-          ./gradlew --no-daemon :engine:app:bootRun > engine.log 2>&1 &
-          for i in $(seq 1 90); do curl -sf http://127.0.0.1:47831/health && break; sleep 1; done
-      - name: console gate (bundle freshness, typecheck, chapters, smoke, layout, Demo chapters)
-        run: make console-ci
-      - name: screenshots on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: console-screenshots
-          path: test-evidence/console/screenshots
-          if-no-files-found: ignore
-      - name: engine log on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: console-engine-log
-          path: engine.log
-          if-no-files-found: ignore
+          if [ -z "$DEPLOY_HOST" ]; then echo "DEPLOY_HOST is not set: skipping the prod deploy"; else make release deploy ENV=prod; fi
+        if: github.event_name == 'push' && github.ref_name == 'main'
+      - run: make security-report
+        if: github.event_name == 'schedule'
