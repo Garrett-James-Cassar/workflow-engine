@@ -19,25 +19,29 @@ The studio is written against its own contract, [`apps/web/contract/openapi.yaml
 | `endStatus` | Ended as |
 | `X-User` | Acting as |
 
-**Permissions.** Every operation names a permission and is shown only when `can(permission)` is true. `can()` is one seam in `src/lib/access.ts` and returns `true` for everything until the central RBAC standard lands (ui.3, ui.4 and ui.6 are tbd). The engine's own checks (task roles, reassign, support restart) still apply and surface as a 403 with a reason.
+**Permissions.** Every operation names a permission and is shown only when `can(permission)` is true. `can()` is one seam in `src/lib/access.ts`. It answers from `GET /api/v1/me` (the caller's permissions, asked again when the acting person changes), with the engine's own dotted names, so hidden in the UI also means refused by the API. Nothing is drawn until the answer arrives (`AccessGate`); if the call fails, nothing privileged shows. The engine's own checks (task roles, reassign, support restart) still apply and surface as a 403 with a reason.
 
 | Permission | Allows |
 |---|---|
 | `workflows.read` | the Workflows list and Workflow views |
-| `workflows.export` | Export CSV, Export JSON on workflows; diagram download |
+| `workflows.export` | Export all and a row's Export on workflows; Export CSV; diagram download; Export configuration |
+| `workflows.import` | Import on workflows; Import configuration |
 | `instances.read` | the Workflow runs list and Workflow run views |
 | `instances.start` | Start run |
 | `instances.retry` | Retry step |
 | `instances.restart` | Restart at step (workflow-support) |
 | `instances.fire-timeout` | Fire timeout |
-| `instances.export` | Export CSV, Export JSON on runs |
+| `instances.export` | Export all and a row's Export on runs; Export CSV |
 | `tasks.read` | My tasks |
 | `tasks.complete` | the outcome buttons on a task |
 | `tasks.reassign` | Reassign task |
+| `tasks.export` | (no studio screen: tasks are a card inbox; the engine route exists) |
+| `waits.export` | Export all and a row's Export on the waiting events; Export CSV |
 | `events.send` | Send event |
+| `events.export`, `people.export` | (no studio screen; the engine routes exist) |
 | `incidents.read` | the Incidents view |
 | `incidents.retry` | Retry step on an incident |
-| `incidents.export` | Export CSV, Export JSON on incidents |
+| `incidents.export` | Export all and a row's Export on incidents; Export CSV |
 
 **Statuses** (STYLE.md v1.4 §6, Domain statuses). Every one is a Badge with its colour, icon and word. Map by meaning: finished and fine is success, waiting on a person or an event is warning, a failed step is destructive, and inert history is neutral.
 
@@ -99,13 +103,15 @@ The studio is written against its own contract, [`apps/web/contract/openapi.yaml
 |---|---|---|---|
 | Start run | default (the one per view, on the workflow view) | `instances.start` | dialog with the vars as editable mono JSON (pre-filled from the sample); `POST /api/v1/workflows/{name}/instances`; toast "Run started", then the run view |
 | Export CSV | outline (grid toolbar) | `workflows.export` | AG Grid CSV of the loaded rows; toast "Export started" |
-| Export JSON | outline (grid toolbar) | `workflows.export` | `GET /api/v1/workflows/export`; toast "Export started" |
+| Export all | outline (grid toolbar) | `workflows.export` | `GET /api/v1/workflows/export`: every workflow as a document in the fleet envelope; toast "Export started" |
+| Import | outline (grid toolbar) | `workflows.import` | the import flow below; toast "Imported: N created, M updated" |
+| Export (row menu) | menu item | `workflows.export` | `GET /api/v1/workflows/{name}:{version}/export` |
 | Download SVG, Download PNG | outline | `workflows.export` | client-side download of the rendered diagram |
 | Clear filters | ghost | `workflows.read` | resets the query string |
 
-Workflows are code in this engine, so there is no import (pt.3 does not apply here; it arrives with E7).
+Workflows are the one Config kind (docs/RESOURCES.md). A workflow written in Kotlin is the engine's own: importing a document that differs from it is a Conflict and is skipped. An imported document is stored and exported again, but it does not run (its decisions and handlers are code).
 
-**Grid:** the list is FleetGrid (`fleetGridTheme`). The workflow view is grid-exempt: one record, shown as a diagram and definition lists.
+**Grid:** the list is FleetGrid (`fleetGridTheme`), with Export all, Import and a row menu ("⋯", Export). The workflow view is grid-exempt: one record, shown as a diagram and definition lists.
 
 **States**
 - Loading: skeleton rows in the grid frame; a diagram-shaped skeleton on the workflow view.
@@ -149,7 +155,9 @@ Workflows are code in this engine, so there is no import (pt.3 does not apply he
 | Retry step | default | `instances.retry` | failed | `POST /api/v1/instances/{id}/retry`; toast "Step retried" |
 | Fire timeout | secondary | `instances.fire-timeout` | waiting on an event wait with a timeout | `POST /api/v1/instances/{id}/timeouts/{step}`; toast "Timeout fired" |
 | Restart at step | outline | `instances.restart` | waiting on a user task | dialog to choose the step, `POST /api/v1/instances/{id}/restart`; a 403 shows the engine's reason; toast "Run restarted" |
-| Export CSV, Export JSON | outline (grid toolbar) | `instances.export` | list | CSV of loaded rows; JSON from `GET /api/v1/instances/export` with the filters; toast "Export started" |
+| Export CSV | outline (grid toolbar) | `instances.export` | list | CSV of loaded rows; toast "Export started" |
+| Export all | outline (grid toolbar) | `instances.export` | list | `GET /api/v1/instances/export` with the filters; toast "Export started" |
+| Export (row menu) | menu item | `instances.export` | list | `GET /api/v1/instances/{id}/export` |
 | Clear filters | ghost | `instances.read` | list | resets the query string |
 | Copy run ID | ghost icon (`copy`, aria-label) | `instances.read` | always | toast "Run ID copied" |
 
@@ -207,7 +215,9 @@ Run histories are append-only, so they are export-only (no import).
 | Button | Variant | Permission | Result |
 |---|---|---|---|
 | Send event | default | `events.send` | `POST /api/v1/events/{name}`; toast "Event sent: 1 run woke". A 404 shows an inline coral alert "No run is waiting for `signed` with that correlation", form values kept. |
-| Export CSV | outline (grid toolbar) | `instances.export` | AG Grid CSV of the loaded rows; toast "Export started". Waits are live state, not a history, so there is no portable JSON for them |
+| Export CSV | outline (grid toolbar) | `waits.export` | AG Grid CSV of the loaded rows; toast "Export started" |
+| Export all | outline (grid toolbar) | `waits.export` | `GET /api/v1/waits/export`; toast "Export started". Waits are Records: export only |
+| Export (row menu) | menu item | `waits.export` | that wait's document, taken from the same export |
 
 **Grid:** the waits list is FleetGrid. The form is grid-exempt.
 
@@ -241,7 +251,9 @@ Run histories are append-only, so they are export-only (no import).
 | Button | Variant | Permission | Result |
 |---|---|---|---|
 | Retry step | default (per row detail, one per view) | `incidents.retry` | `POST /api/v1/instances/{id}/retry`; toast "Step retried" |
-| Export CSV, Export JSON | outline (toolbar) | `incidents.export` | CSV of loaded rows; JSON from `GET /api/v1/incidents/export`; toast "Export started" |
+| Export CSV | outline (toolbar) | `incidents.export` | CSV of loaded rows; toast "Export started" |
+| Export all | outline (toolbar) | `incidents.export` | `GET /api/v1/incidents/export` with the filters; toast "Export started" |
+| Export (row menu) | menu item | `incidents.export` | that incident's document, taken from the same export |
 | Clear filters | ghost | `incidents.read` | resets the query string |
 
 Incidents are an append-only history, so they are export-only (no import).
@@ -261,6 +273,19 @@ Incidents are an append-only history, so they are export-only (no import).
 - **Top bar right:** the "Acting as" persona switcher, the mode banner pill in mock mode ("Mock API: no backend, changes last until reload") and demo mode ("Demo data: changes reset on reload"). Live mode shows no banner. In demo mode the Demo button ("Run demo", secondary) replays the smoke and main-flow specs in this tab.
 - **Toasts:** bottom-right, per STYLE.md §6.
 - **Unknown route:** headline "This page does not exist", with a link to Workflows.
+
+## Portable: export, import, promotion (pt.4, ui.5, ui.6)
+
+PORTABLE.md section 3, applied. docs/RESOURCES.md says which resource is Config (export and import) and which is Records (export only).
+
+- **Grids.** Every data list is a FleetGrid: workflows, runs, incidents, waiting events, and the import preview. Exemptions, each with its reason: the run view and the workflow view (one record each, see their views), the **My tasks** inbox (cards that carry their own form and outcome buttons, see view 3), and the Send event form. No `<table>` is rendered anywhere in the studio.
+- **Toolbar.** Export CSV (the loaded rows), then **Export all** (the documents, in the fleet envelope: an array of `{kind, version, key, …}`), then **Import** on Config grids only (workflows). Each shows only when `can()` says so.
+- **Row menu.** The "⋯" at the end of each row opens a menu with **Export** (that row's document). The row click still opens the row; the menu does not.
+- **Import flow** (a 480px dialog from a grid; inline on the Configuration screen): choose or drop a file (JSON, at most 5 MB) → the engine's preview (`POST …/import/preview`, writes nothing) → one grid per kind with **New**, **Overwrite** (and the fields that change), **Unchanged**, **Conflict** or **Missing ref** → **Confirm import** (`POST …/import`, all or nothing) → toast "Imported: 3 created, 1 updated" (plus "N unchanged" and "N conflicts skipped" when there are some). A missing ref disables Confirm and says why. A file the engine refuses (400) lists where it is wrong, as JSON pointers, and nothing was written.
+- **Configuration** (`/configuration`, nav entry "Configuration", shown when the person may export or import): the promotion screen. **Export configuration** downloads the bundle (`GET /api/v1/export`, every Config kind in dependency order, environment values as `${VAR}` placeholders). **Import configuration** is the import flow on the bundle (`POST /api/v1/import/preview`, `/import`), the preview grouped by kind.
+- **Gating.** Export and Import render only when `can('<resource>.export')` or `can('<resource>.import')` is true (the engine's dotted names; the fleet text writes them with a colon). `cypress/e2e/features/portable.cy.ts` signs in as `w.support` (the workflow-support role, no export or import) and sees none of the buttons, no row menu and no Configuration entry.
+- **Mocks.** The MSW mock implements the same routes from one TypeScript codec (`src/mocks/portable.ts`): the envelope, the plan (create, overwrite, unchanged, conflict, missing-ref) and the all-or-nothing import. `contract.test.ts` checks every response against `contract/openapi.yaml`. In the mock the person who holds only a narrow role (`w.support`) gets that role's permissions from `GET /me`; everyone else is an engine admin.
+- **Tests.** One round trip through the toolbar (export, import unchanged, import with a new workflow, export again deep-equal, overwrite naming its field), a bad file that writes nothing, a bundle whose missing ref blocks Confirm, the bundle export, and the gating test. They run in the mock profile (`pnpm cy:run`); the demo profile runs the same app build (`make web-demo-check`).
 
 ## Console (the Demo surface)
 
