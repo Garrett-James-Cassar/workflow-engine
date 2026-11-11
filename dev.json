@@ -49,5 +49,31 @@
       "payload": {}
     },
     "health": "/health"
+  },
+  "nfr": {
+    "overrides": [],
+    "notApplicable": [],
+    "extra": [
+      {
+        "id": "X1",
+        "requirement": "a due timeout fires as the TIMED_OUT outcome (the poller ticks every 5 s)",
+        "test": "engine/app/src/test/kotlin/dev/workflow/app/EngineE2ETest.kt"
+      },
+      {
+        "id": "X2",
+        "requirement": "a service task retries twice with backoff; the built-in http task gives up after 30 s per call",
+        "test": "engine/app/src/test/kotlin/dev/workflow/app/EngineE2ETest.kt"
+      },
+      {
+        "id": "X3",
+        "requirement": "event history is append-only, enforced by a Postgres trigger",
+        "test": "engine/app/src/test/kotlin/dev/workflow/app/PostgresOnlyTest.kt"
+      },
+      {
+        "id": "X4",
+        "requirement": "a failing service task becomes an incident, never a lost run",
+        "test": "engine/app/src/test/kotlin/dev/workflow/app/EngineE2ETest.kt"
+      }
+    ]
   }
 }

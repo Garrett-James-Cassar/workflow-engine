@@ -36,7 +36,7 @@ Steps and checks behind it:
 
 ## Backup and restore
 
-Postgres is the only state. `pg_dump` and `psql` run inside the compose container, so only Docker is needed. Targets: RPO 24 h, RTO 1 h (NFR.md).
+Postgres is the only state. `pg_dump` and `psql` run inside the compose container, so only Docker is needed. Targets: RPO 24 h, RTO 1 h (fleet NFR.md; this app's differences are `nfr` in dev.json).
 
 1. Back up: `make backup` writes `backups/workflow-<UTC stamp>.sql` (gitignored; a plain-SQL dump with `--clean --if-exists`). Schedule it daily wherever the engine runs, and copy the file off the host.
 2. Restore: stop the engine (`make stop`), then `make restore FILE=backups/workflow-<stamp>.sql`. The dump drops and recreates the tables, so it replaces the current data. Start the engine and check `/ready`.

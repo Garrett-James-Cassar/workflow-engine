@@ -1,0 +1,118 @@
+{
+  "P5": {
+    "test": "engine/app/src/test/kotlin/dev/workflow/app/OutboundTimeoutTest.kt",
+    "tier": "fast"
+  },
+  "A1": {
+    "test": "engine/app/src/test/kotlin/dev/workflow/app/ReadinessTest.kt",
+    "tier": "fast"
+  },
+  "A7": {
+    "test": "engine/app/src/test/kotlin/dev/workflow/app/ResetGuardTest.kt",
+    "tier": "fast"
+  },
+  "U1": {
+    "test": "apps/web/cypress/e2e/a11y/screens.cy.ts",
+    "tier": "fast"
+  },
+  "U2": {
+    "test": "apps/web/cypress/e2e/a11y/keyboard.cy.ts",
+    "tier": "fast"
+  },
+  "U3": {
+    "test": "apps/web/cypress/e2e/a11y/touch-targets.cy.ts",
+    "tier": "fast"
+  },
+  "U4": {
+    "test": "apps/web/cypress/e2e/layout/layout.cy.ts",
+    "tier": "fast"
+  },
+  "U5": {
+    "test": "apps/web/scripts/check-bundle.mjs",
+    "tier": "fast"
+  },
+  "U6": {
+    "test": "make nfr-load",
+    "tier": "nightly"
+  },
+  "U7": {
+    "test": "apps/web/cypress/e2e/features/complete-task.cy.ts",
+    "tier": "fast"
+  },
+  "U8": {
+    "test": "apps/web/cypress/e2e/features/errors.cy.ts",
+    "tier": "fast"
+  },
+  "U9": {
+    "test": "apps/web/cypress/e2e/a11y/reduced-motion.cy.ts",
+    "tier": "fast"
+  },
+  "S1": {
+    "test": "engine/app/src/test/kotlin/dev/workflow/app/AuthorizationTest.kt",
+    "tier": "fast"
+  },
+  "S2": {
+    "test": "engine/app/src/test/kotlin/dev/workflow/app/SecurityHeadersTest.kt",
+    "tier": "fast"
+  },
+  "S3": {
+    "test": "engine/app/src/test/kotlin/dev/workflow/app/InputValidationTest.kt",
+    "tier": "fast"
+  },
+  "S4": {
+    "test": "make security",
+    "tier": "fast"
+  },
+  "S5": {
+    "test": "make security",
+    "tier": "fast"
+  },
+  "S6": {
+    "test": "engine/app/src/test/kotlin/dev/workflow/app/AccessLogTest.kt",
+    "tier": "fast"
+  },
+  "S7": {
+    "test": "make security-report",
+    "tier": "nightly"
+  },
+  "O1": {
+    "test": "engine/app/src/test/kotlin/dev/workflow/app/AccessLogTest.kt",
+    "tier": "fast"
+  },
+  "O2": {
+    "test": "engine/app/src/test/kotlin/dev/workflow/app/TracingTest.kt",
+    "tier": "fast"
+  },
+  "O3": {
+    "test": "engine/app/src/test/kotlin/dev/workflow/app/TracingTest.kt",
+    "tier": "fast"
+  },
+  "C1": {
+    "test": "engine/app/src/test/kotlin/dev/workflow/app/PortableTest.kt",
+    "tier": "fast"
+  },
+  "C2": {
+    "test": "apps/web/cypress/e2e/layout/layout.cy.ts",
+    "tier": "fast"
+  },
+  "C3": {
+    "test": "make deploy",
+    "tier": "full"
+  },
+  "X1": {
+    "test": "engine/app/src/test/kotlin/dev/workflow/app/EngineE2ETest.kt",
+    "tier": "fast"
+  },
+  "X2": {
+    "test": "engine/app/src/test/kotlin/dev/workflow/app/EngineE2ETest.kt",
+    "tier": "fast"
+  },
+  "X3": {
+    "test": "engine/app/src/test/kotlin/dev/workflow/app/PostgresOnlyTest.kt",
+    "tier": "full"
+  },
+  "X4": {
+    "test": "engine/app/src/test/kotlin/dev/workflow/app/EngineE2ETest.kt",
+    "tier": "fast"
+  }
+}

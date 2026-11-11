@@ -11,16 +11,22 @@ import dev.workflow.app.ports.RbacPort
 import org.springframework.web.client.RestClient
 import org.springframework.web.client.RestClientException
 import org.springframework.web.util.UriBuilder
+import org.springframework.http.client.JdkClientHttpRequestFactory
 import java.net.URI
+import java.net.http.HttpClient
+import java.time.Duration
 
 /**
  * The rbac service over HTTP (`POST /check`, `GET /users/{login}/permissions`). Used when `RBAC_URL` is
  * set. An unreachable rbac fails closed: the caller gets [RbacUnavailableException], never an allow.
  */
-class HttpRbac(baseUrl: String, builder: RestClient.Builder, private val app: String = APP) : RbacPort {
+class HttpRbac(baseUrl: String, builder: RestClient.Builder, private val app: String = APP, timeout: Duration = TIMEOUT) : RbacPort {
     // The builder is Boot's, so calls are observed: a client span, http.client.request.duration, and
-    // the W3C traceparent on every request to rbac.
-    private val client = builder.baseUrl(baseUrl.trimEnd('/')).build()
+    // the W3C traceparent on every request to rbac. NFR P5: a collaborator that hangs costs at most `timeout`.
+    private val client = builder.baseUrl(baseUrl.trimEnd('/')).requestFactory(factory(timeout)).build()
+
+    private fun factory(timeout: Duration) = JdkClientHttpRequestFactory(HttpClient.newBuilder().connectTimeout(timeout).build())
+        .also { it.setReadTimeout(timeout) }
 
     private data class CheckBody(val login: String, val app: String? = null, val permission: String? = null, val role: String? = null, val scope: Map<String, String>)
     @JsonIgnoreProperties(ignoreUnknown = true)
@@ -64,5 +70,6 @@ class HttpRbac(baseUrl: String, builder: RestClient.Builder, private val app: St
 
     companion object {
         const val APP = "workflow-engine"
+        val TIMEOUT: Duration = Duration.ofSeconds(5)
     }
 }

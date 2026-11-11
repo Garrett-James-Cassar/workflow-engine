@@ -9,6 +9,7 @@
     "dev:live": "VITE_MODE=live vite",
     "build": "vite build",
     "build:demo": "vite build --mode demo",
+    "check:bundle": "node scripts/check-bundle.mjs",
     "preview": "vite preview --port 5183 --strictPort",
     "gen:api": "openapi-typescript contract/openapi.yaml -o src/api/generated/schema.d.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p cypress/tsconfig.json --noEmit",

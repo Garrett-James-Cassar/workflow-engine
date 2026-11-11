@@ -13,3 +13,4 @@ test-evidence/
 backups/
 reports/
 engine.log
+.fleet-nfr/

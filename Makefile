@@ -181,8 +181,9 @@ web-lint: ## STYLE.md section 10 grep gate (tokens only, no caps, no native date
 web-test: ## vitest, including the contract test (every mock response validated against openapi.yaml)
 	$(WEB) test
 
-web-build:
+web-build: ## build, then NFR U5: the initial route's JS is under 500 KB gzipped
 	$(WEB) build
+	$(WEB) check:bundle
 
 web-demo-build: ## static demo build for the fleet stack: apps/web/dist (index.html + mockServiceWorker.js)
 	$(WEB) build:demo
