@@ -28,6 +28,15 @@ describe('demo', () => {
     });
   });
 
+  it('no API request escapes the mocks in any chapter', () => {
+    cy.visit('/workflows');
+    cy.window().then({ timeout: 600_000 }, async (win) => {
+      const player = await (win as DemoWindow).__demo!.player();
+      for (const c of CHAPTERS) await player.runChapterForTest(c.id);
+      expect((win as unknown as { __unhandledApi?: string[] }).__unhandledApi ?? []).to.deep.equal([]);
+    });
+  });
+
   CHAPTERS.forEach((c) => {
     it(`chapter "${c.label}" plays in the in-page runtime`, () => {
       cy.visit('/workflows');
