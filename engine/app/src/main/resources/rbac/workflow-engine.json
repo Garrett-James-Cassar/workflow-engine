@@ -32,7 +32,8 @@
       "permissions": [
         "workflows.read",
         "instances.read",
-        "instances.start"
+        "instances.start",
+        "tasks.read"
       ]
     },
     {
@@ -55,6 +56,7 @@
       "name": "workflow-support",
       "description": "Restarts any workflow at any user task",
       "permissions": [
+        "workflows.read",
         "instances.read",
         "instances.restart"
       ]
@@ -399,6 +401,25 @@
     "scoped": "k.comply (compliance, region EU); c.acme (counterparty ACME)"
   },
   "changes": [
+    {
+      "item": "workflow-support gained workflows.read",
+      "from": "instances.read, instances.restart",
+      "to": "workflows.read, instances.read, instances.restart",
+      "reason": "Restart at step offers the run's user tasks, which the studio reads from the workflow's graph (GET /definitions/{name}/export), a definition read. Without it the restart dialog has no step to offer.",
+      "evidence": [
+        "apps/web/src/routes/instance/RunActions.tsx"
+      ]
+    },
+    {
+      "item": "requester gained tasks.read",
+      "from": "workflows.read, instances.read, instances.start",
+      "to": "workflows.read, instances.read, instances.start, tasks.read",
+      "reason": "The studio is the only UI. A requester resubmits the amend-draft task assigned to them, and the only way to find it is the task list (GET /tasks), which needs tasks.read. Completing still needs no permission for a task assigned to the person (TaskAuthorizer), and team tasks stay refused (403 'does not hold role legal'). p.maint remains the denied persona.",
+      "evidence": [
+        "engine/app/src/main/kotlin/dev/workflow/app/security/TaskAuthorizer.kt",
+        "engine/app/src/test/kotlin/dev/workflow/app/EngineE2ETest.kt:31"
+      ]
+    },
     {
       "item": "compliance gained tasks.complete",
       "from": "tasks.read",

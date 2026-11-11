@@ -11,11 +11,11 @@ import { DemoControls } from '../demo/DemoControls';
 
 export type NavItem = { to: string; label: string; cy: string; show?: () => boolean };
 export const NAV: NavItem[] = [
-  { to: '/workflows', label: 'Workflows', cy: 'nav-workflows' },
-  { to: '/instances', label: 'Workflow runs', cy: 'nav-instances' },
-  { to: '/tasks', label: 'My tasks', cy: 'nav-tasks' },
-  { to: '/events', label: 'Events', cy: 'nav-events' },
-  { to: '/incidents', label: 'Incidents', cy: 'nav-incidents' },
+  { to: '/workflows', label: 'Workflows', cy: 'nav-workflows', show: () => can('workflows.read') },
+  { to: '/instances', label: 'Workflow runs', cy: 'nav-instances', show: () => can('instances.read') },
+  { to: '/tasks', label: 'My tasks', cy: 'nav-tasks', show: () => can('tasks.read') },
+  { to: '/events', label: 'Events', cy: 'nav-events', show: () => can('instances.read') },
+  { to: '/incidents', label: 'Incidents', cy: 'nav-incidents', show: () => can('incidents.read') },
   { to: '/audit', label: 'Audit', cy: 'nav-audit', show: () => can('audit.read') },
   { to: '/configuration', label: 'Configuration', cy: 'nav-configuration', show: () => can('workflows.export') || can('workflows.import') }
 ];

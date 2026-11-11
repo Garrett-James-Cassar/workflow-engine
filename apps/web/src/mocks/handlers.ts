@@ -5,7 +5,7 @@ import { MockStore } from './store';
 import { ROUTES, dispatch } from './routes';
 import { seeded } from './random';
 import { latency, outage, parseScenario, type Scenario } from './scenario';
-import { resetUser } from '../lib/persona';
+import { resetUser, setUser } from '../lib/persona';
 
 export const store = new MockStore();
 const jitter = seeded(42);
@@ -16,6 +16,8 @@ export function resetStore(search = window.location.search): void {
   scenario = parseScenario(search);
   store.reset(scenario === 'empty');
   resetUser();
+  const as = new URLSearchParams(search).get('as'); // ?as=l.jones opens the page as that person (specs, shared links)
+  if (as) setUser(as);
 }
 
 const API = '/api/v1';

@@ -28,8 +28,10 @@ class EngineE2ETest : ApiTest() {
         assertEquals("legal-review", i.map["currentStep"])
 
         // Task inbox is RBAC-resolved.
-        // A requester holds no tasks.read, so the task listing is refused outright (deny by default).
-        assertEquals(403, call("GET", "/api/v1/tasks?mine=true&instance=$id", "a.ops").status)
+        // A requester reads the task list (to find the task assigned to them) but their own inbox holds nothing yet.
+        assertEquals(0, call("GET", "/api/v1/tasks?mine=true&instance=$id", "a.ops").list.size)
+        // A person with no grant at all is refused outright (deny by default).
+        assertEquals(403, call("GET", "/api/v1/tasks?mine=true&instance=$id", "p.maint").status)
         assertEquals("legal-review", call("GET", "/api/v1/tasks?mine=true&instance=$id", "l.jones").list.single()["step"])
         assertEquals(listOf("APPROVE", "REJECT", "COUNTER"), call("GET", "/api/v1/tasks?instance=$id").list.single()["outcomes"])
 

@@ -1,0 +1,354 @@
+{
+  "roles": [
+    {
+      "name": "requester",
+      "permissions": [
+        "workflows.read",
+        "instances.read",
+        "instances.start",
+        "tasks.read"
+      ]
+    },
+    {
+      "name": "ops",
+      "permissions": [
+        "tasks.read",
+        "tasks.reassign"
+      ]
+    },
+    {
+      "name": "incident-handler",
+      "permissions": [
+        "instances.read",
+        "instances.retry"
+      ]
+    },
+    {
+      "name": "workflow-support",
+      "permissions": [
+        "workflows.read",
+        "instances.read",
+        "instances.restart"
+      ]
+    },
+    {
+      "name": "legal",
+      "permissions": [
+        "tasks.read",
+        "tasks.complete"
+      ]
+    },
+    {
+      "name": "legal-italy",
+      "permissions": [
+        "tasks.read",
+        "tasks.complete"
+      ]
+    },
+    {
+      "name": "legal-france",
+      "permissions": [
+        "tasks.read",
+        "tasks.complete"
+      ]
+    },
+    {
+      "name": "legal-germany",
+      "permissions": [
+        "tasks.read",
+        "tasks.complete"
+      ]
+    },
+    {
+      "name": "head-of-legal",
+      "permissions": [
+        "tasks.read",
+        "tasks.complete"
+      ]
+    },
+    {
+      "name": "desk-head",
+      "permissions": [
+        "tasks.read",
+        "tasks.complete"
+      ]
+    },
+    {
+      "name": "compliance",
+      "permissions": [
+        "tasks.read",
+        "tasks.complete"
+      ]
+    },
+    {
+      "name": "mlro",
+      "permissions": [
+        "tasks.read",
+        "tasks.complete"
+      ]
+    },
+    {
+      "name": "onboarding-ops",
+      "permissions": [
+        "tasks.read",
+        "tasks.complete"
+      ]
+    },
+    {
+      "name": "middle-office",
+      "permissions": [
+        "tasks.read",
+        "tasks.complete"
+      ]
+    },
+    {
+      "name": "counterparty-signatory",
+      "permissions": [
+        "tasks.read",
+        "tasks.complete"
+      ]
+    },
+    {
+      "name": "engine-admin",
+      "permissions": [
+        "audit.export",
+        "audit.read",
+        "demo.reset",
+        "events.export",
+        "events.send",
+        "incidents.export",
+        "incidents.read",
+        "incidents.retry",
+        "instances.export",
+        "instances.fire-timeout",
+        "instances.read",
+        "instances.restart",
+        "instances.retry",
+        "instances.start",
+        "people.export",
+        "people.read",
+        "tasks.complete",
+        "tasks.export",
+        "tasks.read",
+        "tasks.reassign",
+        "waits.export",
+        "workflows.export",
+        "workflows.import",
+        "workflows.read"
+      ]
+    },
+    {
+      "name": "auditor",
+      "permissions": [
+        "workflows.read",
+        "instances.read",
+        "tasks.read",
+        "audit.read"
+      ]
+    }
+  ],
+  "personas": [
+    {
+      "login": "a.ops",
+      "name": "Alex Turner",
+      "grants": [
+        {
+          "role": "requester",
+          "scope": {}
+        }
+      ]
+    },
+    {
+      "login": "l.jones",
+      "name": "Laura Jones",
+      "grants": [
+        {
+          "role": "legal",
+          "scope": {}
+        }
+      ]
+    },
+    {
+      "login": "h.legal",
+      "name": "Harriet Lane",
+      "grants": [
+        {
+          "role": "head-of-legal",
+          "scope": {}
+        },
+        {
+          "role": "legal",
+          "scope": {}
+        },
+        {
+          "role": "legal-italy",
+          "scope": {}
+        },
+        {
+          "role": "legal-france",
+          "scope": {}
+        },
+        {
+          "role": "legal-germany",
+          "scope": {}
+        }
+      ]
+    },
+    {
+      "login": "l.rossi",
+      "name": "Lucia Rossi",
+      "grants": [
+        {
+          "role": "legal-italy",
+          "scope": {}
+        }
+      ]
+    },
+    {
+      "login": "l.dubois",
+      "name": "Louis Dubois",
+      "grants": [
+        {
+          "role": "legal-france",
+          "scope": {}
+        }
+      ]
+    },
+    {
+      "login": "l.weber",
+      "name": "Lena Weber",
+      "grants": [
+        {
+          "role": "legal-germany",
+          "scope": {}
+        }
+      ]
+    },
+    {
+      "login": "d.head",
+      "name": "David Okafor",
+      "grants": [
+        {
+          "role": "desk-head",
+          "scope": {}
+        }
+      ]
+    },
+    {
+      "login": "c.acme",
+      "name": "Carla Mendes",
+      "grants": [
+        {
+          "role": "counterparty-signatory",
+          "scope": {
+            "counterparty": "ACME"
+          }
+        }
+      ]
+    },
+    {
+      "login": "k.comply",
+      "name": "Kieran Walsh",
+      "grants": [
+        {
+          "role": "compliance",
+          "scope": {
+            "region": "EU"
+          }
+        }
+      ]
+    },
+    {
+      "login": "m.lro",
+      "name": "Marcus Reid",
+      "grants": [
+        {
+          "role": "mlro",
+          "scope": {}
+        }
+      ]
+    },
+    {
+      "login": "o.ops",
+      "name": "Olivia Park",
+      "grants": [
+        {
+          "role": "onboarding-ops",
+          "scope": {
+            "region": "EU"
+          }
+        }
+      ]
+    },
+    {
+      "login": "m.office",
+      "name": "Maya Osei",
+      "grants": [
+        {
+          "role": "middle-office",
+          "scope": {}
+        }
+      ]
+    },
+    {
+      "login": "ops.admin",
+      "name": "Sam Patel",
+      "grants": [
+        {
+          "role": "ops",
+          "scope": {}
+        }
+      ]
+    },
+    {
+      "login": "i.handler",
+      "name": "Ivan Hale",
+      "grants": [
+        {
+          "role": "incident-handler",
+          "scope": {}
+        }
+      ]
+    },
+    {
+      "login": "w.support",
+      "name": "Riley Chen",
+      "grants": [
+        {
+          "role": "workflow-support",
+          "scope": {}
+        }
+      ]
+    },
+    {
+      "login": "p.maint",
+      "name": "Priya Nair",
+      "grants": []
+    },
+    {
+      "login": "p.owner",
+      "name": "Pablo Ortiz",
+      "grants": []
+    },
+    {
+      "login": "e.admin",
+      "name": "Erin Admin",
+      "grants": [
+        {
+          "role": "engine-admin",
+          "scope": {}
+        }
+      ]
+    },
+    {
+      "login": "r.viewer",
+      "name": "Robin Viewer",
+      "grants": [
+        {
+          "role": "auditor",
+          "scope": {}
+        }
+      ]
+    }
+  ]
+}

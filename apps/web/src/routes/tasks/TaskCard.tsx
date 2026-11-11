@@ -13,6 +13,7 @@ import { useToast } from '../../components/ui/toast';
 import { can } from '../../lib/access';
 import { shortId } from '../../lib/format';
 import { outcomeWord } from '../../lib/labels';
+import { currentUser } from '../../lib/persona';
 import { ReassignDialog } from './ReassignDialog';
 
 type Values = Record<string, string | boolean>;
@@ -59,6 +60,8 @@ export function TaskCard({ task, onDone }: { task: Task; onDone: () => void }) {
   const denied = problem instanceof ApiProblem && problem.status === 403 ? problem : null;
   const other = problem instanceof ApiProblem && !denied && problem.status !== 400 ? problem : null;
   const scope = Object.entries(task.assignee.scope);
+  // The engine's rule: a task assigned to the person themselves needs no permission to complete (TaskAuthorizer).
+  const ownTask = task.assignee.type === 'user' && task.assignee.name === currentUser();
   return (
     <Card data-cy="task-card" data-id={task.id} data-step={task.step}>
       <h2 className="text-lg">{task.label}</h2>
@@ -77,7 +80,7 @@ export function TaskCard({ task, onDone }: { task: Task; onDone: () => void }) {
       )}
       {other && <p role="alert" data-cy="task-error" className="mt-4 text-sm text-destructive">{other.detail || other.title}</p>}
       <div className="mt-4 flex flex-wrap items-center gap-2">
-        {can('tasks.complete') && task.outcomes.map((o, i) => (
+        {(can('tasks.complete') || ownTask) && task.outcomes.map((o, i) => (
           <Button key={o} variant={i === 0 ? 'secondary' : 'outline'} data-cy={`task-outcome-${o.toLowerCase()}`} onClick={() => void complete(o)}>{outcomeWord(o)}</Button>
         ))}
         {can('tasks.reassign') && task.reassignableBy && <Button variant="ghost" className="ml-auto" data-cy="task-reassign" onClick={() => setReassigning(true)}>Reassign task</Button>}

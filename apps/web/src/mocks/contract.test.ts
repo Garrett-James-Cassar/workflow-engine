@@ -44,7 +44,7 @@ function validate(path: string, method: string, { status, problem, body }: Res):
 function run(c: Case): void {
   const store = new MockStore(() => NOW);
   store.reset();
-  const res = dispatch(store, { method: c.method, path: c.path(store), query: new URLSearchParams(c.query ?? ''), body: c.body?.(store), user: typeof c.user === 'function' ? c.user(store) : c.user });
+  const res = dispatch(store, { method: c.method, path: c.path(store), query: new URLSearchParams(c.query ?? ''), body: c.body?.(store), user: (typeof c.user === 'function' ? c.user(store) : c.user) ?? 'e.admin' });
   assert.equal(res.status, c.status, `${c.name}: status ${res.status} ${JSON.stringify(res.body).slice(0, 300)}`);
   validate(c.op, c.method.toLowerCase(), res);
   c.check?.(res.body, store);

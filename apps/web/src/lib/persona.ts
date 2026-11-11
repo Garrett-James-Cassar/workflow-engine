@@ -2,7 +2,7 @@
 // keeps one login for the session (sessionStorage) and sends it on every call.
 import { useSyncExternalStore } from 'react';
 
-export const DEFAULT_USER = 'l.jones';
+export const DEFAULT_USER = 'e.admin'; // the engine admin: a first visit shows every screen and action; pick a narrower persona to see less
 const KEY = 'workflow-engine.acting-as';
 const listeners = new Set<() => void>();
 let user: string | null = null;

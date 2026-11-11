@@ -58,7 +58,7 @@ async function waitUp(url, ms = 30_000) {
 }
 
 await waitUp('http://localhost:5183/');
-const dirs = smoke ? 'smoke' : demo ? 'demo' : live ? 'live' : '{smoke,features,layout,a11y}';
+const dirs = smoke ? 'smoke' : demo ? 'demo' : live ? 'live' : '{smoke,features,layout,a11y,rbac}';
 const spec = ['--spec', `cypress/e2e/${dirs}/**/*.cy.ts`];
 const cy = spawnSync('pnpm', ['exec', 'cypress', 'run', '--browser', 'electron', ...spec, ...rest], { stdio: 'inherit', env: { ...env, ...(coverage ? {} : { CYPRESS_coverage: 'false' }) } });
 stop();
