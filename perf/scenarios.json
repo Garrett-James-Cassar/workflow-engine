@@ -1,0 +1,12 @@
+{
+  "headers": { "x-user": "e.admin" },
+  "requests": [
+    { "name": "runs-list", "kind": "read", "method": "GET", "path": "/api/v1/instances?limit=50", "weight": 3 },
+    { "name": "run-get", "kind": "read", "method": "GET", "path": "/api/v1/instances/{id}", "ids": "/api/v1/instances?limit=200", "weight": 3 },
+    { "name": "run-events", "kind": "read", "method": "GET", "path": "/api/v1/instances/{id}/events", "ids": "/api/v1/instances?limit=200", "weight": 2 },
+    { "name": "tasks-list", "kind": "read", "method": "GET", "path": "/api/v1/tasks", "weight": 1 },
+    { "name": "definitions", "kind": "read", "method": "GET", "path": "/api/v1/definitions", "weight": 1 },
+    { "name": "start-run", "kind": "write", "method": "POST", "path": "/api/v1/definitions/confirmation-approval/instances",
+      "body": { "vars": { "doc": { "id": "D-{{rand}}", "requester": "l.jones", "counterparty": "ACME", "notional": 75000000 } } } }
+  ]
+}

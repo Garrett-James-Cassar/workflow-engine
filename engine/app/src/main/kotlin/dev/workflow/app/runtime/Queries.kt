@@ -39,20 +39,32 @@ class RunQueries(
         return InstanceDetail(state, store.openTasks(id).map { TaskDetail(it, def) }, store.openWaitsFor(id))
     }
 
-    fun recent(limit: Int): List<InstanceDetail> = store.instances(limit).map { detail(it) }
+    /** The latest runs with their open work: three queries however many rows (NFR P1). */
+    fun recent(limit: Int): List<InstanceDetail> {
+        val states = store.instances(limit)
+        val ids = states.map { UUID.fromString(it.id) }
+        val openTasks = store.openTasksOf(ids).groupBy { it.instanceId }
+        val openWaits = store.openWaitsOf(ids).groupBy { it.instanceId }
+        return states.map { s ->
+            val id = UUID.fromString(s.id)
+            val def = defs.get(s.definition, s.version)
+            InstanceDetail(s, openTasks[id].orEmpty().map { TaskDetail(it, def) }, openWaits[id].orEmpty())
+        }
+    }
 
     fun events(id: UUID): List<EventRow> {
         instances.get(id)
         return store.events(id)
     }
 
-    /** Open tasks: with [mine], those [login] may complete; otherwise those inside the scopes [login] may read. */
-    fun tasks(login: String, mine: Boolean, instance: UUID?): List<TaskDetail> =
-        (if (mine) tasks.tasksFor(login) else tasks.readableTasks(login)).filter { instance == null || it.instanceId == instance }.map { detail(it) }
+    /** Open tasks, oldest first, at most [limit] (the detail of each is loaded only for those): with [mine], those [login] may complete; otherwise those inside the scopes [login] may read. */
+    fun tasks(login: String, mine: Boolean, instance: UUID?, limit: Int): List<TaskDetail> =
+        withDefinitions(if (mine) tasks.tasksFor(login, instance, limit) else tasks.readableTasks(login, instance, limit))
 
-    private fun detail(task: TaskRow): TaskDetail {
-        val state = instances.get(task.instanceId)
-        return TaskDetail(task, defs.get(state.definition, state.version))
+    /** Each task with the definition of its run; the runs are read in one query. */
+    private fun withDefinitions(rows: List<TaskRow>): List<TaskDetail> {
+        val states = store.instancesByIds(rows.map { it.instanceId }.distinct()).associateBy { UUID.fromString(it.id) }
+        return rows.map { row -> states.getValue(row.instanceId).let { TaskDetail(row, defs.get(it.definition, it.version)) } }
     }
 }
 

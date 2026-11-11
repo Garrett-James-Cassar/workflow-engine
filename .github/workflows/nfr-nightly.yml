@@ -1,0 +1,22 @@
+name: nfr-nightly
+# NFR.md section 8, nightly tier: the section 4 volume in Postgres, k6 (P1-P3), startup (P4), memory (P6), the restore drill (A4-A5), then the report.
+on:
+  schedule: [{ cron: '43 2 * * *' }]
+  workflow_dispatch: {}
+jobs:
+  nfr:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      FLEET: ${{ github.workspace }}/.fleet
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with: { repository: ${{ github.repository_owner }}/fleet, path: .fleet, token: '${{ secrets.FLEET_READ_TOKEN }}' }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 25 }
+      - uses: gradle/actions/setup-gradle@v4
+      - run: make nfr
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: nfr-report, path: reports/nfr/ }

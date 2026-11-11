@@ -5,7 +5,7 @@ set -eu
 cd "$(dirname "$0")/.."
 DC="docker compose exec -T db"
 PSQL="$DC psql -q -U workflow -d workflow -v ON_ERROR_STOP=1"
-COUNT_SQL="select 'instances', count(*) from instances union all select 'user_tasks', count(*) from user_tasks union all select 'waits', count(*) from waits union all select 'events', count(*) from events union all select 'config_docs', count(*) from config_docs union all select 'import_audit', count(*) from import_audit order by 1"
+COUNT_SQL="select 'instances', count(*) from instances union all select 'user_tasks', count(*) from user_tasks union all select 'waits', count(*) from waits union all select 'events', count(*) from events union all select 'config_docs', count(*) from config_docs union all select 'audit_log', count(*) from audit_log order by 1"
 
 backup() {
   mkdir -p backups

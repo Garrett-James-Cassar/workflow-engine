@@ -24,6 +24,9 @@ interface InstanceOps {
 
     fun instances(limit: Int): List<InstanceState>
 
+    /** Several runs in one query (a list screen must not ask once per row). */
+    fun instancesByIds(ids: Collection<UUID>): List<InstanceState>
+
     fun appendEvents(instanceId: UUID, events: List<EngineEvent>)
 
     fun events(instanceId: UUID): List<EventRow>
@@ -37,7 +40,11 @@ interface TaskOps {
 
     fun task(id: UUID): TaskRow?
 
-    fun openTasks(instanceId: UUID? = null): List<TaskRow>
+    /** Open tasks, oldest first; [limit] and [offset] page through them in the database (NFR P1: never load them all). */
+    /** The open tasks of several runs in one query. */
+    fun openTasksOf(instanceIds: Collection<UUID>): List<TaskRow>
+
+    fun openTasks(instanceId: UUID? = null, limit: Int = Int.MAX_VALUE, offset: Int = 0): List<TaskRow>
 
     /** Move an open task to a new user or team. The history of who held it lives in the events. */
     fun reassignTask(id: UUID, assignment: Assignment)
@@ -53,6 +60,9 @@ interface WaitOps {
     fun openWaits(event: String): List<WaitRow>
 
     fun openWaitsFor(instanceId: UUID): List<WaitRow>
+
+    /** The open waits of several runs in one query. */
+    fun openWaitsOf(instanceIds: Collection<UUID>): List<WaitRow>
 
     fun expiredWaits(now: Instant): List<WaitRow>
 

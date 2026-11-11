@@ -3,6 +3,9 @@ package dev.workflow.app.api
 import dev.workflow.app.api.dtos.CompleteTaskRequest
 import jakarta.validation.Valid
 import dev.workflow.app.api.dtos.InstanceView
+import dev.workflow.app.api.dtos.Limits
+import jakarta.validation.constraints.Max
+import jakarta.validation.constraints.Min
 import dev.workflow.app.api.dtos.ReassignRequest
 import dev.workflow.app.api.dtos.TaskView
 import dev.workflow.app.mappers.InstanceMapper
@@ -34,8 +37,9 @@ class TaskController(private val tasks: TaskService, private val queries: RunQue
     fun list(
         @RequestParam(defaultValue = "false") mine: Boolean,
         @RequestParam(required = false) instance: UUID?,
+        @RequestParam(defaultValue = "200") @Min(1) @Max(Limits.MAX_PAGE) limit: Int,
         @RequestAttribute(Identity.LOGIN) login: String,
-    ): List<TaskView> = queries.tasks(login, mine, instance).map(TaskMapper::view)
+    ): List<TaskView> = queries.tasks(login, mine, instance, limit).map(TaskMapper::view)
 
     /** Open tasks the caller may read, as portable documents (Records kind: export only). */
     @Requires(Permissions.TASKS_EXPORT, ScopeFrom.LIST, label = "Export tasks")

@@ -1,4 +1,4 @@
-.PHONY: deploy-clean console-gate live-gate release deploy rollback share-console security security-secrets security-deps security-sast security-report lock backup restore restore-drill seed reseed openapi api-breaking web-static web-browser fast fast-be fast-web push-gate gradle-check up down stop dev demo restart test ci check-placement diagrams hooks web web-demo web-install web-gen-check web-typecheck web-lint web-test web-build web-demo-build web-cy web-smoke web-demo-check web-live-check web-ci share share-studio share-studio-local cy-live console-install console-build console-bundle-check console-typecheck console-cy console-smoke console-demo-check console-ci
+.PHONY: seed-bulk nfr nfr-load nfr-startup nfr-memory deploy-clean console-gate live-gate release deploy rollback share-console security security-secrets security-deps security-sast security-report lock backup restore restore-drill seed reseed openapi api-breaking web-static web-browser fast fast-be fast-web push-gate gradle-check up down stop dev demo restart test ci check-placement diagrams hooks web web-demo web-install web-gen-check web-typecheck web-lint web-test web-build web-demo-build web-cy web-smoke web-demo-check web-live-check web-ci share share-studio share-studio-local cy-live console-install console-build console-bundle-check console-typecheck console-cy console-smoke console-demo-check console-ci
 
 PORT ?= 47831
 export PORT
@@ -71,8 +71,8 @@ backup: ## dm.3: timestamped pg_dump of the compose Postgres into ./backups/ (gi
 restore: ## dm.3: restore a dump over the compose Postgres: make restore FILE=backups/workflow-<stamp>.sql
 	@scripts/db.sh restore "$(FILE)"
 
-restore-drill: ## dm.3: backup, wipe, restore, compare row counts, report the restore time
-	@scripts/db.sh drill
+restore-drill: ## dm.3 / NFR A4-A5: backup, wipe, restore, compare row counts, report the restore time (reports/nfr/restore.json)
+	@scripts/nfr.sh drill
 
 seed: ## dm.5: start the Object Mother's sample runs in the running engine on $(PORT); idempotent (does nothing when runs exist)
 	./gradlew :engine:app:seed
@@ -251,3 +251,22 @@ live-gate: ## start Postgres and the engine, run the studio's live Cypress again
 
 share-console: ## tunnel the console (the engine on $(PORT)) through ngrok so a remote viewer runs the Demo in their own tab (dev auth: a demo only)
 	$(CONSOLE) exec node scripts/share.mjs --port $(PORT)
+
+# ---- NFR nightly tier (fleet standards/NFR.md section 8): the section 4 volume, then k6, the startup timer, memory, the restore drill ----
+FLEET ?= $(HOME)/Projects/fleet
+export FLEET
+seed-bulk: up ## nf.2: 100 000 runs and 1 000 000 history rows into the local Docker Postgres; idempotent
+	@scripts/nfr.sh seed
+
+nfr-load: ## P1-P3 (k6 against a fresh engine jar on the bulk volume; make up && make seed-bulk first)
+	@scripts/nfr.sh load
+
+nfr-startup: ## P4: time from process start to /ready (limit 20 s, JVM)
+	@scripts/nfr.sh startup
+
+nfr-memory: ## P6: engine RSS at the end of nfr-load (limit 768 MB)
+	@scripts/nfr.sh memory
+
+nfr: up ## the nightly tier: bulk seed, load, startup, memory, restore drill, then the report (writes ~/.claude/coding-dashboard/status/workflow-engine.nfr.json)
+	$(MAKE) seed-bulk nfr-load nfr-startup nfr-memory restore-drill
+	python3 -I $(FLEET)/standards/nfr/nfr-report.py workflow-engine

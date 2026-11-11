@@ -36,6 +36,9 @@ class InstanceRepository(private val jdbc: JdbcClient, private val json: JsonMap
     override fun instances(limit: Int): List<InstanceState> =
         jdbc.sql("select * from instances order by created_at desc limit :limit").param("limit", limit).query { rs, _ -> instance(rs) }.list()
 
+    override fun instancesByIds(ids: Collection<UUID>): List<InstanceState> =
+        if (ids.isEmpty()) emptyList() else jdbc.sql("select * from instances where id in (:ids)").param("ids", ids).query { rs, _ -> instance(rs) }.list()
+
     override fun appendEvents(instanceId: UUID, events: List<EngineEvent>) = events.forEach { write(INSERT_EVENT, eventParams(instanceId, it)) }
 
     override fun events(instanceId: UUID): List<EventRow> =

@@ -23,6 +23,9 @@ class WaitRepository(private val jdbc: JdbcClient) : WaitOps {
 
     override fun openWaitsFor(instanceId: UUID): List<WaitRow> = query("$OPEN_WAITS and instance_id = :id", "id" to instanceId)
 
+    override fun openWaitsOf(instanceIds: Collection<UUID>): List<WaitRow> =
+        if (instanceIds.isEmpty()) emptyList() else jdbc.sql("$OPEN_WAITS and instance_id in (:ids)").param("ids", instanceIds).query { rs, _ -> wait(rs) }.list()
+
     override fun expiredWaits(now: Instant): List<WaitRow> =
         query("$OPEN_WAITS and expires_at <= :now order by expires_at", "now" to Timestamp.from(now))
 

@@ -42,10 +42,16 @@ class TaskService(
     private fun assignedTo(task: TaskRow, user: String): RbacDecision =
         if (task.assignment.name == user) RbacDecision(true, "assigned to '$user'") else RbacDecision(false, "task is assigned to user '${task.assignment.name}', not '$user'")
 
-    fun tasksFor(user: String): List<TaskRow> = store.openTasks().filter { eligibility(it, user).allowed }
+    /** The first [limit] open tasks (oldest first) that pass [allowed], read from the database a batch at a time. */
+    private fun open(instance: UUID?, limit: Int, allowed: (TaskRow) -> Boolean): List<TaskRow> =
+        generateSequence(0) { it + BATCH }.map { store.openTasks(instance, BATCH, it) }.takeWhile { it.isNotEmpty() }
+            .flatMap { it.asSequence().filter(allowed) }.take(limit).toList()
+
+    fun tasksFor(user: String, instance: UUID? = null, limit: Int = Int.MAX_VALUE): List<TaskRow> = open(instance, limit) { eligibility(it, user).allowed }
 
     /** The open tasks the caller may read, in the scopes they hold the read permission for. */
-    fun readableTasks(login: String): List<TaskRow> = store.openTasks().filter { rbac.check(login, Permissions.TASKS_READ, it.assignment.scope).allowed }
+    fun readableTasks(login: String, instance: UUID? = null, limit: Int = Int.MAX_VALUE): List<TaskRow> =
+        open(instance, limit) { rbac.check(login, Permissions.TASKS_READ, it.assignment.scope).allowed }
 
     /**
      * Move an open task to another user or team. Separately permissioned: the caller must hold the
@@ -113,3 +119,5 @@ class TaskService(
         if (task.status != "OPEN") throw ConflictException("task ${task.id} is already ${task.status}")
     }
 }
+
+private const val BATCH = 200

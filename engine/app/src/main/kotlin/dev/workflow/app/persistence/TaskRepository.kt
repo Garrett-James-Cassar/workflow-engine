@@ -19,6 +19,7 @@ private const val REASSIGN_TASK = """update user_tasks set assignee_type = :type
 private const val CLOSE_TASK = """update user_tasks set status = 'DONE', outcome = :outcome, form = cast(:form as jsonb),
     decided_by = :by, decided_at = :at where id = :id"""
 private const val OPEN_TASKS = "select * from user_tasks where status = 'OPEN'"
+private const val OPEN_ORDER = " order by created_at, id limit :limit offset :offset"
 
 /** User tasks, in plain SQL. Callers own the transaction. */
 @Repository
@@ -28,8 +29,13 @@ class TaskRepository(private val jdbc: JdbcClient, private val json: JsonMapper)
 
     override fun task(id: UUID): TaskRow? = jdbc.sql("select * from user_tasks where id = :id").param("id", id).query { rs, _ -> task(rs) }.optional().orElse(null)
 
-    override fun openTasks(instanceId: UUID?): List<TaskRow> =
-        instanceId?.let { query("$OPEN_TASKS and instance_id = :id order by created_at", it) } ?: query("$OPEN_TASKS order by created_at")
+    override fun openTasks(instanceId: UUID?, limit: Int, offset: Int): List<TaskRow> =
+        jdbc.sql(OPEN_TASKS + (if (instanceId == null) "" else " and instance_id = :id") + OPEN_ORDER)
+            .params(listOfNotNull(instanceId?.let { "id" to it }).toMap() + mapOf("limit" to limit, "offset" to offset))
+            .query { rs, _ -> task(rs) }.list()
+
+    override fun openTasksOf(instanceIds: Collection<UUID>): List<TaskRow> =
+        if (instanceIds.isEmpty()) emptyList() else jdbc.sql("$OPEN_TASKS and instance_id in (:ids) order by created_at, id").param("ids", instanceIds).query { rs, _ -> task(rs) }.list()
 
     override fun reassignTask(id: UUID, assignment: Assignment) = write(REASSIGN_TASK, assignmentParams(id, assignment))
 
