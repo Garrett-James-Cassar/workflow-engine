@@ -1,3 +1,4 @@
+import { visitAs } from '../../support/rbac';
 // Smoke at 390px: the menu, no sideways page scroll, grids scroll in their own box.
 const noSidewaysScroll = () => cy.window().then((win) => expect(win.document.documentElement.scrollWidth).to.be.at.most(win.innerWidth));
 
@@ -21,7 +22,7 @@ describe('mobile', () => {
   });
 
   it('mobile: a task stacks its form and outcome buttons', () => {
-    cy.visit('/tasks');
+    visitAs('l.jones', '/tasks');
     cy.cy('task-card').first().should('be.visible');
     cy.cy('task-outcome-approve').first().should('be.visible');
     noSidewaysScroll();

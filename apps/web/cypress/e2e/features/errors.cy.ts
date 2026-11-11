@@ -1,3 +1,4 @@
+import { visitAs } from '../../support/rbac';
 // Every view's error and loading states, from the mock's ?scenario= switches:
 // problem+json title/detail, Retry and the trace ID (STYLE.md §6 States).
 import { FIXED } from '../../../src/mocks/fixtures';
@@ -13,7 +14,8 @@ describe('errors', () => {
     { path: `/instances/${FIXED.stuckBooking.id}`, scope: 'main', heading: 'Could not load this run' },
     { path: '/tasks', scope: 'main', heading: 'Could not load your tasks' },
     { path: '/events', scope: '[data-cy="waits-grid"]', heading: 'Could not load waiting events' },
-    { path: '/incidents', scope: '[data-cy="incidents-grid"]', heading: 'Could not load incidents' }
+    { path: '/incidents', scope: '[data-cy="incidents-grid"]', heading: 'Could not load incidents' },
+    { path: '/audit', scope: '[data-cy="audit-grid"]', heading: 'Could not load the audit log' }
   ].forEach(({ path, scope, heading }) => {
     it(`errors: "${heading}" says what failed, why, and offers Retry with the trace ID`, () => {
       cy.visit(`${path}?scenario=error`);
@@ -49,7 +51,7 @@ describe('errors', () => {
   });
 
   it('errors: completing a task that someone else already completed is reported on the card', () => {
-    cy.visit('/tasks');
+    visitAs('l.jones', '/tasks');
     cy.cy('task-card').first().then(($c) => {
       const id = $c.attr('data-id');
       cy.window().then((win) => {

@@ -2,14 +2,19 @@
 // 1440x900 and 390x844: no max-width cap on the content, no sideways page scroll, the shell is exactly
 // the viewport (the content scrolls in its own box), and a list's primary grid reaches the bottom of
 // the screen. Part of the fast gate (mocked).
+import { FIXED } from '../../../src/mocks/fixtures';
+
 const sizes: [number, number][] = [[1920, 1080], [1440, 900], [390, 844]];
 const routes: [string, string, string][] = [
   ['workflows', '/workflows', 'workflows-grid'],
   ['a workflow', '/workflows/confirmation-approval', 'workflow-diagram'],
   ['runs', '/instances', 'instances-grid'],
+  ['a run', `/instances/${FIXED.stuckBooking.id}`, 'run-timeline'],
   ['tasks', '/tasks', 'page-title'],
   ['events', '/events', 'waits-grid'],
-  ['incidents', '/incidents', 'incidents-grid']
+  ['incidents', '/incidents', 'incidents-grid'],
+  ['audit', '/audit', 'audit-grid'],
+  ['configuration', '/configuration', 'page-title']
 ];
 
 describe('layout', () => {

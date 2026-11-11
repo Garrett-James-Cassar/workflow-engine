@@ -1,3 +1,4 @@
+import { visitAs } from '../../support/rbac';
 // Support restart at a user task: needs the workflow-support role.
 describe('restart', () => {
   it('restart: workflow-support restarts a run at another task', () => {
@@ -16,12 +17,10 @@ describe('restart', () => {
   });
 
   it('restart: a person without the support role is told why', () => {
-    cy.visit('/instances?workflow=confirmation-approval&status=waiting&step=legal-review');
+    // The button is not offered at all (the engine's 403 stays the backstop, see AuthorizationTest).
+    visitAs('r.viewer', '/instances?workflow=confirmation-approval&status=waiting&step=legal-review');
     cy.cy('run-link').first().click();
-    cy.cy('run-restart').click();
-    cy.cy('dialog-confirm').click();
-    cy.cy('restart-error').should('contain.text', 'restarting needs the role workflow-support');
-    cy.a11y();
-    cy.cy('dialog-dismiss').click();
+    cy.cy('run-timeline').should('be.visible');
+    cy.cy('run-restart').should('not.exist');
   });
 });

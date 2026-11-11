@@ -6,6 +6,8 @@ describe('send event', () => {
       cy.cy('workflow-start').click();
       cy.cy('dialog-confirm').click();
       cy.cy('run-open-in-tasks').click();
+      cy.cy('persona-switch').select('l.jones');
+      cy.get('body[data-access="ready"]').should('exist'); // the screen is redrawn once the new person's rights arrive
       cy.cy('task-outcome-approve').click();
       cy.cy('toast').should('contain.text', 'Task completed: Approve');
     });
@@ -16,6 +18,8 @@ describe('send event', () => {
       cy.cy('toast').should('contain.text', 'Task completed: Done');
     });
     cy.step('The run now waits for the signature event', () => {
+      cy.cy('persona-switch').select('e.admin');
+      cy.get('body[data-access="ready"]').should('exist');
       cy.cy('nav-instances').click();
       cy.cy('run-link').first().click();
       cy.cy('run-open-wait').should('contain.text', 'signed');

@@ -40,7 +40,7 @@ describe('workflows', () => {
   it('workflows: the shell shows the mode banner, the persona and the nav', () => {
     cy.visit('/workflows');
     cy.cy('mode-banner').should('contain.text', 'Mock API');
-    cy.cy('persona-switch').should('have.value', 'l.jones');
+    cy.cy('persona-switch').should('have.value', 'e.admin');
     cy.cy('nav-workflows').should('have.attr', 'aria-current', 'page');
     cy.cy('nav-incidents').should('be.visible');
   });

@@ -1,3 +1,4 @@
+import { visitAs } from '../../support/rbac';
 // Reassigning an open task: only the ops role may.
 describe('reassign', () => {
   it('reassign: ops moves a task to another user and it leaves the team inbox', () => {
@@ -11,12 +12,9 @@ describe('reassign', () => {
   });
 
   it('reassign: a person without the ops role is told why', () => {
-    cy.visit('/tasks');
-    cy.cy('task-reassign').first().click();
-    cy.cy('reassign-to').type('h.legal');
-    cy.cy('dialog-confirm').click();
-    cy.cy('reassign-error').should('contain.text', 'reassigning needs the role ops');
-    cy.a11y();
-    cy.cy('dialog-dismiss').click();
+    // The button is not offered at all (the engine's 403 stays the backstop, see AuthorizationTest).
+    visitAs('l.jones', '/tasks?all=1');
+    cy.cy('task-card').should('exist');
+    cy.cy('task-reassign').should('not.exist');
   });
 });

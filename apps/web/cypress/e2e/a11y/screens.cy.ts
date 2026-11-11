@@ -4,7 +4,7 @@ const routes: [string, string, string][] = [
   ['workflows', '/workflows', 'workflows-grid'],
   ['a workflow', '/workflows/confirmation-approval', 'workflow-diagram'],
   ['runs', '/instances', 'instances-grid'],
-  ['my tasks', '/tasks', 'task-card'],
+  ['my tasks', '/tasks', 'page-title'],
   ['events', '/events', 'waits-grid'],
   ['incidents', '/incidents', 'incidents-grid'],
   ['audit', '/audit', 'audit-grid'],

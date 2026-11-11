@@ -1,8 +1,9 @@
+import { visitAs } from '../../support/rbac';
 // Smoke: the task inbox of the acting persona.
 describe('my tasks', () => {
   it('tasks: the inbox shows what waits for the acting persona, with one button per outcome', () => {
     cy.step('Open My tasks as a lawyer', () => {
-      cy.visit('/tasks');
+      visitAs('l.jones', '/tasks');
       cy.cy('page-title').should('have.text', 'My tasks');
       cy.cy('task-card').should('have.length.gt', 0);
       cy.cy('task-card').first().find('button').should('have.length.gte', 1);
@@ -19,7 +20,7 @@ describe('my tasks', () => {
   it('tasks: a task shows its form and outcomes in the workflow order', () => {
     cy.visit('/tasks?instance=nope');
     cy.cy('state-empty').should('contain.text', 'Nothing waiting for you');
-    cy.visit('/tasks');
+    visitAs('l.jones', '/tasks');
     cy.contains('[data-cy="task-card"] h2', 'Legal review').should('exist');
     cy.cy('task-field-comment').should('exist');
     cy.cy('task-outcome-approve').should('contain.text', 'Approve');

@@ -1,3 +1,4 @@
+import { visitAs } from '../../support/rbac';
 // a11y.2: the main flow of each screen with the keyboard only (real Tab, Shift+Tab, Enter, Space, Esc through
 // cypress-real-events). Three things are asserted: every focused element shows a --ring outline of at least
 // 2px, focus is trapped in a dialog and returns to the opener on Esc, and a skip-to-content link comes first.
@@ -85,7 +86,7 @@ describe('a11y: keyboard', () => {
   });
 
   it('a11y: complete a task with the keyboard', () => {
-    cy.visit('/tasks');
+    visitAs('l.jones', '/tasks');
     focusPage();
     cy.cy('task-card').first().should('exist');
     tabTo('[data-cy="task-outcome-approve"]', 60);

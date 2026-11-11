@@ -75,9 +75,9 @@ describe('portable', () => {
     cy.cy('workflows-export-all').should('be.visible');
     cy.cy('workflows-import').should('be.visible');
     cy.cy('nav-configuration').should('be.visible');
-    cy.cy('persona-switch').select('w.support');
+    cy.cy('persona-switch').select('r.viewer');
     cy.get('body[data-access="ready"]').should('exist'); // the screen is redrawn once the new person's rights arrive
-    cy.cy('persona-switch').should('have.value', 'w.support');
+    cy.cy('persona-switch').should('have.value', 'r.viewer');
     cy.cy('nav-configuration').should('not.exist');
     cy.cy('workflows-export-all').should('not.exist');
     cy.cy('workflows-import').should('not.exist');
@@ -86,13 +86,13 @@ describe('portable', () => {
     cy.cy('workflow-link').should('have.length', 4);
     // a reload forgets the stored login in the mock: the screens below are asked about as the same person again
     cy.visit('/instances');
-    cy.cy('persona-switch').select('w.support');
+    cy.cy('persona-switch').select('r.viewer');
     cy.get('body[data-access="ready"]').should('exist'); // the screen is redrawn once the new person's rights arrive
     cy.cy('run-link').should('have.length.gt', 0);
     cy.cy('instances-export-all').should('not.exist');
     cy.cy('instances-grid').contains('button', 'Export CSV').should('not.exist');
     cy.visit('/configuration');
-    cy.cy('persona-switch').select('w.support');
+    cy.cy('persona-switch').select('r.viewer');
     cy.get('body[data-access="ready"]').should('exist'); // the screen is redrawn once the new person's rights arrive
     cy.cy('config-export').should('not.exist');
     cy.cy('import-file').should('not.exist');

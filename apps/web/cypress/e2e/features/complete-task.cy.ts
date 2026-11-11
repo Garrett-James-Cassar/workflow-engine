@@ -4,6 +4,8 @@ const startConfirmation = () => {
   cy.cy('workflow-start').click();
   cy.cy('dialog-confirm').click();
   cy.cy('run-open-in-tasks').click();
+  cy.cy('persona-switch').select('l.jones');
+  cy.get('body[data-access="ready"]').should('exist'); // the screen is redrawn once the new person's rights arrive
 };
 
 describe('complete task', () => {
@@ -16,11 +18,17 @@ describe('complete task', () => {
       cy.cy('tasks-everyone').check();
       cy.cy('task-card').should('have.length', 1);
     });
-    cy.step('Alex does not hold the legal role, so the engine says no', () => {
+    cy.step('Alex holds no permission to complete tasks, so the studio offers no outcome', () => {
+      cy.cy('task-card').should('have.length', 1);
+      cy.cy('task-outcome-approve').should('not.exist');
+      cy.a11y();
+    });
+    cy.step('The admin may complete tasks but does not hold the legal role, so the engine says why', () => {
+      cy.cy('persona-switch').select('e.admin');
+      cy.get('body[data-access="ready"]').should('exist'); // the screen is redrawn once the new person's rights arrive
+      cy.cy('tasks-everyone').check();
       cy.cy('task-outcome-approve').click();
       cy.cy('task-error-reason').should('contain.text', 'does not hold the role legal');
-      cy.cy('task-card').should('have.length', 1);
-      cy.a11y();
     });
     cy.step('Laura Jones is in legal and approves', () => {
       cy.cy('persona-switch').select('l.jones');
