@@ -8,35 +8,25 @@ Details behind the one-line links in CLAUDE.md. The fleet standards (`/Users/gar
 - Responses are validated against the DTO constraints in dev auth mode (500 on a mismatch), logged at error in live.
 
 ## API versioning
-- Every business route is served under `/api/v1` (`api/ApiVersion.kt` mounts it once, for the controllers in `dev.workflow.app.api`). `/health`, `/docs`, `/openapi.json` and the `/demo/*` helpers stay at the root; OpenAPI lists `servers: [{url: /api/v1}]`.
+- Every business route is served under `/api/v1` (`api/ApiVersion.kt` mounts it once, for the controllers in `dev.workflow.app.api`). `/health`, `/docs`, `/openapi.json` and the `/demo/*` helpers stay at the root (`/` redirects to `/docs`); OpenAPI lists `servers: [{url: /api/v1}]`.
 - The old unversioned paths still answer as deprecated aliases (`Deprecation`, `Sunset` 90 days out, `Link: …; rel="successor-version"`), until the fleet callers have moved; then delete `DeprecatedAliasFilter`.
-- The console's single base setting is `API` in `static/app.js`; the studio's is `VITE_API_BASE_URL` plus `/api/v1`.
+- The studio's one base setting is `VITE_API_BASE_URL` plus `/api/v1`.
 
 ## Observability
 - Logs are ECS JSON on stdout (`logging.structured` in `application.yaml`, `logback-spring.xml`); no `println` in production code (`NoStrayOutputTest`). Tracing is Boot's OpenTelemetry support: OTLP export (traces, metrics, logs) is off unless `OTEL_EXPORTER_OTLP_ENDPOINT` is set.
 - Every route declares a human label next to its permission: `@Requires(Permissions.X, label = "Start run")` (verb-first, sentence case, UI-SPEC words); `@Public` routes use their route. Every `@Scheduled` job carries `@Job(label, action)`. `RouteInventoryTest` fails otherwise. The label, `event.action` and `labels.origin` are on every log line and span (`observability/Endpoints.kt`).
 
-## Fleet deviations (UI)
-The console in `engine/app/src/main/resources/static` is a no-build page and **the Demo surface**: it runs against the real engine (dev auth), and its Demo plays real Cypress specs in the viewer's own tab. The React studio in `apps/web` is the mocked test UI against its own contract.
-
-Console Demo (`engine/console-e2e`, a pnpm package beside `apps/web`):
-- The 8 chapters are the specs in `engine/console-e2e/cypress/e2e/chapters`, listed in `src/chapters.ts` (a title must match its `it(...)`). The same files run under real Cypress and in-page (`src/vendor/runtime.ts`, vendored from the studio). Stay inside the command subset that runtime supports.
-- Hooks are `data-cy` attributes in `app.js`. Add one there, then use it from a spec; never select by text or class.
-- The player is built to `static/console-demo/` and **committed**. After changing `src/`, run `make console-build`; `make console-bundle-check` (in `console-ci`) fails if it is stale.
-- The console loads the player only when `GET /demo/status` answers 200 (dev auth, `DEMO_ENABLED` not false); live gets 404. `POST /demo/reset` seeds each chapter.
-- Actions go as the person chosen in the sidebar (`X-User`); pages are read as the auditor `r.viewer`, and the directory as `e.admin`. Only in dev auth.
-- Gate: `make dev`, then `make console-ci` (typecheck, bundle freshness, chapters + smoke + layout, Demo chapters unpaced). CI runs it in the `console` job. `make demo` opens `/?demo`; `make share` tunnels the engine through ngrok (dev auth trusts `X-User`: share only for a demo).
-- Layout is STYLE v1.5: `.page` 12-column grid, `.main-col`/`.side-col` for the Detail archetype, `.page.fill` lists fill the height. `cypress/e2e/layout` proves it at 1920×1080, 1440×900 and 390×844.
-
-Console deviations from STYLE:
-- **Fonts:** it uses the fallback stacks, not self-hosted fontsource fonts. There is no build step to bundle them.
-- **Tables:** they are plain tables, not FleetGrid. They are small dev lists, so the console is grid-exempt.
-- **Icons:** unicode glyphs stand in for lucide icons. Every status still shows a word.
-- **Mermaid:** vendored at `static/vendor/mermaid.min.js` (11.4.1, copied from `apps/web`'s dependency), no CDN. Diagrams render on a light `--paper` panel so the exporter's node fills read the same as on GitHub.
+## The Demo (studio)
+The React studio in `apps/web` is the app's only UI. Its Demo is the mocked build (`make web-demo`, `make web-demo-build`, `make share` through ngrok): the Demo plays real Cypress specs in the viewer's own tab, with no engine needed.
+- The chapters are specs in `apps/web/cypress/e2e/{smoke,features}`, listed in `apps/web/src/demo/chapters.ts` (a title must match its `it(...)`; the chapters menu is in play order). The same files run under real Cypress and in-page (`src/demo/vendor/runtime.ts`, vendored). Stay inside the command subset that runtime supports.
+- Hooks are `data-cy` attributes; never select by text or class.
+- Gate: `make web-demo-check` plays every chapter unpaced (demo.7); `cypress/e2e/demo/chapters.cy.ts` also asserts that no `/api/` request escapes the mocks.
+- `POST /demo/reset` (engine, dev auth only) is for `make reseed` and the audit tests, not for the studio.
+- The engine's HTML diagram export (`format=html`) still serves the vendored `static/vendor/mermaid.min.js`; that file is the only static resource left.
 
 ## UI standards (workflow studio, `apps/web`)
 
-`apps/web` is the new React studio (pnpm package beside the Gradle build). It is written against its own contract, `apps/web/contract/openapi.yaml` (the API it wants, under `/api/v1`), never against the engine's current endpoints. Components see only the `ApiPort` interface in `apps/web/src/api`. Pointing it at a real backend means writing one new adapter. UI work in `apps/web` does not change `engine/*` or the static console.
+`apps/web` is the new React studio (pnpm package beside the Gradle build). It is written against its own contract, `apps/web/contract/openapi.yaml` (the API it wants, under `/api/v1`), never against the engine's current endpoints. Components see only the `ApiPort` interface in `apps/web/src/api`. Pointing it at a real backend means writing one new adapter. UI work in `apps/web` does not change `engine/*`.
 
 Binding docs: `/Users/garrett.cassar/Projects/fleet/standards/ui/STYLE.md` v1.4 (with `specimen.html`), `INDEPENDENCE.md`, `ports.json`, [`UI-SPEC.md`](UI-SPEC.md) (keep it current: ui.2) and [`docs/ui-plan.md`](docs/ui-plan.md).
 

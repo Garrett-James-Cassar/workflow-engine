@@ -33,7 +33,7 @@ Things Kotlin can't see are checked at startup and in `./gradlew check`: unknown
 ### 1. Prerequisites
 - **Java 25.** Gradle's toolchain uses it; `java -version` should say 25.
 - **Docker** (Docker Desktop running). It runs Postgres for the engine and for the tests.
-- Nothing else: Gradle comes with the repo (`./gradlew`), and the console needs no build.
+- Nothing else: Gradle comes with the repo (`./gradlew`).
 
 ### 2. Start it (always fresh)
 ```sh
@@ -45,7 +45,7 @@ make dev
 2. Starts Postgres in Docker on `127.0.0.1:55434` if it isn't already running.
 3. Runs the engine on **port 47831**. Flyway creates and migrates the tables on start.
 
-Once the engine is up, `make dev` opens the console (http://localhost:47831/) in your browser. Set `NO_BROWSER=1 make dev` to skip that.
+Once the engine is up, `make dev` opens the API docs (http://localhost:47831/docs, where `/` redirects) in your browser. Set `NO_BROWSER=1 make dev` to skip that.
 
 You can also check it's ready with:
 ```sh
@@ -81,7 +81,7 @@ This runs:
 ### 6. Ports and environment
 | Port | What |
 |---|---|
-| 47831 | the engine (`PORT`): API under `/api/v1`, `/health`, `/ready`, `/docs`, `/openapi.json`, console at `/` |
+| 47831 | the engine (`PORT`): API under `/api/v1`, `/health`, `/ready`, `/docs`, `/openapi.json` (`/` redirects to `/docs`) |
 | 55434 | Postgres from `compose.yaml` (`DB_PORT` moves the container port; `DATABASE_URL` must match) |
 | 5183 | the studio in the mock profile (`make web`) |
 | 15183 | the static studio demo build |
@@ -105,20 +105,20 @@ This runs:
 | `TIMEOUT_POLL_INTERVAL` | `5s` | how often due timeouts are fired |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | unset | send traces, metrics and logs to an OTLP collector |
 | `ALLOW_RESET` | `false` (`make dev` sets `true`) | allows `POST /demo/reset` and `make reseed`; the app refuses to start with it `true` under the `prod` profile or `APP_ENV=prod` |
-| `NO_BROWSER` | unset | `NO_BROWSER=1 make dev` skips opening the console |
+| `NO_BROWSER` | unset | `NO_BROWSER=1 make dev` skips opening the browser |
 
 Data: `make backup` / `make restore FILE=…` / `make restore-drill` (see [RUNBOOK.md](RUNBOOK.md)); `make seed` starts the Object Mother's sample runs in a running engine (does nothing when runs exist), `make reseed` wipes them first.
 
 Routes are not listed here: see `/docs` (Swagger) and `/openapi.json` on the running engine.
 
-## Using the console
+## Using the studio
 
-Open **http://localhost:47831/** in a browser. You need an internet connection the first time: the diagram library (Mermaid) loads from a CDN.
+The React studio is the only UI. Start it with `pnpm -C apps/web dev:live` against a running engine (`make dev`), or with `make web` / `make web-demo` for mock data and no engine (http://localhost:5183). See *Workflow studio* below.
 
 ### The one idea: who you are acting as
-The **Acting as** box in the sidebar is who you are. Every click is sent to the engine as that user (the `X-User` header). Nothing else identifies you: there are no logins in dev. Type a name or pick one. On a task, the **Act as** buttons switch you to someone allowed to do it in one click.
+The **Acting as** switch in the top bar is who you are. Every click is sent to the engine as that user (the `X-User` header). Nothing else identifies you: there are no logins in dev. Pick a name; what you can see and do follows that person's roles (hidden actions are ones your role does not allow).
 
-The dev users come from `engine/app/src/main/resources/application.yaml` (`workflow.rbac.grants`, with display names under `workflow.rbac.people`). Pick a name in the sidebar and their teams appear as chips above it:
+The dev users come from `engine/app/src/main/resources/application.yaml` (`workflow.rbac.grants`, with display names under `workflow.rbac.people`). The roles of each person, and what each role allows, are in `engine/app/src/main/resources/rbac/workflow-engine.json` (the studio's mock keeps a copy):
 
 | Login (`X-User`) | Name | Role | Used in |
 |---|---|---|---|
@@ -142,38 +142,43 @@ The dev users come from `engine/app/src/main/resources/application.yaml` (`workf
 
 Pick someone who isn't allowed and the engine refuses with the reason, for example *'a.ops' does not hold role 'legal'*. That's worth trying.
 
-### The four pages
+### The pages
+What each page shows, and who sees which actions, is in [UI-SPEC.md](UI-SPEC.md).
+
 | Page | What it's for |
 |---|---|
-| **Definitions** | Every workflow. Open one to see its diagram, a table of its steps (kind, who it's assigned to, where each outcome goes) and **Start instance** with sample data you can edit. **Open picture** shows the diagram on its own with SVG and PNG downloads. |
-| **Instances** | Every run, newest first, with a status filter and counts. Open one to drive it (see below). |
-| **My tasks** | The inbox for whoever you're acting as, plus every open task. Click a row to open its instance. |
-| **Demos** | **Start with sample data** for each workflow, switches for the fake third parties (take the booking system down or up), and the users table. Click a user to act as them. |
+| **Workflows** | Every workflow. Open one to see its diagram and steps and **Start run** with sample data you can edit. |
+| **Workflow runs** | Every run, with filters. Open one to drive it (see below). |
+| **My tasks** | The inbox for whoever you're acting as; **Everyone's tasks** lists all open tasks. |
+| **Events** | Runs waiting for an event, and **Send event**. |
+| **Incidents** | Failed runs, with **Retry step**. |
+| **Audit** | Who did what, read only. |
+| **Configuration** | Export and import of workflows. |
 
 ### Who holds a task: user or team
 Every user task is either **team-scoped** (any member of a role can take it, for example *legal*) or **user-scoped** (one named person holds it, for example the requester who must amend a draft). This shows in three places:
 - **Diagram:** 👥 with a *team · legal* line for team tasks, 👤 with a *user · …* line for user tasks.
-- **Console:** a badge on each task (**👥 Team task** or **👤 User task**) and a *Held by* column on **My tasks**.
+- **Studio:** a badge on each task (**👥 Team task** or **👤 User task**) and a *Held by* column on **My tasks**.
 - **API:** `scopedTo` (`user` or `team`) on every task.
 
 ### Restarting a workflow at a step
-Support staff with the **`workflow-support`** role (`w.support`, Riley Chen) can move any workflow back to any user task. Open on the instance page, the **Restart at a step** panel lists the user tasks, and **Restart here** moves the workflow there. Open tasks and waits are cancelled, the cancelled rows stay in the history, and vars are kept. The restart is recorded as `restarted`, with the step it came from. A finished workflow can be reopened the same way. Anyone without the role is refused with the reason.
+Support staff with the **`workflow-support`** role (`w.support`, Riley Chen) can move any workflow back to any user task. On the run page, **Restart at step** lists the user tasks and moves the workflow there. Open tasks and waits are cancelled, the cancelled rows stay in the history, and vars are kept. The restart is recorded as `restarted`, with the step it came from. A finished workflow can be reopened the same way. Anyone without the role is refused with the reason.
 
 The API: `POST /api/v1/instances/{id}/restart` with `{"step": "amend-draft"}`. It only accepts user tasks.
 
 ### Reassigning a task
-Any open user task has a **Reassign this task** panel under its buttons. It moves the task to a named user or to a team, and it's a separate permission from completing the task. By default only the **`ops`** role may reassign (`ops.admin` in the dev grants). Anyone else who tries is refused with the reason. Each reassignment is recorded in the timeline as `task-reassigned`, with who held it before and after.
+Any reassignable open task has a **Reassign task** button. It moves the task to a named user or to a team, and it's a separate permission from completing the task. By default only the **`ops`** role may reassign (`ops.admin` in the dev grants). Anyone else who tries is refused with the reason. Each reassignment is recorded in the timeline as `task-reassigned`, with who held it before and after.
 
 Reassigning moves the open task and nothing else: the workflow's position, vars and history are unchanged. A finished task can't be reassigned.
 
 The API: `POST /api/v1/tasks/{id}/reassign` with `{"to": "j.smith"}` for a user, or `{"to": "legal", "toTeam": true}` for a team.
 
-### Driving an instance
-The instance page is where you test a workflow:
+### Driving a run
+The run page is where you test a workflow:
 - **Where it is:** the diagram, with finished steps outlined in green and the current step (or the end it reached) in thick orange.
 - **Waiting on:** what the workflow needs next.
-  - **A user task:** the **Act as** buttons for the people allowed to do it, its form fields, and one button per outcome (APPROVE, REJECT and so on).
-  - **An event wait:** the correlation it's waiting for, a payload box pre-filled for the samples, **Send event** (you play the external system), and **Fire timeout now** if it has a timeout.
+  - **A user task:** its form fields and one button per outcome (switch the acting person to someone who may complete it) (APPROVE, REJECT and so on).
+  - **An event wait:** the correlation it's waiting for, a payload box pre-filled for the samples, **Send event** (you play the external system), and **Fire timeout** if it has a timeout.
 - **Incident:** a red banner with the error, and **Retry step** once you've fixed the cause.
 - **Timeline:** who did what, when, with which outcome. **Vars:** everything the workflow knows, including each step's output.
 
@@ -181,14 +186,14 @@ Press **Refresh** to see changes made elsewhere, for example by the timeout poll
 
 ## Walkthroughs
 
-Each walkthrough starts from **Demos → Start with sample data** for that workflow. You land on the instance page; follow the steps there.
+Each walkthrough starts from **Workflows → (the workflow) → Start run** with its sample data. You land on the run page; follow the steps there.
 
 ### A. confirmation-approval: approvals, rework, negotiation, signature
-1. The instance waits on **Legal review**. Click **Act as `l.jones`**, type a comment, press **REJECT**.
+1. The run waits on **Legal review**. Acting as `l.jones`, type a comment, press **REJECT**.
 2. **Notify requester** (a service task) runs straight away. Now **Amend draft** waits for `a.ops`, the requester named in the data. Act as `a.ops` and press **RESUBMIT**. It loops back to legal.
 3. As `l.jones`, press **APPROVE**. The sample notional is 75m, so **Size check** sends it to **Desk head sign-off**. Act as `d.head`, press **OK**.
 4. **Send for signature** runs, then it waits for the **signed** event. Press **Send signed event**. It stamps the copy and ends **completed**.
-5. Try again with **COUNTER** at step 1: `c.acme` can negotiate because the counterparty is ACME. Change `counterparty` to anything else in **Definitions → Start instance** and `c.acme` is refused.
+5. Try again with **COUNTER** at step 1: `c.acme` can negotiate because the counterparty is ACME. Change `counterparty` to anything else in **Start run** and `c.acme` is refused.
 
 ### A2. Reassign a task
 1. Start **confirmation-approval**. The **Legal review** task is team-scoped (👥 *team · legal*).
@@ -207,8 +212,8 @@ Each walkthrough starts from **Demos → Start with sample data** for that workf
 ### C. trade-booking: business outcomes, incidents, timeouts
 1. The trade books and waits for **confirmation-matched**, with a 1-minute timeout. Either press **Send confirmation-matched event** (ends **completed**), or **Fire timeout now** (or wait a minute and press Refresh).
 2. After the timeout it chases the counterparty and asks middle office. As `m.office`, press **WAIT_AGAIN** to wait again (the diagram loops back), **FORCE_MATCH** to settle, or **CANCEL**.
-3. **Incident and retry:** on **Demos**, press **Take booking system down**, then start trade-booking again. The booking fails three times and the instance shows an **Incident**. Bring the system back up, open the instance and press **Retry step**.
-4. **Business outcomes:** in **Definitions → trade-booking → Start instance**, set `"ref": "DUP-1"` (ends **duplicate**) or `"quantity": 0` (goes to **Repair trade**). For the repair, act as `m.office`, enter a positive quantity and press **RESUBMIT**: it books again.
+3. **Incident and retry:** take the fake booking system down (`curl -XPOST localhost:47831/demo/booking-system/down`), then start trade-booking again. The booking fails three times and the instance shows an **Incident**. Bring the system back up, open the instance and press **Retry step**.
+4. **Business outcomes:** in **Workflows → trade-booking → Start run**, set `"ref": "DUP-1"` (ends **duplicate**) or `"quantity": 0` (goes to **Repair trade**). For the repair, act as `m.office`, enter a positive quantity and press **RESUBMIT**: it books again.
 
 ### D. clause-change-approval: approval chains and jumping ahead
 1. The sample touches 14 templates, so it's **MATERIAL**: **Legal approval** (act as `l.jones`, **APPROVE**), then **Product owner sign-off** (`p.owner`, **OK**), in order.
@@ -216,9 +221,9 @@ Each walkthrough starts from **Demos → Start with sample data** for that workf
 3. Start another and press **REQUEST_CHANGES** at legal: it jumps forward to **Revise change** for the author `a.ops`. **RESUBMIT_CHANGE** re-classifies it; **ABANDON_CHANGE** ends it.
 4. Edit the vars to `"affectedTemplates": 2` for the **MINOR** route (straight to release), or `"regulatory": true` for compliance then legal.
 
-## Using it without the console
+## Using it without the studio
 
-Everything the console does is a plain REST call, listed in Swagger at **http://localhost:47831/docs**. For example:
+Everything the studio does is a plain REST call, listed in Swagger at **http://localhost:47831/docs**. For example:
 ```sh
 curl -s -XPOST localhost:47831/api/v1/definitions/confirmation-approval/instances -H 'X-User: a.ops' \
   -H 'Content-Type: application/json' -d '{"vars":{"doc":{"id":"D-1","requester":"a.ops","counterparty":"ACME","notional":75000000}}}'
@@ -313,7 +318,7 @@ Routes, schemas and examples live in one place: the running app's `/docs` (Swagg
 
 ## Workflow studio (apps/web)
 
-A React studio for the engine, written against its own contract (`apps/web/contract/openapi.yaml`, under `/api/v1`), so it runs without the engine: `make web` (mock data, :5183), `make web-demo` (adds the Demo player with seven chapters), `make web-demo-build` (static `apps/web/dist/` for the fleet stack, served on 15183), `make share-studio` (demo build through ngrok, `NGROK_AUTHTOKEN` from env). `make ci` runs the Gradle checks and the web gate. The views are in [UI-SPEC.md](UI-SPEC.md), the plan and the contract gaps against the engine's current API in [docs/ui-plan.md](docs/ui-plan.md). The static console at `/` is unchanged.
+A React studio for the engine, written against its own contract (`apps/web/contract/openapi.yaml`, under `/api/v1`), so it runs without the engine: `make web` (mock data, :5183), `make web-demo` (adds the Demo player with ten chapters), `make web-demo-build` (static `apps/web/dist/` for the fleet stack, served on 15183), `make share-studio` (demo build through ngrok, `NGROK_AUTHTOKEN` from env). `make ci` runs the Gradle checks and the web gate. The views are in [UI-SPEC.md](UI-SPEC.md), the plan and the contract gaps against the engine's current API in [docs/ui-plan.md](docs/ui-plan.md). The studio is the only UI.
 
 ## Layout
 

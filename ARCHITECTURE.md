@@ -3,12 +3,12 @@
 > Fleet standard: standards/ARCHITECTURE-RULES.md. This file describes how workflow-engine applies it. Keep it short and current; update it in the same commit as any structural change.
 
 ## Purpose
-workflow-engine runs long-lived business workflows (approvals, rework loops, signature events, timeouts) defined in a Kotlin DSL. Callers are the browser console (served at `/`), the React studio in `apps/web` (mocked against its own contract), and other systems that send events (`POST /events/{name}`). It owns the workflow definitions (code), instance state, user tasks, event waits and an append-only event log, all in its own Postgres. It calls external systems only through service tasks (linked handlers and a built-in allow-listed `http` task) and, when configured, the central rbac service.
+workflow-engine runs long-lived business workflows (approvals, rework loops, signature events, timeouts) defined in a Kotlin DSL. Callers are the React studio in `apps/web` (its only UI, developed and demoed against a mock of its own contract), and other systems that send events (`POST /events/{name}`). It owns the workflow definitions (code), instance state, user tasks, event waits and an append-only event log, all in its own Postgres. It calls external systems only through service tasks (linked handlers and a built-in allow-listed `http` task) and, when configured, the central rbac service.
 
 ## Diagram
 ```mermaid
 flowchart LR
-  console[Console and studio] --> controllers
+  studio[Studio] --> controllers
   partner[Event senders] --> controllers
   subgraph app[workflow-engine :47831]
     web[config.web: identity and permission gate, labels, access log] --> controllers
@@ -62,7 +62,7 @@ Source of truth: `fleet-layers.json`. Boundaries are enforced by ArchUnit (`engi
 - Port 47831; liveness at `/health` (no `/ready` yet). OpenAPI at `/openapi.json`, docs at `/docs`.
 - Config (names only): `PORT`, `RBAC_URL`, `AUTH_MODE` (`dev` default or `live`), `SUPABASE_JWT_SECRET`, `SUPABASE_JWKS_URL`, `workflow.demo.enabled`. Live mode refuses to start without `RBAC_URL` and the JWT secret. Dev trusts `X-User`; live verifies an HS256 Bearer JWT and ignores `X-User`.
 - Access is deny by default: `IdentityInterceptor` (401) then `PermissionInterceptor` (403); every route declares `@Requires`, `@Authenticated` or `@Public`.
-- Run: `make dev` (stops any old copy, starts Postgres on :55434, runs the engine, opens the console); `make test` / `make ci` (Gradle `check` plus the web gate); `make share` serves the studio demo build through ngrok.
+- Run: `make dev` (stops any old copy, starts Postgres on :55434, runs the engine, opens the API docs); `make test` / `make ci` (Gradle `check` plus the web gate); `make share` serves the studio demo build through ngrok.
 - Tests: in-memory H2 for the default suite; Postgres-tagged tests run in `postgresTest` with Testcontainers.
 - Depends on no other fleet app to start.
 
@@ -75,4 +75,4 @@ Source of truth: `fleet-layers.json`. Boundaries are enforced by ArchUnit (`engi
 - 2026-11-06: backend e2e runs on H2 in PostgreSQL mode; real-Postgres tests are tagged and run in the full gate only. Fast pre-commit.
 - 2026-11-06: RBAC behind `RbacPort` with `LocalRbac` (dev) and `HttpRbac` (central rbac service); deny by default via a central interceptor. Rejected: per-handler checks (a read was left unenforced and fixed).
 - 2026-11-07: the architecture rules are enforced in `check`: ArchUnit, detekt (two tasks) and jscpd. Controllers reach data only through services; services reach it through ports (`WorkflowStore`, `WorkflowDefinitions`, `RbacPort`, `HttpCaller`) with the implementations in `persistence`, `clients` and `adapters`. Rejected: raising limits or adding suppressions.
-- 2026-11-06: the engine console is the demo surface and the studio is the mocked test UI. Rejected: a separate preview API (E8 dropped).
+- 2026-11-06: a separate preview API (E8) was rejected. 2026-11-11: the engine's no-build page was retired; the studio is the only UI and its mocked build is the Demo (`/` redirects to `/docs`).

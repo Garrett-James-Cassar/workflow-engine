@@ -14,7 +14,7 @@ Kotlin 25/Spring Boot 4.1 + Gradle; React studio in `apps/web` (pnpm). Routes: `
 - `make fast` (pre-commit; lint, typecheck, ArchUnit, detekt, H2 tests; no browser) · `make push-gate` (+ mocked smoke) · `make ci` (everything; once at the end of a task).
 - Standards, one line each: [trunk-based, fast feedback](/Users/garrett.cassar/Projects/fleet/standards/FEEDBACK.md) · [arch rules](/Users/garrett.cassar/Projects/fleet/standards/ARCHITECTURE-RULES.md) (map: `fleet-layers.json`, `ARCHITECTURE.md`) · [security](/Users/garrett.cassar/Projects/fleet/standards/SECURITY.md) · [UI style](/Users/garrett.cassar/Projects/fleet/standards/ui/STYLE.md).
 - Deploy, rollback, incidents: [RUNBOOK.md](RUNBOOK.md). Commits: Conventional Commits (`type(scope): subject`, checked by the `commit-msg` hook), summarised in [CHANGELOG.md](CHANGELOG.md) under `[Unreleased]`.
-- How this app applies them (API versioning, input limits, observability, console Demo, studio decisions): [docs/conventions.md](docs/conventions.md).
+- How this app applies them (API versioning, input limits, observability, the studio Demo, studio decisions): [docs/conventions.md](docs/conventions.md).
 
 ## Where things live (`engine/app/src/main/kotlin/dev/workflow/app` = `app/`)
 | route / screen / concept | files |
@@ -24,14 +24,14 @@ Kotlin 25/Spring Boot 4.1 + Gradle; React studio in `apps/web` (pnpm). Routes: `
 | `/tasks*` (list, complete, reassign) | `api/TaskController.kt` · `runtime/TaskService.kt`, `FormValidation.kt` · `persistence/TaskRepository.kt` · `security/TaskAuthorizer.kt` |
 | `/events/{name}`, `/timeouts/…` | `api/EventController.kt` · `InstanceService.deliverEvent/fireTimeout` · `runtime/TimeoutPoller.kt` · `persistence/WaitRepository.kt` |
 | `/me`, `/rbac/people`, permissions | `api/AccessController.kt` · `runtime/Queries.kt` (`AccessService`) · `security/Identity.kt` (`Authorizer`), `Permissions.kt` · `adapters/LocalRbac.kt`, `clients/HttpRbac.kt` |
-| `/demo/*`, console reset | `api/DemoController.kt`, `DemoProviders.kt` · `runtime/DemoGate.kt` · `samples/` |
+| `/`, `/demo/*` | `api/DefinitionController.kt` (`/` redirects to `/docs`) · `api/DemoController.kt` (reset), `DemoProviders.kt` (fake third parties) · `runtime/DemoGate.kt` · `samples/` |
 | errors, validation, 413/415, rate limit | `api/ErrorHandler.kt` · `config/web/ValidationProblems.kt`, `BodyGuardFilter.kt`, `RateLimitInterceptor.kt`, `ResponseValidation.kt`, `CorsFilter.kt` · `config/SecurityHeadersFilter.kt` |
 | `/api/v1` prefix, deprecated aliases | `config/ApiVersionConfig.kt`, `config/web/DeprecatedAliasFilter.kt` |
 | identity, labels, access log | `config/web/IdentityInterceptor.kt`, `EndpointLabelInterceptor.kt`, `AccessLogFilter.kt` · `telemetry/` |
 | export/import (portable), bundle `/export` `/import` | [docs/RESOURCES.md](docs/RESOURCES.md) (class of each resource; `PortableFitnessTest` reads it) · `app/portable/` (`Codec.kt`, `WorkflowCodec.kt`, `ImportPlanner.kt`, `ConfigPortability.kt`, `RecordExports.kt`) · `api/PortableController.kt`, `api/RecordsController.kt` + `…/export` routes in the resource controllers |
 | DSL, validation, graph, Mermaid, `Engine` | `engine/core/src/main/kotlin/dev/workflow/core/` (`Dsl.kt`, `StepBuilders.kt`, `DefinitionValidator.kt`, `Engine.kt`) |
 | sample workflows | `app/workflow/*.kt` · handlers `app/samples/` · diagrams `docs/workflows/` |
-| console (no build) | `engine/app/src/main/resources/static/app.js`; Demo specs `engine/console-e2e/cypress/e2e/chapters`, player `static/console-demo/` (committed; `make console-build`) |
+| studio Demo | chapters `apps/web/src/demo/chapters.ts`, specs `apps/web/cypress/e2e/{smoke,features}`, gate `make web-demo-check`, share `make share` |
 | studio screens (workflows, runs, tasks, events, incidents) | `apps/web/src/routes/<name>/` · port `src/api/port.ts` · mock `src/mocks/routes-*.ts` · contract `apps/web/contract/openapi.yaml` · specs `apps/web/cypress/e2e/` · spec text `UI-SPEC.md` |
 
 ## Gotchas
@@ -45,5 +45,5 @@ Kotlin 25/Spring Boot 4.1 + Gradle; React studio in `apps/web` (pnpm). Routes: `
 
 ## Do not touch
 - Detekt limits (`config/detekt/*.yml`), ArchUnit rules, `.jscpd.json` threshold: never raise or suppress; fix the code.
-- `static/console-demo/` and `static/vendor/` by hand (built or vendored); `apps/web/src/api/generated/` (run `gen:api`); `apps/web/src/demo/vendor`.
+- `static/vendor/` by hand (vendored Mermaid for the HTML diagram export); `apps/web/src/api/generated/` (run `gen:api`); `apps/web/src/demo/vendor`.
 - Never push; only the coordinator's `/fleet-push`.
