@@ -114,5 +114,17 @@
   "X4": {
     "test": "engine/app/src/test/kotlin/dev/workflow/app/EngineE2ETest.kt",
     "tier": "fast"
+  },
+  "A2": {
+    "test": "engine/app/src/test/kotlin/dev/workflow/app/ResilienceTest.kt",
+    "tier": "full"
+  },
+  "A3": {
+    "test": "engine/app/src/test/kotlin/dev/workflow/app/ResilienceTest.kt",
+    "tier": "full"
+  },
+  "A6": {
+    "test": "engine/app/src/test/kotlin/dev/workflow/app/MigrationTest.kt",
+    "tier": "full"
   }
 }

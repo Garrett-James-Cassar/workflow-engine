@@ -60,4 +60,27 @@ class MigrationTest {
             assertTrue(after.info().pending().isEmpty())
         }
     }
+
+    @Test
+    fun `A6 the latest migration applies in under 60 s to a copy at the NFR volume`() {
+        val (c, ds) = fresh()
+        c.use {
+            val all = flyway(ds).info().all()
+            flyway(ds, all[all.size - 2].version.version).migrate()
+            // the same 100 000 runs and 1 000 000 history rows that `make seed-bulk` loads
+            val seed = java.io.File("../../perf/seed-bulk.sql").readText()
+            ds.connection.use { cn -> cn.createStatement().use { it.execute(seed) } }
+            val started = System.nanoTime()
+            flyway(ds).migrate()
+            val seconds = (System.nanoTime() - started) / 1e9
+            assertTrue(seconds < 60, "the migration took $seconds s on the bulk copy")
+            ds.connection.use { cn ->
+                cn.createStatement().use { st ->
+                    st.executeQuery("select (select count(*) from instances), (select count(*) from events)").use { rs ->
+                        rs.next(); assertEquals(100_000, rs.getInt(1)); assertEquals(1_000_000, rs.getInt(2))
+                    }
+                }
+            }
+        }
+    }
 }
