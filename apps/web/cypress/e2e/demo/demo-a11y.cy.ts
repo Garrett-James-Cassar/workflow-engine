@@ -76,9 +76,28 @@ describe('demo keys and a11y', () => {
     cy.get('#__walkthrough_ring__', { timeout: 20_000 }).should(($r) => {
       expect($r[0].style.transitionProperty).to.eq('none');
     });
+    // Auto-scroll to the next target is instant, never smooth.
+    cy.document().then((d) => expect(getComputedStyle(d.documentElement).scrollBehavior).to.not.eq('smooth'));
     focusApp();
     press('Escape');
     cy.cy('demo-bar').should('not.exist');
+  });
+
+  it('ring: the guidance ring has its own token and looks different from the keyboard focus outline', () => {
+    cy.visit('/events');
+    cy.cy('demo-start').click();
+    cy.get('#__walkthrough_ring__', { timeout: 20_000 }).then(($r) => {
+      const ring = getComputedStyle($r[0]);
+      const guide = Cypress.$('html').css('--guide').trim();
+      expect(guide, 'the --guide token exists').to.not.eq('');
+      expect(Cypress.$('html').css('--guide').trim()).to.not.eq(Cypress.$('html').css('--ring').trim());
+      // Compare with the real :focus-visible outline of a focused control.
+      cy.get('[data-cy="demo-bar"] button').first().focus().then(($b) => {
+        const outline = getComputedStyle($b[0]);
+        expect(ring.borderTopColor, 'ring colour vs focus outline colour').to.not.eq(outline.outlineColor);
+        expect(ring.borderTopWidth, 'ring width vs focus outline width').to.not.eq(outline.outlineWidth);
+      });
+    });
   });
 
   it('keys: only while the Demo runs, never the script’s own, and Esc always exits', () => {

@@ -25,6 +25,8 @@
     --primary-foreground: 150 8% 5%;
     --primary-soft:       25 45% 18%;
     --ring:               25 95% 53%;
+    /* the Demo's guidance ring: its own token, so it never looks like the keyboard focus outline (DEMO.md) */
+    --guide:              217 91% 68%;
 
     /* status */
     --success:     156 23% 64%;  /* sage: passing, done, healthy (not the accent) */
@@ -42,6 +44,8 @@
     @apply bg-background text-foreground font-sans text-sm antialiased;
     font-variant-numeric: tabular-nums;
   }
+  /* The vendored player draws the ring with --primary; the token the app owns wins here. */
+  #__walkthrough_ring__ { border-color: hsl(var(--guide)) !important; box-shadow: 0 0 0 6px hsl(var(--guide) / .25), 0 0 24px hsl(var(--guide) / .6) !important; }
   ::selection { background: hsl(var(--primary) / .3); }
   :focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
   * { scrollbar-width: thin; scrollbar-color: hsl(var(--border-strong)) transparent; }
@@ -74,5 +78,5 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { transition: none !important; animation: none !important; }
+  *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
 }

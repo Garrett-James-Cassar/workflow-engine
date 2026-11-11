@@ -37,6 +37,7 @@ describe('a11y: axe on every screen', () => {
   it('a11y: the reassign dialog has none', () => {
     cy.visit('/tasks?all=1');
     cy.cy('persona-switch').select('ops.admin');
+    cy.get('body[data-access="ready"]').should('exist'); // the screen is redrawn once the new person's rights arrive
     cy.cy('task-reassign').first().click();
     cy.cy('reassign-to').should('exist');
     cy.a11y();

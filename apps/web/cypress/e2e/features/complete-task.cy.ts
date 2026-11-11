@@ -11,6 +11,7 @@ describe('complete task', () => {
     cy.step('Start a confirmation, then look at its task as Alex Turner', () => {
       startConfirmation();
       cy.cy('persona-switch').select('a.ops');
+      cy.get('body[data-access="ready"]').should('exist'); // the screen is redrawn once the new person's rights arrive
       cy.cy('state-empty').should('contain.text', 'Nothing waiting for you');
       cy.cy('tasks-everyone').check();
       cy.cy('task-card').should('have.length', 1);
@@ -23,6 +24,7 @@ describe('complete task', () => {
     });
     cy.step('Laura Jones is in legal and approves', () => {
       cy.cy('persona-switch').select('l.jones');
+      cy.get('body[data-access="ready"]').should('exist'); // the screen is redrawn once the new person's rights arrive
       cy.cy('task-outcome-approve').click();
       cy.cy('toast').should('contain.text', 'Task completed: Approve');
       cy.cy('task-card').first().should('have.attr', 'data-step', 'desk-head-sign-off');
@@ -38,12 +40,14 @@ describe('complete task', () => {
     });
     cy.step('The requester resubmits', () => {
       cy.cy('persona-switch').select('a.ops');
+      cy.get('body[data-access="ready"]').should('exist'); // the screen is redrawn once the new person's rights arrive
       cy.cy('task-card').first().should('have.attr', 'data-step', 'amend-draft');
       cy.cy('task-outcome-resubmit').click();
       cy.cy('toast').should('contain.text', 'Task completed: Resubmit');
     });
     cy.step('Legal approves the second time', () => {
       cy.cy('persona-switch').select('l.jones');
+      cy.get('body[data-access="ready"]').should('exist'); // the screen is redrawn once the new person's rights arrive
       cy.cy('task-card').first().should('have.attr', 'data-step', 'legal-review');
       cy.cy('task-outcome-approve').click();
       cy.cy('toast').should('contain.text', 'Task completed: Approve');
@@ -53,6 +57,7 @@ describe('complete task', () => {
   it('complete task: a required form field is reported next to the field', () => {
     cy.visit('/tasks?scenario=normal');
     cy.cy('persona-switch').select('o.ops');
+    cy.get('body[data-access="ready"]').should('exist'); // the screen is redrawn once the new person's rights arrive
     cy.cy('task-card').first().should('have.attr', 'data-step', 'set-up-account');
     cy.cy('task-card').first().cy('task-outcome-ok').click();
     cy.cy('task-field-accountId-error').should('contain.text', 'Required');

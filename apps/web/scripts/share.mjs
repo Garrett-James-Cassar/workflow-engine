@@ -12,8 +12,9 @@ import { spawn, spawnSync } from 'node:child_process';
 
 const args = process.argv.slice(2);
 const tunnel = !args.includes('--no-tunnel');
-const host = args.includes('--host') ? args[args.indexOf('--host') + 1] : '0.0.0.0';
-const PORT = 5183;
+// 15183 is the demo build's port (CLAUDE.md); 5183 is the studio's dev/test port, which Cypress runs own.
+const host = args.includes('--host') ? args[args.indexOf('--host') + 1] : '127.0.0.1';
+const PORT = Number(process.env.SHARE_PORT ?? 15183);
 
 if (tunnel && !process.env.NGROK_AUTHTOKEN) {
   console.error('NGROK_AUTHTOKEN is not set. Export it (from https://dashboard.ngrok.com/get-started/your-authtoken) and run make share again,\nor run `make share-local` to serve the demo build without a tunnel.');
@@ -25,16 +26,19 @@ const build = spawnSync('pnpm', ['exec', 'vite', 'build'], { stdio: 'inherit', e
 if (build.status !== 0) process.exit(build.status ?? 1);
 
 const children = [];
-const stop = () => children.forEach((c) => { try { c.kill('SIGTERM'); } catch { /* gone */ } });
+// Each child leads its own process group, so stopping it also stops the vite process pnpm started.
+const stop = () => children.forEach((c) => { try { process.kill(-c.pid, 'SIGTERM'); } catch { /* gone */ } });
 process.on('exit', stop);
-process.on('SIGINT', () => process.exit(0));
+['SIGINT', 'SIGTERM', 'SIGHUP'].forEach((sig) => process.on(sig, () => process.exit(0)));
 
-children.push(spawn('pnpm', ['exec', 'vite', 'preview', '--host', host, '--port', String(PORT), '--strictPort'], { stdio: 'inherit', env }));
+const server = spawn('pnpm', ['exec', 'vite', 'preview', '--host', host, '--port', String(PORT), '--strictPort'], { stdio: 'inherit', env, detached: true });
+server.on('exit', (code) => process.exit(code ?? 1)); // the port is taken, or the server died: do not sit there pretending
+children.push(server);
 console.log(`Demo build served on http://${host}:${PORT}`);
 
 if (tunnel) {
   // The token goes to ngrok through its own environment variable, never the command line or the log.
-  children.push(spawn('ngrok', ['http', String(PORT), '--log', 'stdout', '--log-format', 'json'], { stdio: ['ignore', 'pipe', 'inherit'], env }));
+  children.push(spawn('ngrok', ['http', String(PORT), '--log', 'stdout', '--log-format', 'json'], { stdio: ['ignore', 'pipe', 'inherit'], env, detached: true }));
   children[1].stdout.on('data', (d) => {
     const m = /"url":"(https:\/\/[^"]+)"/.exec(String(d));
     if (m) console.log(`\nShare this link (open it in any browser, then press Run demo): ${m[1]}\n`);

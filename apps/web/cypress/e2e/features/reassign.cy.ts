@@ -3,10 +3,7 @@ describe('reassign', () => {
   it('reassign: ops moves a task to another user and it leaves the team inbox', () => {
     cy.visit('/tasks?all=1');
     cy.cy('persona-switch').select('ops.admin');
-    cy.cy('task-card').first().then(($card) => {
-      const id = $card.attr('data-id');
-      cy.wrap(id).as('taskId');
-    });
+    cy.get('body[data-access="ready"]').should('exist'); // the screen is redrawn once the new person's rights arrive
     cy.cy('task-reassign').first().click();
     cy.cy('reassign-to').type('h.legal');
     cy.cy('dialog-confirm').click();

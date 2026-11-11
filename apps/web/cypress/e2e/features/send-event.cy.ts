@@ -11,6 +11,7 @@ describe('send event', () => {
     });
     cy.step('The desk head signs off, so the document goes out for signature', () => {
       cy.cy('persona-switch').select('d.head');
+      cy.get('body[data-access="ready"]').should('exist'); // the screen is redrawn once the new person's rights arrive
       cy.cy('task-outcome-ok').click();
       cy.cy('toast').should('contain.text', 'Task completed: Done');
     });

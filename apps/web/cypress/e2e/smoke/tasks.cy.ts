@@ -10,6 +10,7 @@ describe('my tasks', () => {
     });
     cy.step('Act as the desk head instead', () => {
       cy.cy('persona-switch').select('d.head');
+      cy.get('body[data-access="ready"]').should('exist'); // the screen is redrawn once the new person's rights arrive
       cy.cy('task-card').first().should('have.attr', 'data-step', 'desk-head-sign-off');
       cy.cy('task-outcome-ok').should('exist');
     });

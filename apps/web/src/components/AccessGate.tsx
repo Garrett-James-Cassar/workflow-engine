@@ -11,10 +11,10 @@ export function AccessGate({ children }: { children: ReactNode }) {
   const version = useSyncExternalStore(subscribeAccess, accessVersion);
   useEffect(() => {
     let current = true;
-    api.me().then(
-      (me) => { if (current) setGranted(me.permissions.map((p) => p.permission)); },
-      () => { if (current) setGranted([]); }
-    );
+    const root = document.body;
+    root.dataset.access = 'pending'; // specs wait for 'ready': the screen below is redrawn when the new rights arrive
+    const done = (permissions: string[]) => { if (current) { setGranted(permissions); root.dataset.access = 'ready'; } };
+    api.me().then((me) => done(me.permissions.map((p) => p.permission)), () => done([]));
     return () => { current = false; };
   }, [api, user]);
   // Nothing is drawn until the engine has said what the caller may do, so no screen flashes buttons it then removes.
