@@ -26,8 +26,8 @@ IMAGES = {
     "trivy": "aquasec/trivy:0.57.1",
     "zap": "ghcr.io/zaproxy/zaproxy:2.15.0",
 }
-LOCKFILES = ["apps/web/pnpm-lock.yaml", "engine/console-e2e/pnpm-lock.yaml", "engine/app/gradle.lockfile", "engine/core/gradle.lockfile"]
-EXCLUDES = ["node_modules", "build", "dist", "coverage", ".gradle", ".kotlin", "reports", "backups", ".git", "test-evidence", ".idea", "vendor", "console-demo"]
+LOCKFILES = ["apps/web/pnpm-lock.yaml", "engine/app/gradle.lockfile", "engine/core/gradle.lockfile"]
+EXCLUDES = ["node_modules", "build", "dist", "coverage", ".gradle", ".kotlin", "reports", "backups", ".git", "test-evidence", ".idea", "vendor"]
 PORT = os.environ.get("PORT", "47831")
 
 
@@ -152,7 +152,7 @@ def sast():
 def trivy():
     """No Dockerfile yet (ci-deploy adds one): scan the filesystem, the lockfiles and the source."""
     os.makedirs(REPORTS, exist_ok=True)
-    skip = ",".join(f"**/{e}" for e in EXCLUDES if e not in ("vendor", "console-demo"))
+    skip = ",".join(f"**/{e}" for e in EXCLUDES if e != "vendor")
     r = docker(IMAGES["trivy"], ["fs", "--scanners", "vuln,secret,misconfig", "--skip-dirs", skip, "--format", "json", "--quiet", "/src"],
                mounts=[f"{os.path.expanduser('~')}/.cache/trivy:/root/.cache/"])
     open(os.path.join(REPORTS, "trivy.json"), "w").write(r.stdout)
@@ -167,7 +167,7 @@ def up(url):
 
 
 def zap():
-    """ZAP baseline (passive) against the engine's console on localhost; starts `make dev` when nothing answers."""
+    """ZAP baseline (passive) against the engine's root on localhost; starts `make dev` when nothing answers."""
     os.makedirs(REPORTS, exist_ok=True)
     started = False
     if not up(f"http://localhost:{PORT}/ready"):

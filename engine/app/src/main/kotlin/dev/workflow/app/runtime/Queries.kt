@@ -68,7 +68,7 @@ class RunQueries(
     }
 }
 
-/** The caller's own access, and who the console can act as. */
+/** The caller's own access, and who the studio can act as. */
 @Service
 class AccessService(private val rbac: RbacPort) {
     fun me(login: String) = MeInfo(login, rbac.people().firstOrNull { it.login == login }?.name ?: login, rbac.permissionsOf(login))

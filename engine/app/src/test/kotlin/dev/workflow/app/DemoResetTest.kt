@@ -28,9 +28,4 @@ class DemoResetTest : ApiTest() {
     fun `reset without identity is refused`() {
         assertEquals(401, call("POST", "/demo/reset", "").status)
     }
-
-    @Test
-    fun `status is open to the console in dev`() {
-        assertEquals(200, call("GET", "/demo/status", "").status)
-    }
 }

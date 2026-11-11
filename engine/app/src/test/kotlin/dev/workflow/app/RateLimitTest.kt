@@ -68,8 +68,8 @@ class RateLimitTest : ApiTest() {
     @Test
     fun `R5 a caller with no identity is keyed by client IP, and a rejection is counted`() {
         val before = meters.find("fleet.rate_limit.rejected").counters().sumOf { it.count() }
-        repeat(2) { assertEquals(200, raw("GET", "/demo/status", null).status) }
-        assertEquals(429, raw("GET", "/demo/status", null).status)
+        repeat(2) { assertEquals(200, raw("GET", "/demo/booking-system", null).status) }
+        assertEquals(429, raw("GET", "/demo/booking-system", null).status)
         val after = meters.find("fleet.rate_limit.rejected").counters().sumOf { it.count() }
         assertTrue(after > before, "fleet.rate_limit.rejected went from $before to $after")
     }

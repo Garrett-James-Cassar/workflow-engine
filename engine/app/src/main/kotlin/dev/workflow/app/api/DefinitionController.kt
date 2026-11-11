@@ -35,6 +35,11 @@ class HealthController {
     @Public
     @GetMapping("/health")
     fun health() = mapOf("status" to "ok")
+
+    /** The studio (apps/web) is the only UI; the engine's root points at its API docs. */
+    @Public
+    @GetMapping("/")
+    fun root() = ResponseEntity.status(HttpStatus.FOUND).header(HttpHeaders.LOCATION, "/docs").build<Void>()
 }
 
 /** Readiness, apart from liveness: 200 when the app's own database answers, else 503 naming the failing check. */

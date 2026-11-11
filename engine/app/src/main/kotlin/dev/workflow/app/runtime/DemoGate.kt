@@ -8,7 +8,7 @@ import dev.workflow.app.security.AuthProperties
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 
-/** The demo surface (console player, `POST /demo/reset`): on in dev and demo (`DEMO_ENABLED`, default on), 404 in live. */
+/** The demo reset (`POST /demo/reset`, used by `make reseed` and the audit tests): on in dev and demo (`DEMO_ENABLED`, default on), 404 in live. */
 @Component
 class DemoGate(
     @Value("\${workflow.demo.enabled:true}") private val enabled: Boolean,

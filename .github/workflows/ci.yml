@@ -24,8 +24,6 @@ jobs:
       - run: make web-install
       - run: make ci
         if: github.event_name != 'schedule'
-      - run: make console-gate
-        if: github.event_name != 'schedule'
       - name: deploy to prod (skipped until DEPLOY_HOST is set)
         run: |
           if [ -z "$DEPLOY_HOST" ]; then echo "DEPLOY_HOST is not set: skipping the prod deploy"; else make release deploy ENV=prod; fi

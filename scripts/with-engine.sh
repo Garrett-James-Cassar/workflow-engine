@@ -1,6 +1,6 @@
 #!/bin/sh
 # with-engine.sh <make args...>: start Postgres and the engine (Flyway migrates), wait for /ready, run `make <args>`,
-# stop the engine, and exit with that make's status. Used by `make console-gate` and `make live-gate` (CI and laptops).
+# stop the engine, and exit with that make's status. Used by `make live-gate` (CI and laptops).
 set -u
 cd "$(dirname "$0")/.."
 PORT="${PORT:-47831}"

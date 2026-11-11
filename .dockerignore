@@ -11,6 +11,5 @@ docs
 backups
 reports
 test-evidence
-engine/console-e2e
 **/coverage
 **/dist

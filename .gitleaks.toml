@@ -18,6 +18,5 @@ paths = [
   '''(^|/)\.idea/''',
   '''(^|/)test-evidence/''',
   '''(^|/)static/vendor/''',
-  '''(^|/)static/console-demo/''',
   '''pnpm-lock\.yaml$''',
 ]

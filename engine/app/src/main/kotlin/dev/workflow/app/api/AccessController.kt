@@ -22,7 +22,7 @@ class MeController(private val access: AccessService) {
     fun me(@RequestAttribute(Identity.LOGIN) login: String): MeView = AccessMapper.me(access.me(login))
 }
 
-/** Dev convenience for the console and the persona switch: who the console can act as. Dev only, in practice. */
+/** Dev convenience for the persona switch: who the studio can act as. Dev only, in practice. */
 @RestController
 class RbacController(private val access: AccessService, private val records: RecordExports) {
     @Requires(Permissions.PEOPLE_READ, label = "List people")

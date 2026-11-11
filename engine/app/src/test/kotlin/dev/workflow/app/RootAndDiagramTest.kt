@@ -8,7 +8,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-class ConsoleTest : ApiTest() {
+class RootAndDiagramTest : ApiTest() {
     private fun raw(path: String, accept: String): HttpResponse<String> =
         HttpClient.newHttpClient().send(
             HttpRequest.newBuilder(URI.create("http://localhost:${env.getProperty("local.server.port")}$path")).header("Accept", accept).header("X-User", ADMIN).build(),
@@ -31,11 +31,13 @@ class ConsoleTest : ApiTest() {
     }
 
     @Test
-    fun `the console is served at the root, with its data endpoints`() {
-        val index = raw("/", "text/html")
-        assertEquals(200, index.statusCode())
-        assertTrue(index.body().contains("<title>Workflow engine</title>"))
-        assertEquals(200, raw("/app.js", "*/*").statusCode())
+    fun `the root points at the API docs, and the studio's data endpoints answer`() {
+        val root = HttpClient.newHttpClient().send(
+            HttpRequest.newBuilder(URI.create("http://localhost:${env.getProperty("local.server.port")}/")).build(),
+            HttpResponse.BodyHandlers.ofString(),
+        )
+        assertEquals(302, root.statusCode())
+        assertEquals("/docs", root.headers().firstValue("Location").get())
         assertTrue(call("GET", "/api/v1/rbac/people").list.any { it["user"] == "l.jones" && (it["teams"] as List<*>).contains("legal") })
         assertEquals(mapOf("up" to true), call("GET", "/demo/booking-system").map)
     }

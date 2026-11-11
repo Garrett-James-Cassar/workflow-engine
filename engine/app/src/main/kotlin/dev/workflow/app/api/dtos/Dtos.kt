@@ -121,7 +121,7 @@ data class EventView(
     val at: Instant,
 )
 
-/** An error as problem+json (RFC 7807): `error` and `detail` both carry the message (the console reads `error`). */
+/** An error as problem+json (RFC 7807): `error` and `detail` both carry the message. */
 data class ErrorView(
     val error: String,
     val reason: String? = null,

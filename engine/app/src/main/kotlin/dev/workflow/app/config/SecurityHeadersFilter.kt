@@ -8,8 +8,8 @@ import org.springframework.core.Ordered
 import org.springframework.stereotype.Component
 import org.springframework.web.filter.OncePerRequestFilter
 
-/** Pages that need scripts and styles of their own: API docs, the console, the player and the diagram page. */
-private val CSP_EXEMPT_PREFIXES = listOf("/docs", "/swagger-ui", "/app.js", "/app.css", "/index.html", "/console-demo", "/vendor")
+/** Pages that need scripts and styles of their own: API docs and the diagram page. */
+private val CSP_EXEMPT_PREFIXES = listOf("/docs", "/swagger-ui", "/vendor")
 private const val API_CSP = "default-src 'none'; frame-ancestors 'none'"
 
 /**

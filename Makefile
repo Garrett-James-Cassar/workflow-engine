@@ -1,4 +1,4 @@
-.PHONY: seed-bulk nfr nfr-load nfr-startup nfr-memory deploy-clean console-gate live-gate release deploy rollback share-console security security-secrets security-deps security-sast security-report lock backup restore restore-drill seed reseed openapi api-breaking web-static web-browser fast fast-be fast-web push-gate gradle-check up down stop dev demo restart test ci check-placement diagrams hooks web web-demo web-install web-gen-check web-typecheck web-lint web-test web-build web-demo-build web-cy web-smoke web-demo-check web-live-check web-ci share share-studio share-studio-local cy-live console-install console-build console-bundle-check console-typecheck console-cy console-smoke console-demo-check console-ci
+.PHONY: seed-bulk nfr nfr-load nfr-startup nfr-memory deploy-clean  live-gate release deploy rollback security security-secrets security-deps security-sast security-report lock backup restore restore-drill seed reseed openapi api-breaking web-static web-browser fast fast-be fast-web push-gate gradle-check up down stop dev demo restart test ci check-placement diagrams hooks web web-demo web-install web-gen-check web-typecheck web-lint web-test web-build web-demo-build web-cy web-smoke web-demo-check web-live-check web-ci share share-studio share-studio-local cy-live
 
 PORT ?= 47831
 export PORT
@@ -31,7 +31,7 @@ stop:
 	echo "pid still holding $(PORT) after 10s; stop it by hand"; exit 1
 
 # Always a fresh start: stop any running engine, make sure Postgres is up, then run the engine.
-# Once the engine answers /health, open the console in the default browser (macOS `open`).
+# Once the engine answers /health, open the API docs in the default browser (macOS `open`).
 # Set NO_BROWSER=1 to skip it. Gives up after two minutes so it never hangs in the background.
 dev: stop up ## run the engine on $(PORT) against compose Postgres (Flyway migrates on start)
 	@if [ -z "$(NO_BROWSER)" ]; then \
@@ -44,8 +44,8 @@ dev: stop up ## run the engine on $(PORT) against compose Postgres (Flyway migra
 
 restart: dev
 
-demo: ## the engine with the console Demo: opens http://localhost:$(PORT)/?demo and starts the player (dev auth only, never live)
-	$(MAKE) dev OPEN_PATH='/?demo'
+demo: ## the studio's mocked Demo build (the engine is not needed): make web-demo
+	$(MAKE) web-demo
 
 
 # ---- release and deploy (dp.2; fleet CICD.md): images tagged by commit, deploy/$(DEPLOY_TARGET)/deploy.sh <env> <tag> ----
@@ -217,40 +217,8 @@ share-studio: share
 share-studio-local: ## serve the studio demo build on 0.0.0.0:5183 without a tunnel
 	$(WEB) exec node scripts/share.mjs --no-tunnel
 
-# ---- console Demo (engine/console-e2e): the console's Cypress specs, which are also the Demo chapters ----
-CONSOLE := pnpm -C engine/console-e2e
-
-console-install: ## install the console e2e package's dependencies
-	$(CONSOLE) install --frozen-lockfile
-
-console-build: ## rebuild the Demo player into engine/app/src/main/resources/static/console-demo
-	$(CONSOLE) build:demo
-
-console-bundle-check: console-build ## the committed player bundle is up to date with its sources
-	git diff --exit-code -- engine/app/src/main/resources/static/console-demo
-
-console-typecheck:
-	$(CONSOLE) typecheck
-
-console-cy: ## chapters, smoke (axe) and layout specs against the RUNNING engine on $(PORT) (make dev)
-	$(CONSOLE) cy:run
-
-console-smoke: ## the console smoke specs only (needs the engine up)
-	$(CONSOLE) cy:smoke
-
-console-demo-check: ## plays every Demo chapter unpaced in the in-page runtime against the running engine (demo.7)
-	$(CONSOLE) cy:demo
-
-console-ci: console-bundle-check console-typecheck console-cy console-demo-check ## the console gate; the engine must be running (CI starts it)
-
-console-gate: ## start Postgres and the engine, run the console gate (console-ci) against it, stop the engine (CI)
-	@scripts/with-engine.sh console-install console-ci
-
 live-gate: ## start Postgres and the engine, run the studio's live Cypress against it, stop the engine (nightly CI)
 	@scripts/with-engine.sh web-install cy-live
-
-share-console: ## tunnel the console (the engine on $(PORT)) through ngrok so a remote viewer runs the Demo in their own tab (dev auth: a demo only)
-	$(CONSOLE) exec node scripts/share.mjs --port $(PORT)
 
 # ---- NFR nightly tier (fleet standards/NFR.md section 8): the section 4 volume, then k6, the startup timer, memory, the restore drill ----
 FLEET ?= $(HOME)/Projects/fleet
